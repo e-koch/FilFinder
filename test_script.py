@@ -5,6 +5,7 @@ Test Script for fil_finder
 
 Includes all working portions.
 
+Run from command line as: test_script.py image.fits
 '''
 import numpy as np
 import matplotlib.pyplot as p
@@ -18,28 +19,29 @@ from fil_finder import *
 img,hdr = fromfits(sys.argv[1])
 
 ## Set the distance to the object to find the scale and beamwidth
-dist_to_img = int(150)
+dist_to_img = 150.0 # pc
+bmwdth = 18.1 # "
 try:
   img_freq = (3*10**14)/hdr["WAVE"] # hopefully the header has this
 except KeyError:
   img_freq = 110201.3541 # Line of 13CO, which I'm testing this on, Feb.6/13
 img_scale = (hdr['CDELT2']*(np.pi/180.0)*dist_to_img)
-img_beam = (18.1/np.sqrt(8*np.log(2.))) * (2*np.pi / 206265.) * dist_to_img # FWHM beamwidth
+img_beam = (bmwdth/np.sqrt(8*np.log(2.))) * (2*np.pi / 206265.) * dist_to_img # FWHM beamwidth
 
 ## Segment filamentary structure
 ## NOTE: the inputs are the image, the size of areas used for adaptive thresholding, the percentile to
-##       globally threshold the image (to get rid of empty regions)
+## globally threshold the image (to get rid of empty regions)
 ## These settings REALLY need to be played with to find a good combination for the image in use.
 mask = makefilamentsappear(img,80,70)
 
 ## If only a segment of the image is of interest
-slice_img = img[300:700,300:800]#[1500:2300,500:1600] # for polaris-250
+slice_img = img#[1500:2300,500:1600] # for polaris-250
 
 ## Pad the array by 1 so pixels on the edge can be analyzed
 slice_img = np.pad(slice_img,1,padwithzeros)
 p.imshow(slice_img);p.show()
 
-mask = mask[300:700,300:800]#[1500:2300,500:1600] # for polaris-250
+mask = mask#[1500:2300,500:1600] # for polaris-250
 mask = np.pad(mask,1,padwithzeros)
 
 ## Peform a medial_axis transform to get skeleton structure.
@@ -50,7 +52,7 @@ mask_img = mask * slice_img
 nanned = np.where(medskel==1)
 for i in range(len(nanned[0])):
     mask_img[nanned[0][i],nanned[1][i]] = np.NaN
-p.imshow(mask_img,interpolation=None);p.show()
+p.imshow(mask_img,interpolation=None,origin=lower);p.show()
 
 ## For use with column density. Portion not yet complete.
 #thresh_array = abs_thresh(mask_img,2e22,img_scale,img_freq)
@@ -71,7 +73,7 @@ interpts, hubs, ends, filbranches, labelisofil = pix_identify(isolatefilarr,num)
 
 ## For inspection of labelled skeletons
 # for n in labelisofil:
-#  	p.imshow(n,interpolation=None);p.show()
+# p.imshow(n,interpolation=None);p.show()
 
 ## Calculate the length of the labelled branches
 ## lengths is a list of lists of the branch lengths for each filament
@@ -118,7 +120,8 @@ dist_transform_all,dist_transform_sep = dist_transform(labelisofil)
 widths_gn,fits_gn,fit_errors_gn = gauss_width(slice_img,dist_transform_all,dist_transform_sep,img_beam,img_scale,verbose=False)
 # print widths_gn
 
-# Add widths onto main filament length, while separating out fit failures for the width
+## Add widths onto main filament length, while separating out fit failures for the width
+## We assume that the skeleton of the filament is shortened by the width of the filament
 overall_lengths = []
 overall_widths = []
 for i in range(num):
@@ -139,4 +142,4 @@ print overall_lengths
 print curvature
 print overall_widths
 
-########## Missing printing out of results, adding FWHM width to length, density and column density calulations
+########## Missing printing out table of results, adding FWHM width to length, density and column density calulations
