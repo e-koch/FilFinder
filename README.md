@@ -14,9 +14,9 @@ In its current form, it is working as expected and can be used without any glari
 
 Last Updated: 05/15/13
 
-Requires: numpy 1.7.1
-          matplotlib
-          pyfits (or astropy)
-          scipy
-          scikit-image 0.8.0
+Requires: numpy 1.7.1, 
+          matplotlib, 
+          pyfits (or astropy), 
+          scipy, 
+          scikit-image 0.8.0, 
           networkx
