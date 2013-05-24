@@ -5,6 +5,8 @@ Test Script for fil_finder
 
 Includes all working portions.
 
+Run from command line as: test_script.py image.fits
+
 '''
 import numpy as np
 import matplotlib.pyplot as p
@@ -18,7 +20,7 @@ from fil_finder import *
 img,hdr = fromfits(sys.argv[1])
 
 ## Set the distance to the object to find the scale and beamwidth
-dist_to_img = int(150)
+dist_to_img = 150.0
 try:
   img_freq = (3*10**14)/hdr["WAVE"] # hopefully the header has this
 except KeyError:
@@ -33,13 +35,13 @@ img_beam = (18.1/np.sqrt(8*np.log(2.))) * (2*np.pi / 206265.) * dist_to_img # FW
 mask = makefilamentsappear(img,80,70)
 
 ## If only a segment of the image is of interest
-slice_img = img[300:700,300:800]#[1500:2300,500:1600] # for polaris-250
+slice_img = img#[1500:2300,500:1600] # for polaris-250
 
 ## Pad the array by 1 so pixels on the edge can be analyzed
 slice_img = np.pad(slice_img,1,padwithzeros)
 p.imshow(slice_img);p.show()
 
-mask = mask[300:700,300:800]#[1500:2300,500:1600] # for polaris-250
+mask = mask#[1500:2300,500:1600] # for polaris-250
 mask = np.pad(mask,1,padwithzeros)
 
 ## Peform a medial_axis transform to get skeleton structure.
@@ -139,4 +141,4 @@ print overall_lengths
 print curvature
 print overall_widths
 
-########## Missing printing out of results, adding FWHM width to length, density and column density calulations
+########## Missing printing out table of results, adding FWHM width to length, density and column density calulations
