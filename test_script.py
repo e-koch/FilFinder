@@ -141,4 +141,4 @@ print overall_lengths
 print curvature
 print overall_widths
 
-########## Missing printing out table of results, adding FWHM width to length, density and column density calulations
+########## Missing printing out table of results, density and column density calulations
