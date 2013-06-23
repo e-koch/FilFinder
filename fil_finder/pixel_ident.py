@@ -60,21 +60,25 @@ def makefilamentsappear(thearray,size,abs_thresh):
   return filter_full
 
 
-def isolatefila(skel_img,mask):
-  #Seperates each filament, over a threshold of number of pixels, into its own array with the same dimensions as the inputed image.
-  # skel_img is the result of the Medial Axis Transform
-  # mask is the image used to make skel_img
-  # sep_arr allows for just the number of and overall labels filaments to be returned as nd.label will not ignore small regions
-  filarrays = [];pix_val = []
+def isolatefila(skel_img,mask,size_threshold):
+  '''
+  Separates each filament, over a threshold of number of pixels, into its own array with the same dimensions as the inputed image.
+  skel_img is the result of the Medial Axis Transform
+  mask is the image used to make skel_img
+  sep_arr allows for just the number of and overall labels filaments to be returned as nd.label will not ignore small regions
+  Size_threshold sets the pixel size on the size of objects
+  '''
+
+  filarrays = []; pix_val = []; corners = []
   labels,num = nd.label(skel_img,eight_con())
   labels_mask,num_mask = nd.label(mask,eight_con())
   if num_mask!=num: raise ValueError('The number of objects must match the number of skeletons.')
   sums = nd.sum(skel_img,labels,range(num))
   for n in range(num):
-    if sums[n]<10.0:
+    if sums[n]<size_threshold: ## Less than 10 pixels only?? Add a parameter
       x,y = np.where(labels==n)
       for i in range(len(x)):
-        if labels_mask[x[i],y[i]]==skel_img[x[i],y[i]]: #Make sure each lael array has the same lael
+        if labels_mask[x[i],y[i]]==skel_img[x[i],y[i]]: #Make sure each label array has the same label
           mask_n = n
         else: mask_n = labels_mask[x[i],y[i]]
         skel_img[x[i],y[i]]=0
@@ -83,14 +87,19 @@ def isolatefila(skel_img,mask):
         mask[x[i],y[i]]=0
 
   labels,num = nd.label(skel_img,eight_con())
-  eachfil = np.zeros((skel_img.shape))
+  # eachfil = np.zeros((skel_img.shape)) ## this needs to be scaled to the size of the filament due to memory concerns
   for n in range(1,num+1):
     x,y = np.where(labels==n)
+    lower = (x.min()-10,y.min()-10)
+    upper = (x.max()+10,y.max()+10)
+    shapes = (upper[0]-lower[0],upper[1]-lower[1])
+    eachfil = np.zeros(shapes)
     for i in range(len(x)):
-      eachfil[x[i],y[i]]+=1
+      eachfil[x[i]-lower[0],y[i]-lower[1]] = 1
     filarrays.append(eachfil)
+    corners.append([lower,upper])
     eachfil = np.zeros((skel_img.shape))
-  return filarrays,mask,num
+  return filarrays,mask,num,corners
 
 
 
@@ -294,15 +303,18 @@ def find_extran(branches,labelfil):
 
 
 def pix_identify(isolatefilarr,num):
-
+  '''
+    Inputs: isolatefilarr - list of segmented filaments
+            num           - number of filaments (doesn't really need to be an input since len(isolatefilarr) would work)
+  '''
 	#Initialize lists
-	interpts = []
-	hubs = []
-	ends = []
-	filbranches=  []
-	labelisofil = []
+  interpts = []
+  hubs = []
+  ends = []
+  filbranches=  []
+  labelisofil = []
 
-	for n in range(num):
+  for n in range(num):
 		funcreturn = find_filpix(1, isolatefilarr[n], final=False)
   		interpts.append(funcreturn[1])
   		hubs.append(len(funcreturn[1]))
@@ -314,7 +326,7 @@ def pix_identify(isolatefilarr,num):
   		filbranches.append(num_branch)
   		labelisofil.append(label_branch)
 
-  	return interpts, hubs, ends, filbranches, labelisofil
+  return interpts, hubs, ends, filbranches, labelisofil
 
 def extremum_pts(labelisofil,extremum,ends):
   # Returns the the farthest points of the filament

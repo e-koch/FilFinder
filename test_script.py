@@ -6,10 +6,7 @@ Test Script for fil_finder
 Includes all working portions.
 
 Run from command line as: test_script.py image.fits
-<<<<<<< HEAD
-=======
 
->>>>>>> 94a4857412446c585ceba63e348e14cbca44c24a
 '''
 import numpy as np
 import matplotlib.pyplot as p
@@ -21,14 +18,13 @@ from fil_finder import *
 
 ## Load the image
 img,hdr = fromfits(sys.argv[1])
-
+img = img[1500:2300,500:1600]
 ## Set the distance to the object to find the scale and beamwidth
-<<<<<<< HEAD
+
 dist_to_img = 150.0 # pc
 bmwdth = 18.1 # "
-=======
-dist_to_img = 150.0
->>>>>>> 94a4857412446c585ceba63e348e14cbca44c24a
+
+
 try:
   img_freq = (3*10**14)/hdr["WAVE"] # hopefully the header has this
 except KeyError:
@@ -47,7 +43,6 @@ slice_img = img#[1500:2300,500:1600] # for polaris-250
 
 ## Pad the array by 1 so pixels on the edge can be analyzed
 slice_img = np.pad(slice_img,1,padwithzeros)
-p.imshow(slice_img);p.show()
 
 mask = mask#[1500:2300,500:1600] # for polaris-250
 mask = np.pad(mask,1,padwithzeros)
@@ -60,7 +55,7 @@ mask_img = mask * slice_img
 nanned = np.where(medskel==1)
 for i in range(len(nanned[0])):
     mask_img[nanned[0][i],nanned[1][i]] = np.NaN
-p.imshow(mask_img,interpolation=None,origin=lower);p.show()
+p.imshow(mask_img,interpolation=None,origin="lower");p.show()
 
 ## For use with column density. Portion not yet complete.
 #thresh_array = abs_thresh(mask_img,2e22,img_scale,img_freq)
@@ -71,7 +66,7 @@ p.imshow(mask_img,interpolation=None,origin=lower);p.show()
 #slice_img = subtract_cores(thresh_array)
 
 ## Separate each filament into its own array
-isolatefilarr,mask, num = isolatefila(medskel,mask)
+isolatefilarr,mask, num, offsets = isolatefila(medskel,mask, 10)
 print "Initial Fil # : %s" % (num)
 
 ## Here, we label each pixel in each filament based on the surrounding 8 pixels
@@ -119,13 +114,13 @@ labelisofil,filbranches,hubs,lengths = final_analysis(labelisofil)
 
 ## A distance transform is performed on each filament and the combination of all filaments (to determine which filament a pixel is
 ## closest to)
-dist_transform_all,dist_transform_sep = dist_transform(labelisofil)
+dist_transform_all,dist_transform_sep = dist_transform(labelisofil, offsets, img.shape)
 
 
 ## A radial profile is created from the distance transforms
 ## A gaussian is fit to the profiles, where the mean is forced to be 0 (skeleton is assumed centre)
 ## widths_gn are the widths, fits_gn are the fit parameters, errors_gn are the errors on each parameter
-widths_gn,fits_gn,fit_errors_gn = gauss_width(slice_img,dist_transform_all,dist_transform_sep,img_beam,img_scale,verbose=False)
+widths_gn,fits_gn,fit_errors_gn = gauss_width(slice_img,dist_transform_all,dist_transform_sep,img_beam,img_scale, offsets,verbose=False)
 # print widths_gn
 
 ## Add widths onto main filament length, while separating out fit failures for the width
@@ -150,8 +145,5 @@ print overall_lengths
 print curvature
 print overall_widths
 
-<<<<<<< HEAD
-########## Missing printing out table of results, adding FWHM width to length, density and column density calulations
-=======
 ########## Missing printing out table of results, density and column density calulations
->>>>>>> 94a4857412446c585ceba63e348e14cbca44c24a
+

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from utilities import *
-import numpy as np 
+import numpy as np
 import scipy.ndimage as nd
 import scipy.optimize as op
 import matplotlib.pyplot as p
@@ -23,21 +23,31 @@ Requires:
 
 
 
-def dist_transform(labelisofil):
-	# Recombines the cleaned skeletons from final analysis and takes the Euclidean Distance Transform
+def dist_transform(labelisofil, offsets, orig_size):
+	'''
+
+	Recombines the cleaned skeletons from final analysis and takes the Euclidean Distance Transform.
+	Since each filament is in an array defined by its own size, the offsets need to be taken into account when
+	adding back into a master array.
+
+	'''
 	num  = len(labelisofil)
+
 
 	# Initializing lists
 	dist_transform_sep = []
 
 
-	filclean_all = np.ones((labelisofil[0].shape))
+	filclean_all = np.ones(orig_size)
 	for n in range(num):
-	  x,y = np.where(labelisofil[n]>=1)
+	  x_off,y_off = offsets[n][0] ## This is the coords of the bottom left in the master array
+	  pad_labelisofil = np.pad(labelisofil[n],20,padwithzeros) # Increase size of arrays for better radial fits
+	  ## A problem may arise when the pad exceeds the edge of the master array
+	  x,y = np.where(pad_labelisofil>=1)
 	  for i in range(len(x)):
-	    labelisofil[n][x[i],y[i]]=1
-	    filclean_all[x[i],y[i]]=0
-	  dist_transform_sep.append(nd.distance_transform_edt(np.logical_not(labelisofil[n])))	
+	    pad_labelisofil[x[i],y[i]]=1
+	    filclean_all[x[i]+ x_off,y[i]+ y_off]=0
+	  dist_transform_sep.append(nd.distance_transform_edt(np.logical_not(pad_labelisofil)))
 
 	dist_transform_all = nd.distance_transform_edt(filclean_all) # Distance Transform of all cleaned filaments
 
@@ -46,7 +56,7 @@ def dist_transform(labelisofil):
 
 
 
-def gauss_width(img,dist_transform_all,dist_transform_sep,img_beam,img_scale,verbose=False):
+def gauss_width(img,dist_transform_all,dist_transform_sep,img_beam,img_scale,offsets,verbose=False):
 	# Fits a Gaussian to the radial profile of a filament using the output from dist_transform, the image, beam_width and spatial scale
 	num = len(dist_transform_sep)
 	#Initialize lists
@@ -66,13 +76,15 @@ def gauss_width(img,dist_transform_all,dist_transform_sep,img_beam,img_scale,ver
 		width_value = []
 		width_distance = []
 		x,y = np.where(dist_transform_sep[n]<near_region)
-	  	num_nan = 0		
+		x_full = x + offsets[n][0][0] ## Transform into coords of master image
+		y_full = y + offsets[n][0][1]
+	  	num_nan = 0
 	  	for i in range(len(x)):
-			if dist_transform_sep[n][x[i],y[i]]<=dist_transform_all[x[i],y[i]] and np.isnan(img[x[i],y[i]])==False: 
+			if dist_transform_sep[n][x[i],y[i]]<=dist_transform_all[x_full[i],y_full[i]] and np.isnan(img[x_full[i],y_full[i]])==False:
 				# Check overall distance transform to make sure pixel belongs to proper filament
 				#print i
-				width_value.append(img[x[i],y[i]])
-				width_distance.append(dist_transform_sep[n][x[i],y[i]])	
+				width_value.append(img[x_full[i],y_full[i]])
+				width_distance.append(dist_transform_sep[n][x[i],y[i]])
 			else: num_nan+=1
 		# Binning
 	  	av_dists = [];av_val = [];ave_dist = [];ave_val = []
@@ -91,9 +103,9 @@ def gauss_width(img,dist_transform_all,dist_transform_sep,img_beam,img_scale,ver
 		# Attempt to find initial params assuming data is Gaussian-ish
 		if len(av_val)>0:
 			param = (np.max(av_val),np.sqrt(np.var(av_dists)),np.min(av_val))
-		else: 
+		else:
 			print "No points to fit"
-			param = param0		
+			param = param0
 	  	try:
 			opts,cov = op.curve_fit(gaussian,av_dists,av_val,p0=param,maxfev=100*(len(width_value)+1))
 			fits.append(opts)
@@ -110,13 +122,13 @@ def gauss_width(img,dist_transform_all,dist_transform_sep,img_beam,img_scale,ver
 			widths.append("Neg. FWHM")
 		if verbose:
 			print param
-			print opts 
+			print opts
 			p.plot(av_dists,av_val,"kD",np.linspace(0,1,100),gaussian(np.linspace(0,1,100),*opts),"r")
 			p.xlabel(r'Radial Distance (pc)')
 			p.ylabel(r'Integrated Intensity ( $\frac{K km}{s}$ )')
 			p.grid(True)
 			p.show()
-		param = None # Reset param for next filament			
+		param = None # Reset param for next filament
 	return widths,fits,fit_errors
 
 
