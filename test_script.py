@@ -6,6 +6,10 @@ Test Script for fil_finder
 Includes all working portions.
 
 Run from command line as: test_script.py image.fits
+<<<<<<< HEAD
+=======
+
+>>>>>>> 94a4857412446c585ceba63e348e14cbca44c24a
 '''
 import numpy as np
 import matplotlib.pyplot as p
@@ -19,8 +23,12 @@ from fil_finder import *
 img,hdr = fromfits(sys.argv[1])
 
 ## Set the distance to the object to find the scale and beamwidth
+<<<<<<< HEAD
 dist_to_img = 150.0 # pc
 bmwdth = 18.1 # "
+=======
+dist_to_img = 150.0
+>>>>>>> 94a4857412446c585ceba63e348e14cbca44c24a
 try:
   img_freq = (3*10**14)/hdr["WAVE"] # hopefully the header has this
 except KeyError:
@@ -142,4 +150,8 @@ print overall_lengths
 print curvature
 print overall_widths
 
+<<<<<<< HEAD
 ########## Missing printing out table of results, adding FWHM width to length, density and column density calulations
+=======
+########## Missing printing out table of results, density and column density calulations
+>>>>>>> 94a4857412446c585ceba63e348e14cbca44c24a
