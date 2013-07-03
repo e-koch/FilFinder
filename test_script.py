@@ -18,7 +18,7 @@ from fil_finder import *
 
 ## Load the image
 img,hdr = fromfits(sys.argv[1])
-img = img[1500:2300,500:1600]
+img = img[100:1900,350:1500]#[1500:2300,500:1600]
 ## Set the distance to the object to find the scale and beamwidth
 
 dist_to_img = 150.0 # pc
@@ -114,8 +114,7 @@ labelisofil,filbranches,hubs,lengths = final_analysis(labelisofil)
 
 ## A distance transform is performed on each filament and the combination of all filaments (to determine which filament a pixel is
 ## closest to)
-dist_transform_all,dist_transform_sep = dist_transform(labelisofil, offsets, img.shape)
-
+dist_transform_all,dist_transform_sep = dist_transform(labelisofil, offsets, slice_img.shape, 15)
 
 ## A radial profile is created from the distance transforms
 ## A gaussian is fit to the profiles, where the mean is forced to be 0 (skeleton is assumed centre)

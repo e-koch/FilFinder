@@ -23,12 +23,15 @@ Requires:
 
 
 
-def dist_transform(labelisofil, offsets, orig_size):
+def dist_transform(labelisofil, offsets, orig_size, pad_size):
 	'''
 
 	Recombines the cleaned skeletons from final analysis and takes the Euclidean Distance Transform.
 	Since each filament is in an array defined by its own size, the offsets need to be taken into account when
 	adding back into a master array.
+
+	NOTE: pad_size must be chosen to be smaller than the smallest filament array shape. The filament will be cut out
+		  if it needs to be trimmed to fit within the original image
 
 	'''
 	num  = len(labelisofil)
@@ -41,12 +44,42 @@ def dist_transform(labelisofil, offsets, orig_size):
 	filclean_all = np.ones(orig_size)
 	for n in range(num):
 	  x_off,y_off = offsets[n][0] ## This is the coords of the bottom left in the master array
-	  pad_labelisofil = np.pad(labelisofil[n],20,padwithzeros) # Increase size of arrays for better radial fits
+	  x_top,y_top = offsets[n][1]
+
+	  ## Now check if padding will put the array outside of the original array size
+	  excess_x_top =  x_top - orig_size[0] + 2*pad_size
+
+	  excess_y_top =  y_top - orig_size[1] + 2*pad_size
+
+	  pad_labelisofil = np.pad(labelisofil[n],pad_size,padwithzeros) # Increase size of arrays for better radial fits
+
+	  if excess_x_top > 0:
+	  	pad_labelisofil = pad_labelisofil[:-excess_x_top,:]
+	  	print "REDUCED FILAMENT %s TO FIT IN ORIGINAL ARRAY" %(n)
+	  if excess_y_top > 0:
+	  	pad_labelisofil = pad_labelisofil[:,:-excess_y_top]
+	  	print "REDUCED FILAMENT %s TO FIT IN ORIGINAL ARRAY" %(n)
+
+	  if x_off<0:
+	  	excess_x_bottom =  (x_off - 2*pad_size) * (-1)
+	  	pad_labelisofil = pad_labelisofil[excess_x_bottom:,:]
+	  	print "REDUCED FILAMENT %s TO FIT IN ORIGINAL ARRAY" %(n)
+
+	  if y_off<0:
+	  	excess_y_bottom =  (y_off - 2*pad_size) * (-1)
+	  	pad_labelisofil = pad_labelisofil[:,excess_y_bottom:]
+	  	print "REDUCED FILAMENT %s TO FIT IN ORIGINAL ARRAY" %(n)
+
+	  # pad_labelisofil = np.pad(pad_labelisofil,pad_size,padwithzeros)
+
 	  ## A problem may arise when the pad exceeds the edge of the master array
 	  x,y = np.where(pad_labelisofil>=1)
 	  for i in range(len(x)):
 	    pad_labelisofil[x[i],y[i]]=1
-	    filclean_all[x[i]+ x_off,y[i]+ y_off]=0
+	    # if x[i] + x_off >= orig_size[0] or y[i] + y_off >= orig_size[1]:
+	    # 	pass ## pixel is outside of original image, can be ignored
+	    # else:
+	    filclean_all[x[i]+ x_off - pad_size,y[i]+ y_off - pad_size]=0
 	  dist_transform_sep.append(nd.distance_transform_edt(np.logical_not(pad_labelisofil)))
 
 	dist_transform_all = nd.distance_transform_edt(filclean_all) # Distance Transform of all cleaned filaments
