@@ -17,7 +17,7 @@ Example Images
 
 ![Chameleon-250 Scaled to 2200](https://github.com/e-koch/fil_finder/blob/master/images/chameleon-250-filcontours-2200.png "Chameleon-250 Scaled to 2200")
 
-![Chameleon-250 Scaled to 2100](https://github.com/e-koch/fil_finder/blob/master/images/chameleon-250-filcontours-2100.png "Chameleon-250 Scaled to 2100")
+![Chameleon-250 Scaled to 2500](https://github.com/e-koch/fil_finder/blob/master/images/chameleon-250-filcontours-2500.png "Chameleon-250 Scaled to 2500")
 
 Package Dependencies
 --------------------
