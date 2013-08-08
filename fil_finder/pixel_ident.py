@@ -42,7 +42,7 @@ def threshold_adaptive(image, block_size, method='gaussian', offset=0,mode='refl
 
 
 def makefilamentsappear(thearray,size,abs_thresh):
-	#Adaptive thresholding is used to segregate filaments. The thresholded image is passed to a median filter to eliminate extraneous spurs when the skeleton is taken.
+  #Adaptive thresholding is used to segregate filaments. The thresholded image is passed to a median filter to eliminate extraneous spurs when the skeleton is taken.
   size = float(size)
   abs_thresh = float(abs_thresh)
 
@@ -50,17 +50,18 @@ def makefilamentsappear(thearray,size,abs_thresh):
   abs_filter = nd.median_filter(thearray>scoreatpercentile(np.ravel(thearray[~np.isnan(thearray)]),abs_thresh),size=32,mode='mirror')
   # For particularly noisy images where the signal is only discernible near the sources, adaptive thresholding fails, so only abs thresh is used
   adapt_filter = threshold_adaptive(thearray,size,'median')
+
   if np.sum(adapt_filter)/float(len(np.ravel(adapt_filter)))<=0.02:
     print "Adaptive Threshold Fail"
     filter_full = abs_filter
   else:
-    medfilter = nd.median_filter(adapt_filter,size=32,mode='mirror')
+    medfilter = nd.median_filter(adapt_filter,size=32,mode='mirror') ## 32 rids extraneous spurs, while preserving shape of region
     filter_full = abs_filter * medfilter #*
 
   return filter_full
 
 
-def isolatefila(skel_img,mask,size_threshold):
+def isolatefilaments(skel_img,mask,size_threshold):
   '''
   Separates each filament, over a threshold of number of pixels, into its own array with the same dimensions as the inputed image.
   skel_img is the result of the Medial Axis Transform

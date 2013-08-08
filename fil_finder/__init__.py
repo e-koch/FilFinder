@@ -12,10 +12,8 @@ radial profile of each filament. A gaussian is fit to the profile to find the wi
 and deconvolved with the FWHM beamwidth of the instrument. To describe the shape of the filament, we report its average curvature. This
 is done by randomly choosing three pixels on the skeleton and using the Menger Curvature Formula.
 
-This module lacks proper documentation and can be improved in multiple manners. It will be updated regularly, time permitting!
-In its current form, it is working as expected and can be used without any glaring issues.
 
-Last Updated: 05/15/13
+Last Updated: 08/07/13
 
 Requires: numpy 1.7.1
           matplotlib
@@ -31,3 +29,5 @@ from length import *
 from pixel_ident import *
 from utilities import *
 from width import *
+
+from filfind_class import fil_finder_2D

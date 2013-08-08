@@ -1,3 +1,7 @@
+
+Description
+------------
+
 fil_finder: Module for extraction and analysis of filamentary structure in molecular clouds.
 
 fil_finder segments filamentary structure in an integrated intensity image using adaptive thresholding. The scale of the patch size for
@@ -9,12 +13,14 @@ radial profile of each filament. A gaussian is fit to the profile to find the wi
 and deconvolved with the FWHM beamwidth of the instrument. To describe the shape of the filament, we report its average curvature. This
 is done by randomly choosing three pixels on the skeleton and using the Menger Curvature Formula.
 
-This module lacks proper documentation and can be improved in multiple manners. It will be updated regularly, time permitting!
-In its current form, it is working as expected and can be used without any glaring issues.
+Package Dependencies
+--------------------
 
-Requires: numpy 1.7.1, 
-          matplotlib, 
-          pyfits (or astropy), 
-          scipy, 
-          scikit-image 0.8.0, 
+Requires: numpy 1.7.1,
+          matplotlib,
+          pyfits (or astropy),
+          scipy,
+          scikit-image 0.8.0,
           networkx
+
+Optional: pygraphviz -- to make connectivity graphs (set verbose = True)

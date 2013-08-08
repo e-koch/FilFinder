@@ -66,7 +66,7 @@ p.imshow(mask_img,interpolation=None,origin="lower");p.show()
 #slice_img = subtract_cores(thresh_array)
 
 ## Separate each filament into its own array
-isolatefilarr,mask, num, offsets = isolatefila(medskel,mask, 10)
+isolatefilarr,mask, num, offsets = isolatefilaments(medskel,mask, 10)
 print "Initial Fil # : %s" % (num)
 
 ## Here, we label each pixel in each filament based on the surrounding 8 pixels

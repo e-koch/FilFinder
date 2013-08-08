@@ -97,8 +97,8 @@ def eight_con():
 def distance(x,x1,y,y1):
   return np.sqrt((x-x1)**2.0 + (y-y1)**2.0)
 
-def medial_axis(img):
-  return mo.medial_axis(img)
+def medial_axis(img, return_distance=False):
+  return mo.medial_axis(img,return_distance=return_distance)
 
 def padwithzeros(vector,pad_width,iaxis,kwargs):
   vector[:pad_width[0]] = 0
