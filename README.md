@@ -13,7 +13,7 @@ radial profile of each filament. A gaussian is fit to the profile to find the wi
 and deconvolved with the FWHM beamwidth of the instrument. To describe the shape of the filament, we report its average curvature. This
 is done by randomly choosing three pixels on the skeleton and using the Menger Curvature Formula.
 
-(https://github.com/e-koch/fil_finder/chameleon-250-filcontours-2200.pdf "Chameleon-250 1")
+(https://github.com/e-koch/fil_finder/images/chameleon-250-filcontours-2200.pdf "Chameleon-250 1")
 
 Package Dependencies
 --------------------
