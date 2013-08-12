@@ -41,13 +41,15 @@ def threshold_adaptive(image, block_size, method='gaussian', offset=0,mode='refl
     return skfilter.threshold_adaptive(image, block_size, method='gaussian', offset=0,mode='reflect', param=None)
 
 
-def makefilamentsappear(thearray,size,abs_thresh):
+def makefilamentsappear(thearray, size, abs_thresh, filter_size):
   #Adaptive thresholding is used to segregate filaments. The thresholded image is passed to a median filter to eliminate extraneous spurs when the skeleton is taken.
   size = float(size)
   abs_thresh = float(abs_thresh)
+  filter_size = float(filter_size)
 
   from scipy.stats import scoreatpercentile
-  abs_filter = nd.median_filter(thearray>scoreatpercentile(np.ravel(thearray[~np.isnan(thearray)]),abs_thresh),size=32,mode='mirror')
+  abs_filter = nd.median_filter(thearray>scoreatpercentile(np.ravel(thearray[~np.isnan(thearray)]),abs_thresh),size=filter_size,mode='mirror')
+  # abs_filter = thearray>scoreatpercentile(np.ravel(thearray[~np.isnan(thearray)]),abs_thresh)
   # For particularly noisy images where the signal is only discernible near the sources, adaptive thresholding fails, so only abs thresh is used
   adapt_filter = threshold_adaptive(thearray,size,'median')
 
@@ -55,7 +57,7 @@ def makefilamentsappear(thearray,size,abs_thresh):
     print "Adaptive Threshold Fail"
     filter_full = abs_filter
   else:
-    medfilter = nd.median_filter(adapt_filter,size=32,mode='mirror') ## 32 rids extraneous spurs, while preserving shape of region
+    medfilter = nd.median_filter(adapt_filter,size=filter_size,mode='mirror') ## 32 rids extraneous spurs, while preserving shape of region
     filter_full = abs_filter * medfilter #*
 
   return filter_full

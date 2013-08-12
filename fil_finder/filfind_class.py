@@ -33,7 +33,7 @@ class fil_finder_2D(object):
     skel_thresh - below this cut off, skeletons with less pixels will be deleted
     branch_thresh - branches shorter than this length (pixels) will be deleted if extraneous
     pad_size - size to which filaments will be padded to build a radial intensity profile
-    distance - to object in image
+    distance - to object in image (in pc)
     region_slice - option to slice off regions of the given image -- input as [xmin,xmax,ymin,max]
 
     """
@@ -52,7 +52,8 @@ class fil_finder_2D(object):
                         slice(region_slice[2],region_slice[3],None))
             self.image = np.pad(image[slices],1,padwithzeros)
 
-        # self.image = np.arctan(self.image)/np.mean(self.image[~np.isnan(self.image)])  ## Rescaling idea -- incomplete
+        # from scipy.stats import scoreatpercentile
+        # self.image = np.arctan(self.image)/scoreatpercentile(self.image[~np.isnan(self.image)], 99)  ## Rescaling idea -- incomplete
         self.skel_thresh = skel_thresh
         self.branch_thresh = branch_thresh
         self.pad_size = pad_size
@@ -96,7 +97,7 @@ class fil_finder_2D(object):
 
     def create_mask(self, glob_thresh = None, local_thresh = None, verbose = False): ## Give option to give live inputs to change thresh??
         '''
-            Use function makefilamentsappear to create a mask of filaments
+            Uses function makefilamentsappear to create a mask of filaments
         '''
 
 
@@ -107,15 +108,18 @@ class fil_finder_2D(object):
 
         from scipy import ndimage
 
-        # self.image = ndimage.gaussian_filter(self.image,sigma=2)
-        self.mask = makefilamentsappear(self.image,self.glob_thresh,self.local_thresh)
+        self.mask = makefilamentsappear(self.image, self.glob_thresh, self.local_thresh, self.local_thresh-1.0)
 
+        from skimage.morphology import remove_small_objects
+
+        self.mask = remove_small_objects(self.mask, min_size = 200) ## Add min_size as parameter
+        ## Could calculate expected pixel area based on ~0.1 pc width with eccentricity of >0.2
 
         if verbose:
             scale = 0
+            p.contour(self.mask)
             vmax = np.nanmax(self.image)
             while scale==0:
-                p.contour(self.mask)
                 p.imshow(self.image, vmax=vmax,interpolation=None,origin="lower")
                 p.show()
 
@@ -129,7 +133,7 @@ class fil_finder_2D(object):
 
         return self
 
-    def medskel(self,glob_thresh=None, local_thresh=None, return_distance=True, verbose = False):
+    def medskel(self, return_distance=True, verbose = False):
 
         if return_distance:
             self.skeleton,self.medial_axis_distance = medial_axis(self.mask, return_distance=return_distance)
