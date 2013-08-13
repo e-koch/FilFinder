@@ -15,6 +15,7 @@ from width import *
 
 import numpy as np
 import matplotlib.pyplot as p
+import scipy.ndimage as nd
 
 class fil_finder_2D(object):
     """
@@ -52,6 +53,8 @@ class fil_finder_2D(object):
                         slice(region_slice[2],region_slice[3],None))
             self.image = np.pad(image[slices],1,padwithzeros)
 
+        self.smooth_image = nd.median_filter(self.image, size= local_thresh/2.)
+
         # from scipy.stats import scoreatpercentile
         # self.image = np.arctan(self.image)/scoreatpercentile(self.image[~np.isnan(self.image)], 99)  ## Rescaling idea -- incomplete
         self.skel_thresh = skel_thresh
@@ -69,12 +72,15 @@ class fil_finder_2D(object):
 
         if distance==None:
             print "No distance given. Results will be in pixel units."
-            self.imgscale = 1 ## pixel
+            self.imgscale = 1.0 ## pixel
             self.beamwidth = beamwidth * (hdr["CDELT2"] * 3600)**(-1) ## where CDELT2 is in degrees
+            self.pixel_unit_flag = True
 
         else:
             self.imgscale = (hdr['CDELT2']*(np.pi/180.0)*distance) ## pc
             self.beamwidth = (beamwidth/np.sqrt(8*np.log(2.))) * (2*np.pi / 206265.) * distance
+            self.pixel_unit_flag = False
+
             # FWHM beamwidth in pc
 
         self.glob_thresh = glob_thresh
@@ -108,7 +114,12 @@ class fil_finder_2D(object):
 
         from scipy import ndimage
 
-        self.mask = makefilamentsappear(self.image, self.glob_thresh, self.local_thresh, self.local_thresh-1.0)
+        if self.local_thresh % 2 == 0:
+            filter_size = self.local_thresh
+        else:
+            filter_size = self.local_thresh - 1.0
+
+        self.mask = makefilamentsappear(self.smooth_image, self.glob_thresh, self.local_thresh, filter_size)
 
         from skimage.morphology import remove_small_objects
 
@@ -134,9 +145,19 @@ class fil_finder_2D(object):
         return self
 
     def medskel(self, return_distance=True, verbose = False):
+        from skimage.morphology import medial_axis
 
         if return_distance:
             self.skeleton,self.medial_axis_distance = medial_axis(self.mask, return_distance=return_distance)
+            if self.pixel_unit_flag:
+                print "Setting arbitrary width threshold to 2 pixels"
+                width_threshold = raw_input("Enter threshold change or pass: ")
+                if width_threshold == "":
+                    width_threshold = 2
+                width_threshold = float(width_threshold)
+            else:
+                width_threshold = (0.1/10.)/self.imgscale # Set to be a tenth of expected filament width
+            self.skeleton[np.nonzero(self.medial_axis_distance)<2.] = 0 ## Eliminate narrow connections
         else:
             self.skeleton = medial_axis(self.mask)
 
