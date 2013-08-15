@@ -24,7 +24,7 @@ class fil_finder_2D(object):
     --------------
     Runs the fil-finder algorithm for 2D images
 
-    INPUTS
+    Parameters
     -------------
     image - 2D array of image
     hdr   - header from fits file    COULD MAKE THIS OPTIONAL
@@ -156,7 +156,7 @@ class fil_finder_2D(object):
                     width_threshold = 2
                 width_threshold = float(width_threshold)
             else:
-                width_threshold = (0.1/10.)/self.imgscale # Set to be a tenth of expected filament width
+                width_threshold = (0.1/10.)/self.imgscale # (in pc) Set to be a tenth of expected filament width
             self.skeleton[np.nonzero(self.medial_axis_distance)<2.] = 0 ## Eliminate narrow connections
         else:
             self.skeleton = medial_axis(self.mask)

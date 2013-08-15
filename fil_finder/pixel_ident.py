@@ -107,12 +107,44 @@ def isolatefilaments(skel_img,mask,size_threshold):
 
 
 def find_filpix(branches,labelfil,final=True):
-  # find_filpix takes identifies the types of pixels contained in the skeleton. This is done by creating lists of the pixel values surrounding the pixel to be determined.
-# Eg. a 3x3 array about a pixel is [1,0,1]
-# 				   [0,1,0] creating a list of [0,0,1,0,1,0,0,1]
-#				   [0,1,0]
-# by taking the pixel values that surround the pixel. The list is then shifted once to the right giving [1,0,0,1,0,1,0,0]. The shifted list is subtracted from the original giving [-1,0,1,-1,1,-1,0,1].
-#The number of 1s (or -1s) give the amount of step-ups around the pixel. By comparing the step-ups and the number of non-zero elements in the original list, the pixel can be identified into a category.
+  '''
+   find_filpix identifies the types of pixels contained in the skeleton. This is done by creating lists of the pixel values surrounding the pixel to be determined.
+   Eg. a 3x3 array about a pixel is [1,0,1]
+ 				                            [0,1,0] which creates a list of [0,0,1,0,1,0,0,1]
+				                            [0,1,0]
+  by taking the pixel values that surround the pixel. The list is then shifted once to the right giving [1,0,0,1,0,1,0,0]. The shifted list is subtracted from the original giving [-1,0,1,-1,1,-1,0,1].
+  The number of 1s (or -1s) give the amount of step-ups around the pixel. By comparing the step-ups and the number of non-zero elements in the original list, the pixel can be identified into a category.
+
+  Parameters
+  ----------
+
+  branches: list
+            number of branches in each skeleton
+
+  labelfil: list
+            list of arrays each containing one skeleton
+
+  final: bool
+         if true, corner points, intersections, and body points as all labelled as a body point
+         for use when the skeletons have already been cleaned
+
+  Returns
+  -------
+
+  fila_pts: list
+            all points on the body of the skeleton
+
+  inters: list
+          all points associated with an intersection in the skeleton
+
+  labelfil: list
+            list of arrays
+            intersections have been removed from the skeletons
+
+  endpts_return: list
+                 end points of each branch on the skeleton
+'''
+
   initslices = [];initlist = []; shiftlist = [];sublist = [];endpts = [];blockpts = []
   bodypts = [];slices = []; vallist = [];shiftvallist=[];cornerpts = [];delete = []
   subvallist = []
@@ -124,8 +156,8 @@ def find_filpix(branches,labelfil,final=True):
     x,y = np.where(labelfil==k)
     for i in range(len(x)):
       if x[i]<labelfil.shape[0]-1 and y[i]<labelfil.shape[1]-1:
-	  pix.append((x[i],y[i]))
-          initslices.append(np.array([[labelfil[x[i]-1,y[i]+1],labelfil[x[i],y[i]+1],labelfil[x[i]+1,y[i]+1]],[labelfil[x[i]-1,y[i]],0,labelfil[x[i]+1,y[i]]],[labelfil[x[i]-1,y[i]-1],labelfil[x[i],y[i]-1],labelfil[x[i]+1,y[i]-1]]]))
+        pix.append((x[i],y[i]))
+        initslices.append(np.array([[labelfil[x[i]-1,y[i]+1],labelfil[x[i],y[i]+1],labelfil[x[i]+1,y[i]+1]],[labelfil[x[i]-1,y[i]],0,labelfil[x[i]+1,y[i]]],[labelfil[x[i]-1,y[i]-1],labelfil[x[i],y[i]-1],labelfil[x[i]+1,y[i]-1]]]))
 
     filpix.append(pix)
     slices.append(initslices)
@@ -151,6 +183,7 @@ def find_filpix(branches,labelfil,final=True):
       sublist = []
     subvallist.append(subslist)
     subslist = []
+
 # x represents the subtracted list (step-ups) and y is the values of the surrounding pixels. The categories of pixels are ENDPTS (x<=1), BODYPTS (x=2,y=2),CORNERPTS (x=2,y=3),BLOCKPTS (x=3,y>=4), and INTERPTS (x>=3).
 # A cornerpt is [*,0,0] (*s) associated with an intersection, but their exclusion from
 #		[1,*,0] the intersection keeps eight-connectivity, they are included
@@ -168,17 +201,17 @@ def find_filpix(branches,labelfil,final=True):
           endpts.append(filpix[k][l])
 	  endpts_return.append(filpix[k][l])
       elif len(x)==2:
-	if final:
-	  bodypts.append(filpix[k][l])
-	else:
+        if final:
+          bodypts.append(filpix[k][l])
+        else:
           if len(y)==2:
             bodypts.append(filpix[k][l])
-	  elif len(y)==3:
-	    cornerpts.append(filpix[k][l])
-	  elif len(y)>=4:
-	    blockpts.append(filpix[k][l])
+          elif len(y)==3:
+            cornerpts.append(filpix[k][l])
+          elif len(y)>=4:
+            blockpts.append(filpix[k][l])
       elif len(x)>=3:
-          intertemps.append(filpix[k][l])
+        intertemps.append(filpix[k][l])
     endpts = list(set(endpts))
     bodypts = list(set(bodypts))
     dups = set(endpts) & set(bodypts)
@@ -188,24 +221,25 @@ def find_filpix(branches,labelfil,final=True):
 #Cornerpts without a partner diagonally attached can be included as a bodypt.
     if len(cornerpts)>0:
       for i in cornerpts:
-	for j in cornerpts:
+        for j in cornerpts:
           if i !=j:
-	    if distance(i[0],j[0],i[1],j[1])==np.sqrt(2.0):
-	      proximity = [(i[0],i[1]-1),(i[0],i[1]+1),(i[0]-1,i[1]),(i[0]+1,i[1]),(i[0]-1,i[1]+1),(i[0]+1,i[1]+1),(i[0]-1,i[1]-1),(i[0]+1,i[1]-1)]
-	      match = set(intertemps) & set(proximity)
-	      if len(match)==1:
-	        pairs.append([i,j])
-	        cornerpts.remove(i);cornerpts.remove(j)
+            if distance(i[0],j[0],i[1],j[1])==np.sqrt(2.0):
+              proximity = [(i[0],i[1]-1),(i[0],i[1]+1),(i[0]-1,i[1]),(i[0]+1,i[1]),(i[0]-1,i[1]+1),(i[0]+1,i[1]+1),(i[0]-1,i[1]-1),(i[0]+1,i[1]-1)]
+              match = set(intertemps) & set(proximity)
+              if len(match)==1:
+                pairs.append([i,j])
+                cornerpts.remove(i);cornerpts.remove(j)
     if len(cornerpts)>0:
       for l in cornerpts:
-	proximity = [(l[0],l[1]-1),(l[0],l[1]+1),(l[0]-1,l[1]),(l[0]+1,l[1]),(l[0]-1,l[1]+1),(l[0]+1,l[1]+1),(l[0]-1,l[1]-1),(l[0]+1,l[1]-1)]
-	match = set(intertemps) & set(proximity)
-	if len(match)==1:
-	  intertemps.append(l)
-	else:
+        proximity = [(l[0],l[1]-1),(l[0],l[1]+1),(l[0]-1,l[1]),(l[0]+1,l[1]),(l[0]-1,l[1]+1),(l[0]+1,l[1]+1),(l[0]-1,l[1]-1),(l[0]+1,l[1]-1)]
+        match = set(intertemps) & set(proximity)
+        if len(match)==1:
+          intertemps.append(l)
+        else:
           fila_pts.append(endpts+bodypts+[l]);endpts = [];bodypts = []
           cornerpts.remove(l)
-    else: fila_pts.append(endpts+bodypts);endpts = [];bodypts = []
+    else:
+      fila_pts.append(endpts+bodypts);endpts = [];bodypts = []
     cornerpts = []
 
     if len(pairs)>0:
@@ -225,12 +259,13 @@ def find_filpix(branches,labelfil,final=True):
       arr[z[0],z[1]]=1
     lab,nums = nd.label(arr,eight_con())
     for k in range(1,nums+1):
-	  objs_pix = np.where(lab==k)
-	  for l in range(len(objs_pix[0])):
-	      temp_group.append((objs_pix[0][l],objs_pix[1][l]))
-          inters.append(temp_group);temp_group = []
+      objs_pix = np.where(lab==k)
+      for l in range(len(objs_pix[0])):
+        temp_group.append((objs_pix[0][l],objs_pix[1][l]))
+      inters.append(temp_group);temp_group = []
   for i in range(len(inters)-1):
-    if inters[i]==inters[i+1]: repeat.append(inters[i])
+    if inters[i]==inters[i+1]:
+      repeat.append(inters[i])
   for i in repeat:
     inters.remove(i)
 
@@ -282,21 +317,21 @@ def find_extran(branches,labelfil):
       x = [j for j,y in enumerate(subvallist[k][l]) if y==k+1]
       y = [j for j,z in enumerate(vallist[k][l]) if z==k+1]
       if len(x)==0:
-	labelfil[filpix[k][l][0],filpix[k][l][1]]=0
+        labelfil[filpix[k][l][0],filpix[k][l][1]]=0
       if len(x)==1:
         if len(y)>=2:
-	  extran.append(filpix[k][l])
-	  labelfil[filpix[k][l][0],filpix[k][l][1]]=0
+          extran.append(filpix[k][l])
+          labelfil[filpix[k][l][0],filpix[k][l][1]]=0
     if len(extran)>=2:
       for i in extran:
-	for j in extran:
+        for j in extran:
           if i !=j:
-	    if distance(i[0],j[0],i[1],j[1])==np.sqrt(2.0):
-	      proximity = [(i[0],i[1]-1),(i[0],i[1]+1),(i[0]-1,i[1]),(i[0]+1,i[1]),(i[0]-1,i[1]+1),(i[0]+1,i[1]+1),(i[0]-1,i[1]-1),(i[0]+1,i[1]-1)]
-	      match = set(filpix[k]) & set(proximity)
-	      if len(match)>0:
-		for z in match:
-		  labelfil[z[0],z[1]]=0
+            if distance(i[0],j[0],i[1],j[1])==np.sqrt(2.0):
+              proximity = [(i[0],i[1]-1),(i[0],i[1]+1),(i[0]-1,i[1]),(i[0]+1,i[1]),(i[0]-1,i[1]+1),(i[0]+1,i[1]+1),(i[0]-1,i[1]-1),(i[0]+1,i[1]-1)]
+              match = set(filpix[k]) & set(proximity)
+              if len(match)>0:
+                for z in match:
+                  labelfil[z[0],z[1]]=0
   return labelfil
 
 
