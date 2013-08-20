@@ -152,16 +152,22 @@ def find_filpix(branches,labelfil,final=True):
   filpts = [];group = [];endpts_return = [];nodes = [];inters = [];repeat = []
   temp_group = [];replace = [];all_pts = [];pairs = []
 
+
   for k in range(1,branches+1):
     x,y = np.where(labelfil==k)
+    # pixel_slices = np.empty((len(x)+1,8))
     for i in range(len(x)):
       if x[i]<labelfil.shape[0]-1 and y[i]<labelfil.shape[1]-1:
         pix.append((x[i],y[i]))
-        initslices.append(np.array([[labelfil[x[i]-1,y[i]+1],labelfil[x[i],y[i]+1],labelfil[x[i]+1,y[i]+1]],[labelfil[x[i]-1,y[i]],0,labelfil[x[i]+1,y[i]]],[labelfil[x[i]-1,y[i]-1],labelfil[x[i],y[i]-1],labelfil[x[i]+1,y[i]-1]]]))
+        initslices.append(np.array([[labelfil[x[i]-1,y[i]+1],labelfil[x[i],y[i]+1],labelfil[x[i]+1,y[i]+1]], \
+                                    [labelfil[x[i]-1,y[i]],0,labelfil[x[i]+1,y[i]]], \
+                                    [labelfil[x[i]-1,y[i]-1],labelfil[x[i],y[i]-1],labelfil[x[i]+1,y[i]-1]]]))
+
 
     filpix.append(pix)
     slices.append(initslices)
     initslices = [];pix= []
+
 
   for i in range(len(slices)):
     for k in range(len(slices[i])):
@@ -192,7 +198,8 @@ def find_filpix(branches,labelfil,final=True):
 #		[0,*,*] constitute a single intersection.
 #		[1,*,*]
 # The "final" designation is used when finding the final branch lengths. At this point, blockpts and cornerpts should be eliminated.
-  for k in range(len(slices)):
+  # for k in range(len(slices)):
+  for k in range(branches):
     for l in range(len(filpix[k])):
       x = [j for j,y in enumerate(subvallist[k][l]) if y==k+1]
       y = [j for j,z in enumerate(vallist[k][l]) if z==k+1]
@@ -220,15 +227,18 @@ def find_filpix(branches,labelfil,final=True):
             bodypts.remove(i)
 #Cornerpts without a partner diagonally attached can be included as a bodypt.
     if len(cornerpts)>0:
-      for i in cornerpts:
-        for j in cornerpts:
+        deleted_cornerpts = []
+        for i,j in zip(cornerpts,cornerpts):
           if i !=j:
             if distance(i[0],j[0],i[1],j[1])==np.sqrt(2.0):
               proximity = [(i[0],i[1]-1),(i[0],i[1]+1),(i[0]-1,i[1]),(i[0]+1,i[1]),(i[0]-1,i[1]+1),(i[0]+1,i[1]+1),(i[0]-1,i[1]-1),(i[0]+1,i[1]-1)]
               match = set(intertemps) & set(proximity)
               if len(match)==1:
                 pairs.append([i,j])
-                cornerpts.remove(i);cornerpts.remove(j)
+                deleted_cornerpts.append(i)
+                deleted_cornerpts.append(j)
+        cornerpts = list(set(cornerpts).difference(set(deleted_cornerpts)))
+
     if len(cornerpts)>0:
       for l in cornerpts:
         proximity = [(l[0],l[1]-1),(l[0],l[1]+1),(l[0]-1,l[1]),(l[0]+1,l[1]),(l[0]-1,l[1]+1),(l[0]+1,l[1]+1),(l[0]-1,l[1]-1),(l[0]+1,l[1]-1)]
