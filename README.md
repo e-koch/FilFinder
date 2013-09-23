@@ -28,5 +28,6 @@ Requires: numpy 1.7.1,
           scipy,
           scikit-image 0.8.0,
           networkx
+	  pandas
 
 Optional: pygraphviz -- to make connectivity graphs (set verbose = True)
