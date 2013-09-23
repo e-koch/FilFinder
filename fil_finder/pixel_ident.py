@@ -53,12 +53,12 @@ def makefilamentsappear(thearray, size, abs_thresh, filter_size):
   # For particularly noisy images where the signal is only discernible near the sources, adaptive thresholding fails, so only abs thresh is used
   adapt_filter = threshold_adaptive(thearray,size,'median')
 
-  if np.sum(adapt_filter)/float(len(np.ravel(adapt_filter)))<=0.02:
-    print "Adaptive Threshold Fail"
-    filter_full = abs_filter
-  else:
-    medfilter = nd.median_filter(adapt_filter,size=filter_size,mode='mirror') ## 32 rids extraneous spurs, while preserving shape of region
-    filter_full = abs_filter * medfilter #*
+  # if np.sum(adapt_filter)/float(len(np.ravel(adapt_filter)))<=0.02:
+  #   print "Adaptive Threshold Fail"
+  #   filter_full = abs_filter
+  # else:
+  medfilter = nd.median_filter(adapt_filter,size=filter_size,mode='mirror')
+  filter_full = abs_filter * medfilter #*
 
   return filter_full
 

@@ -4,3 +4,5 @@ fil_finder.sublime-project
 fil_finder/*.pyc
 analyzefilaments.py
 evm.py
+index.html
+fil_mod.py

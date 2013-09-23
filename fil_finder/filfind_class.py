@@ -53,7 +53,8 @@ class fil_finder_2D(object):
                         slice(region_slice[2],region_slice[3],None))
             self.image = np.pad(image[slices],1,padwithzeros)
 
-        self.smooth_image = nd.median_filter(self.image, size= local_thresh/2.)
+        self.smooth_image = nd.median_filter(self.image, size = local_thresh/2.)
+
 
         # from scipy.stats import scoreatpercentile
         # self.image = np.arctan(self.image)/scoreatpercentile(self.image[~np.isnan(self.image)], 99)  ## Rescaling idea -- incomplete
@@ -75,14 +76,18 @@ class fil_finder_2D(object):
             self.imgscale = 1.0 ## pixel
             self.beamwidth = beamwidth * (hdr["CDELT2"] * 3600)**(-1) ## where CDELT2 is in degrees
             self.pixel_unit_flag = True
+            # self.smooth_image = nd.median_filter(self.image, size = round(beamwidth*hdr["CDELT2"]*3600))
+
 
         else:
             self.imgscale = (hdr['CDELT2']*(np.pi/180.0)*distance) ## pc
             self.beamwidth = (beamwidth/np.sqrt(8*np.log(2.))) * (2*np.pi / 206265.) * distance
             self.pixel_unit_flag = False
+            # self.smooth_image = nd.median_filter(self.image, size = round(beamwidth*hdr["CDELT2"]*3600))
+
 
             # FWHM beamwidth in pc
-
+        self.header = hdr
         self.glob_thresh = glob_thresh
         self.local_thresh = local_thresh
         self.mask = None
@@ -121,9 +126,15 @@ class fil_finder_2D(object):
 
         self.mask = makefilamentsappear(self.smooth_image, self.glob_thresh, self.local_thresh, filter_size)
 
-        from skimage.morphology import remove_small_objects
+        if not self.pixel_unit_flag:
+            min_size = 0.1*np.pi * 0.03 * 0.25 * self.imgscale**(-2) # area of filament based on minimum width of 0.06 pc
+                                                                 # and height of 0.5 pc
+        else:
+            min_size = min(self.image.shape) ## From a few test cases, using the above
+            print "Working in pixel units. Setting minimum filament area to be %s" % (min_size)
 
-        self.mask = remove_small_objects(self.mask, min_size = 200) ## Add min_size as parameter
+        from skimage.morphology import remove_small_objects
+        self.mask = remove_small_objects(self.mask, min_size = min_size) ## Add min_size as parameter
         ## Could calculate expected pixel area based on ~0.1 pc width with eccentricity of >0.2
 
         if verbose:
@@ -144,6 +155,32 @@ class fil_finder_2D(object):
 
         return self
 
+    def find_optimal_patch_size(self, local_thresholds):
+        # from matplotlib.backends.backend_pdf import PdfPages
+        # pdf = PdfPages('multisized_localthreshs.pdf')
+        av_eccent = []
+        for num, patch in enumerate(local_thresholds):
+            self.create_mask(local_thresh = patch, verbose = False)
+            labels, n = nd.label(self.mask, eight_con())
+            eroded = nd.binary_erosion(self.mask, structure=eight_con())
+            object_size = nd.sum(self.mask, labels, range(1,n+1))
+            body_size = nd.sum(eroded, labels, range(1,n+1))
+            eccentricity = [float(i)/float(j) for i,j in zip(object_size,body_size)]
+            # print eccentricity
+            print np.mean(eccentricity)
+            av_eccent.append(np.mean(eccentricity))
+        p.plot(local_thresholds, av_eccent)
+        p.show()
+        #     p.contour(self.mask)
+        #     p.imshow(self.image, interpolation=None, origin="lower")
+        #     pdf.savefig()
+        #     p.clf()
+        #     print "Done %s, patch size %s" % (num, patch)
+        # pdf.close()
+
+        return self
+
+
     def medskel(self, return_distance=True, verbose = False):
         from skimage.morphology import medial_axis
 
@@ -151,13 +188,13 @@ class fil_finder_2D(object):
             self.skeleton,self.medial_axis_distance = medial_axis(self.mask, return_distance=return_distance)
             if self.pixel_unit_flag:
                 print "Setting arbitrary width threshold to 2 pixels"
-                width_threshold = raw_input("Enter threshold change or pass: ")
+                width_threshold = raw_input("Enter threshold change or pass: ") ## Put time limit on this
                 if width_threshold == "":
                     width_threshold = 2
                 width_threshold = float(width_threshold)
             else:
-                width_threshold = (0.1/10.)/self.imgscale # (in pc) Set to be a tenth of expected filament width
-            self.skeleton[np.nonzero(self.medial_axis_distance)<2.] = 0 ## Eliminate narrow connections
+                width_threshold = round((0.1/10.)/self.imgscale) # (in pc) Set to be a tenth of expected filament width
+            self.skeleton[np.nonzero(self.medial_axis_distance)<width_threshold] = 0 ## Eliminate narrow connections
         else:
             self.skeleton = medial_axis(self.mask)
 
@@ -218,6 +255,12 @@ class fil_finder_2D(object):
         self.width_fits = {"Parameters":fit_params, "Errors":fit_errors}
 
         ## Implement check for failed fits and replace with average width from medial_axis_distance
+        if self.medial_axis_distance != None:
+            labels, n = nd.label(self.mask, eight_con())
+            av_widths = nd.sum(self.medial_axis_distance, labels, range(1, n+1)) / nd.sum(self.skeleton, labels, range(1, n+1))
+            if verbose:
+                p.hist(av_widths)
+                p.show()
 
         return self
 
@@ -244,6 +287,43 @@ class fil_finder_2D(object):
 
         return self
 
+    def save_table(self, path = None):
+        '''
+
+        Save a table results as a csv (in form of pandas dataframe)
+
+        INPUTS
+            path - str
+                   path where the file should be saved
+
+        '''
+        from pandas import DataFrame, Series
+
+        data = {"Lengths" : Series(self.lengths), \
+                "Curvature" : Series(self.curvature),\
+                "Widths" : Series(self.widths), \
+                "Peak Intensity" : Series(self.width_fits["Parameters"][0]), \
+                "Intensity Error" : Series(self.width_fits["Errors"][0]), \
+                "Gauss. Width" : Series(self.width_fits["Parameters"][1]), \
+                "Width Error" : Series(self.width_fits["Errors"][1]), \
+                "Background" : Series(self.width_fits["Parameters"][2]), \
+                "Background Error" : Series(self.width_fits["Errors"][2]), \
+                "Branches" : Series(self.branch_info["filament_branches"]), \
+                "Branch Lengths" : Series(self.branch_info["branch_lengths"])}
+
+        df = DataFrame(data)
+
+        if not path:
+            filename = "".join([self.header["OBJECT"],".csv"])
+        else:
+            if path[-1] != "/":
+                path = "".join(path,"/")
+            filename = "".join([path,self.header["OBJECT"],".csv"])
+
+        df.to_csv(filename)
+
+
+
     def __str__(self):
             print("%s filaments found.") % (self.number_of_filaments)
             for fil in range(self.number_of_filaments):
@@ -256,6 +336,8 @@ class fil_finder_2D(object):
         self.analyze_skeletons(verbose = verbose)
         self.find_widths(verbose = verbose)
         self.results()
+        self.__str__()
+        self.save_table()
 
 
 
