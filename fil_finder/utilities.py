@@ -5,10 +5,8 @@ Utility functions for fil-finder package
 
 
 """
-try:
-  import pyfits
-except ImportError:
-  import astropy.io.fits as pyfits
+
+import astropy.io.fits as pyfits
 import itertools
 import numpy as np
 from scipy import optimize as op
@@ -39,8 +37,7 @@ def removearray(l,arr):
     raise ValueError('Array not contained in this list.')
 
 
-def weighted_av(items,weight): # Think this can be simplfied.... or is probably contained in numpy
-  # Check for nans
+def weighted_av(items,weight):
   weight = np.array(weight)[~np.isnan(weight)]
   if len(weight)==0:
     return sum(items)/len(items)
@@ -49,6 +46,23 @@ def weighted_av(items,weight): # Think this can be simplfied.... or is probably 
     num = sum(items[i] * weight[i] for i in range(len(items)))
     denom = sum(weight[i] for i in range(len(items)))
     return (num/denom) if denom != 0 else None
+
+## Raw Input with a timer
+
+import thread
+import threading
+
+def raw_input_with_timeout(prompt, timeout=30.0):
+    print prompt
+    timer = threading.Timer(timeout, thread.interrupt_main)
+    astring = None
+    try:
+        timer.start()
+        astring = raw_input(prompt)
+    except KeyboardInterrupt:
+        pass
+    timer.cancel()
+    return astring
 
 
 ######################################################################################################################################

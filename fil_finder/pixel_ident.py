@@ -35,33 +35,6 @@ import matplotlib.pyplot as p
 from skimage.morphology import medial_axis
 import skimage.filter as skfilter
 
-#From skimage, which cannot be imported on the server for various reasons.
-def threshold_adaptive(image, block_size, method='gaussian', offset=0,mode='reflect', param=None):
-
-    return skfilter.threshold_adaptive(image, block_size, method='gaussian', offset=0,mode='reflect', param=None)
-
-
-def makefilamentsappear(thearray, size, abs_thresh, filter_size):
-  #Adaptive thresholding is used to segregate filaments. The thresholded image is passed to a median filter to eliminate extraneous spurs when the skeleton is taken.
-  size = float(size)
-  abs_thresh = float(abs_thresh)
-  filter_size = float(filter_size)
-
-  from scipy.stats import scoreatpercentile
-  abs_filter = nd.median_filter(thearray>scoreatpercentile(np.ravel(thearray[~np.isnan(thearray)]),abs_thresh),size=filter_size,mode='mirror')
-  # abs_filter = thearray>scoreatpercentile(np.ravel(thearray[~np.isnan(thearray)]),abs_thresh)
-  # For particularly noisy images where the signal is only discernible near the sources, adaptive thresholding fails, so only abs thresh is used
-  adapt_filter = threshold_adaptive(thearray,size,'median')
-
-  # if np.sum(adapt_filter)/float(len(np.ravel(adapt_filter)))<=0.02:
-  #   print "Adaptive Threshold Fail"
-  #   filter_full = abs_filter
-  # else:
-  medfilter = nd.median_filter(adapt_filter,size=filter_size,mode='mirror')
-  filter_full = abs_filter * medfilter #*
-
-  return filter_full
-
 
 def isolatefilaments(skel_img,mask,size_threshold):
   '''
@@ -115,33 +88,33 @@ def find_filpix(branches,labelfil,final=True):
   by taking the pixel values that surround the pixel. The list is then shifted once to the right giving [1,0,0,1,0,1,0,0]. The shifted list is subtracted from the original giving [-1,0,1,-1,1,-1,0,1].
   The number of 1s (or -1s) give the amount of step-ups around the pixel. By comparing the step-ups and the number of non-zero elements in the original list, the pixel can be identified into a category.
 
-  Parameters
-  ----------
+  INPUTS
+  ------
 
-  branches: list
+  branches - list
             number of branches in each skeleton
 
-  labelfil: list
+  labelfil - list
             list of arrays each containing one skeleton
 
-  final: bool
+  final - bool
          if true, corner points, intersections, and body points as all labelled as a body point
          for use when the skeletons have already been cleaned
 
-  Returns
+  OUTPUTS
   -------
 
-  fila_pts: list
+  fila_pts - list
             all points on the body of the skeleton
 
-  inters: list
+  inters - list
           all points associated with an intersection in the skeleton
 
-  labelfil: list
+  labelfil - list
             list of arrays
             intersections have been removed from the skeletons
 
-  endpts_return: list
+  endpts_return - list
                  end points of each branch on the skeleton
 '''
 

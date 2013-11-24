@@ -16,36 +16,70 @@ from width import *
 import numpy as np
 import matplotlib.pyplot as p
 import scipy.ndimage as nd
+from skimage.filter import threshold_adaptive
+from skimage.morphology import remove_small_objects, medial_axis
+from scipy.stats import scoreatpercentile
 
 class fil_finder_2D(object):
     """
 
-    CLASS
-    --------------
+
     Runs the fil-finder algorithm for 2D images
 
-    Parameters
+    INPUTS
     -------------
-    image - 2D array of image
-    hdr   - header from fits file    COULD MAKE THIS OPTIONAL
-    beamwidth - fwhm beamwidth (arcseconds) of device used to take data
-    glob_thresh - the percentile to cut off search for filamentary structure
-    local_thresh - the pixel size of the patch used in the adaptive threshold
-    skel_thresh - below this cut off, skeletons with less pixels will be deleted
-    branch_thresh - branches shorter than this length (pixels) will be deleted if extraneous
-    pad_size - size to which filaments will be padded to build a radial intensity profile
-    distance - to object in image (in pc)
-    region_slice - option to slice off regions of the given image -- input as [xmin,xmax,ymin,max]
+    image - array
+            2D array of image
+    hdr   - dictionary
+            header from fits file
+    beamwidth - float
+                fwhm beamwidth (arcseconds) of device used to take data
+    glob_thresh - float
+                  the percentile to cut off search for filamentary structure
+    adapt_thresh - float
+                   the pixel size of the patch used in the adaptive threshold
+    skel_thresh - float
+                  Below this cut off, skeletons with less pixels will be deleted
+    branch_thresh - float
+                    branches shorter than this length (pixels) will be deleted if extraneous
+    pad_size -  int
+                size to which filaments will be padded to build a radial intensity profile
+    distance - float
+               to object in image (in pc)
+    region_slice - list
+                   option to slice off regions of the given image -- input as [xmin,xmax,ymin,max]
+
+    FUNCTIONS
+    ---------
+    create_mask - performs image segmentation
+
+    find_optimal_patch_size - finds a suitable patch size to feed into create_mask
+
+    medskel - reduce filaments to skeleton structure
+
+    analyze_skeletons - cleans, labels, and finds the length of the skeletons
+
+    find_widths - fits the radial profiles of the filaments
+
+    results - returns final lengths and widths. Flags bad fits
+
+    save_table - creates a .csv file of the results
+
+    run - the whole shebang
+
+
+    OUTPUTS
+    -------
+
+
 
     """
-    def __init__(self, image, hdr, beamwidth, glob_thresh, local_thresh, \
-                skel_thresh, branch_thresh, pad_size, distance=None, region_slice=None):
-        ## Consider just passing in the filament detection as a fcn or
-        ## premade to be skeletonized
+    def __init__(self, image, hdr, beamwidth, skel_thresh, branch_thresh, pad_size, flatten_thresh, smooth_size=None, \
+                size_thresh=None, glob_thresh=None, adapt_thresh=None, distance=None, region_slice=None, mask=None):
 
         img_dim = len(image.shape)
         if img_dim<2 or img_dim>2:
-            raise TypeError("Image must be 2D array. Input was %s dimensions")  % (img_dim)
+            raise TypeError("Image must be 2D array. Input array has %s dimensions.")  % (img_dim)
         if region_slice==None:
             self.image = image
         else:
@@ -53,44 +87,35 @@ class fil_finder_2D(object):
                         slice(region_slice[2],region_slice[3],None))
             self.image = np.pad(image[slices],1,padwithzeros)
 
-        self.smooth_image = nd.median_filter(self.image, size = local_thresh/2.)
-
-
-        # from scipy.stats import scoreatpercentile
-        # self.image = np.arctan(self.image)/scoreatpercentile(self.image[~np.isnan(self.image)], 99)  ## Rescaling idea -- incomplete
+        self.header = hdr
         self.skel_thresh = skel_thresh
         self.branch_thresh = branch_thresh
         self.pad_size = pad_size
 
-        try:
-            self.imagefreq = (3*10**14)/hdr["WAVE"]
-        except:
-            user_freq = raw_input("No wavelength in header. Input frequency now or pass: ")
-            if user_freq=="pass" or user_freq=="":
-                self.imagefreq = None ## Set a time limit here
-            else:
-                self.imagefreq = float(user_freq) ## This may fail...
+        self.mask = None
+        if mask is not None:
+            mask[np.isnan(mask)] = 0.0
+            self.mask = mask
 
         if distance==None:
             print "No distance given. Results will be in pixel units."
             self.imgscale = 1.0 ## pixel
             self.beamwidth = beamwidth * (hdr["CDELT2"] * 3600)**(-1) ## where CDELT2 is in degrees
             self.pixel_unit_flag = True
-            # self.smooth_image = nd.median_filter(self.image, size = round(beamwidth*hdr["CDELT2"]*3600))
-
-
         else:
             self.imgscale = (hdr['CDELT2']*(np.pi/180.0)*distance) ## pc
             self.beamwidth = (beamwidth/np.sqrt(8*np.log(2.))) * (2*np.pi / 206265.) * distance
             self.pixel_unit_flag = False
-            # self.smooth_image = nd.median_filter(self.image, size = round(beamwidth*hdr["CDELT2"]*3600))
 
 
-            # FWHM beamwidth in pc
-        self.header = hdr
         self.glob_thresh = glob_thresh
-        self.local_thresh = local_thresh
-        self.mask = None
+        self.adapt_thresh = adapt_thresh
+        self.flatten_thresh = flatten_thresh
+        self.smooth_size = smooth_size
+        self.size_thresh = size_thresh
+
+        self.smooth_image = None
+        self.flat_image = None
         self.lengths = None
         self.widths = None
         self.width_fits = None
@@ -106,36 +131,39 @@ class fil_finder_2D(object):
         self.medial_axis_distance = None
 
 
-    def create_mask(self, glob_thresh = None, local_thresh = None, verbose = False): ## Give option to give live inputs to change thresh??
-        '''
-            Uses function makefilamentsappear to create a mask of filaments
-        '''
+    def create_mask(self, glob_thresh=None, adapt_thresh=None, smooth_size=None, size_thresh=None, verbose=False): ## Give option to give live inputs to change thresh??
 
+        if self.mask is not None:
+            return self ## Skip if pre-made mask given
 
         if glob_thresh is not None:
             self.glob_thresh = glob_thresh
-        if local_thresh is not None:
-            self.local_thresh = local_thresh
+        if adapt_thresh is not None:
+            self.adapt_thresh = adapt_thresh
+        if smooth_size is not None:
+            self.smooth_size = smooth_size
+        if size_thresh is not None:
+            self.size_thresh = size_thresh
 
-        from scipy import ndimage
+        if self.size_thresh is None:
+            self.size_thresh = round(0.1 * np.pi * (0.5) * (3/40.) * self.imgscale**-2)
+            ## Area of ellipse for typical filament size. Divided by 10 to incorporate sparsity.
+        if self.adapt_thresh is None:
+            self.adapt_thresh = round(0.2/self.imgscale) ## twice average FWHM for filaments
+        if self.smooth_size is None:
+            self.smooth_size = round(0.05 / self.imgscale) ## half average FWHM for filaments
 
-        if self.local_thresh % 2 == 0:
-            filter_size = self.local_thresh
-        else:
-            filter_size = self.local_thresh - 1.0
+        self.flat_img = np.arctan(self.image/scoreatpercentile(self.image[~np.isnan(self.image)],self.flatten_thresh))
+        self.smooth_img = nd.median_filter(self.flat_img, size=self.smooth_size)
+        adapt = threshold_adaptive(self.smooth_img, self.adapt_thresh)
+        opening = nd.binary_opening(adapt, structure=np.ones((3,3)))
+        cleaned = remove_small_objects(opening, min_size=self.size_thresh)
+        self.mask = nd.binary_closing(cleaned, structure=np.ones((3,3)))
 
-        self.mask = makefilamentsappear(self.smooth_image, self.glob_thresh, self.local_thresh, filter_size)
 
-        if not self.pixel_unit_flag:
-            min_size = 0.1*np.pi * 0.03 * 0.25 * self.imgscale**(-2) # area of filament based on minimum width of 0.06 pc
-                                                                 # and height of 0.5 pc
-        else:
-            min_size = min(self.image.shape) ## From a few test cases, using the above
-            print "Working in pixel units. Setting minimum filament area to be %s" % (min_size)
-
-        from skimage.morphology import remove_small_objects
-        self.mask = remove_small_objects(self.mask, min_size = min_size) ## Add min_size as parameter
-        ## Could calculate expected pixel area based on ~0.1 pc width with eccentricity of >0.2
+        if self.glob_thresh is not None:
+            premask = self.flat_img > scoreatpercentile(self.flat_img[~np.isnan(self.flat_img)], self.glob_thresh)
+            self.mask = premask * self.mask
 
         if verbose:
             scale = 0
@@ -155,34 +183,7 @@ class fil_finder_2D(object):
 
         return self
 
-    def find_optimal_patch_size(self, local_thresholds):
-        # from matplotlib.backends.backend_pdf import PdfPages
-        # pdf = PdfPages('multisized_localthreshs.pdf')
-        av_eccent = []
-        for num, patch in enumerate(local_thresholds):
-            self.create_mask(local_thresh = patch, verbose = False)
-            labels, n = nd.label(self.mask, eight_con())
-            eroded = nd.binary_erosion(self.mask, structure=eight_con())
-            object_size = nd.sum(self.mask, labels, range(1,n+1))
-            body_size = nd.sum(eroded, labels, range(1,n+1))
-            eccentricity = [float(i)/float(j) for i,j in zip(object_size,body_size)]
-            # print eccentricity
-            print np.mean(eccentricity)
-            av_eccent.append(np.mean(eccentricity))
-        p.plot(local_thresholds, av_eccent)
-        p.show()
-        #     p.contour(self.mask)
-        #     p.imshow(self.image, interpolation=None, origin="lower")
-        #     pdf.savefig()
-        #     p.clf()
-        #     print "Done %s, patch size %s" % (num, patch)
-        # pdf.close()
-
-        return self
-
-
     def medskel(self, return_distance=True, verbose = False):
-        from skimage.morphology import medial_axis
 
         if return_distance:
             self.skeleton,self.medial_axis_distance = medial_axis(self.mask, return_distance=return_distance)
@@ -199,13 +200,13 @@ class fil_finder_2D(object):
             self.skeleton = medial_axis(self.mask)
 
 
-        self.masked_image = self.image * self.mask
 
         if verbose: # For examining results of skeleton
+            masked_image = self.image * self.mask
             skel_points = np.where(self.skeleton==1)
             for i in range(len(skel_points[0])):
-                self.masked_image[skel_points[0][i],skel_points[1][i]] = np.NaN
-            p.imshow(self.masked_image,interpolation=None,origin="lower")
+                masked_image[skel_points[0][i],skel_points[1][i]] = np.NaN
+            p.imshow(masked_image,interpolation=None,origin="lower")
             p.show()
 
         return self
@@ -331,9 +332,19 @@ class fil_finder_2D(object):
                         (fil,self.widths[fil],self.lengths[fil], self.curvature[fil])
 
     def run(self, verbose = False):
+        try: ## Check if graphviz is available
+            import graphviz
+            graph_verbose = verbose
+        except ImportError:
+            graph_verbose = False
+
+        if verbose:
+            print "Best to run in pylab for verbose output."
+
         self.create_mask(verbose = verbose)
         self.medskel(verbose = verbose)
-        self.analyze_skeletons(verbose = verbose)
+
+        self.analyze_skeletons(verbose = graph_verbose)
         self.find_widths(verbose = verbose)
         self.results()
         self.__str__()
