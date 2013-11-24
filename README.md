@@ -15,7 +15,7 @@ is done by randomly choosing three pixels on the skeleton and using the Menger C
 Example Images
 --------------
 
-![Chameleon-250 Scaled to 2200](https://github.com/e-koch/fil_finder/blob/master/images/chameleon-250-filcontours-2200.png "Chameleon-250 Scaled to 2200")
+![Chameleon-250 Scaled to 2200](https://github.com/e-koch/fil_finder/blob/master/images/chameleon-250-filcontours-2150.png "Chameleon-250 Scaled to 2200")
 
 ![Chameleon-250 Scaled to 2500](https://github.com/e-koch/fil_finder/blob/master/images/chameleon-250-filcontours-2500.png "Chameleon-250 Scaled to 2500")
 
