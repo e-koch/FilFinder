@@ -294,8 +294,10 @@ class fil_finder_2D(object):
         Save a table results as a csv (in form of pandas dataframe)
 
         INPUTS
-            path - str
-                   path where the file should be saved
+        ------
+
+        path - str
+               path where the file should be saved
 
         '''
         from pandas import DataFrame, Series
@@ -303,12 +305,12 @@ class fil_finder_2D(object):
         data = {"Lengths" : Series(self.lengths), \
                 "Curvature" : Series(self.curvature),\
                 "Widths" : Series(self.widths), \
-                "Peak Intensity" : Series(self.width_fits["Parameters"][0]), \
-                "Intensity Error" : Series(self.width_fits["Errors"][0]), \
-                "Gauss. Width" : Series(self.width_fits["Parameters"][1]), \
-                "Width Error" : Series(self.width_fits["Errors"][1]), \
-                "Background" : Series(self.width_fits["Parameters"][2]), \
-                "Background Error" : Series(self.width_fits["Errors"][2]), \
+                # "Peak Intensity" : Series(self.width_fits["Parameters"][0]), \
+                # "Intensity Error" : Series(self.width_fits["Errors"][0]), \
+                # "Gauss. Width" : Series(self.width_fits["Parameters"][1]), \
+                # "Width Error" : Series(self.width_fits["Errors"][1]), \
+                # "Background" : Series(self.width_fits["Parameters"][2]), \
+                # "Background Error" : Series(self.width_fits["Errors"][2]), \
                 "Branches" : Series(self.branch_info["filament_branches"]), \
                 "Branch Lengths" : Series(self.branch_info["branch_lengths"])}
 
