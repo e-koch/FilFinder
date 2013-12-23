@@ -12,6 +12,7 @@ from length import *
 from pixel_ident import *
 from utilities import *
 from width import *
+from analysis import Analysis
 
 import numpy as np
 import matplotlib.pyplot as p
@@ -130,6 +131,7 @@ class fil_finder_2D(object):
         self.masked_image = None
         self.medial_axis_distance = None
 
+        self.dataframe = None
 
     def create_mask(self, glob_thresh=None, adapt_thresh=None, smooth_size=None, size_thresh=None, verbose=False): ## Give option to give live inputs to change thresh??
 
@@ -176,7 +178,7 @@ class fil_finder_2D(object):
                 print "Mean and median value of image are (%s,%s), vmax currently set to %s" \
                     % (np.mean(self.image[~np.isnan(self.image)]),np.median(self.image[~np.isnan(self.image)]),vmax)
                 rescale = raw_input("Rescale image? Enter new vmax or no: ")
-                if rescale=="no" or rescale=="n":
+                if rescale=="no" or rescale=="n" or rescale=="":
                     scale = 1
                 else:
                     vmax = float(rescale)
@@ -288,7 +290,7 @@ class fil_finder_2D(object):
 
         return self
 
-    def save_table(self, path = None):
+    def save_table(self, path = None, save_name=None):
         '''
 
         Save a table results as a csv (in form of pandas dataframe)
@@ -301,6 +303,10 @@ class fil_finder_2D(object):
 
         '''
         from pandas import DataFrame, Series
+
+        if save_name is None:
+            save_name = self.header["OBJECT"]
+
 
         data = {"Lengths" : Series(self.lengths), \
                 "Curvature" : Series(self.curvature),\
@@ -317,13 +323,17 @@ class fil_finder_2D(object):
         df = DataFrame(data)
 
         if not path:
-            filename = "".join([self.header["OBJECT"],".csv"])
+            filename = "".join([save_name,".csv"])
         else:
             if path[-1] != "/":
                 path = "".join(path,"/")
-            filename = "".join([path,self.header["OBJECT"],".csv"])
+            filename = "".join([path,save_name,".csv"])
 
         df.to_csv(filename)
+
+        self.dataframe = df
+
+        return self
 
 
 
@@ -333,7 +343,7 @@ class fil_finder_2D(object):
                 print "Filament: %s, Width: %s, Length: %s, Curvature: %s" % \
                         (fil,self.widths[fil],self.lengths[fil], self.curvature[fil])
 
-    def run(self, verbose = False):
+    def run(self, verbose = False, save_plots=False, save_name=None):
         try: ## Check if graphviz is available
             import graphviz
             graph_verbose = verbose
@@ -349,9 +359,39 @@ class fil_finder_2D(object):
         self.analyze_skeletons(verbose = graph_verbose)
         self.find_widths(verbose = verbose)
         self.results()
-        self.__str__()
-        self.save_table()
+        self.save_table(save_name=save_name)
 
+        if verbose:
+            self.__str__()
+
+        if save_plots:
+            if save_name is None:
+                save_name = self.header["OBJECT"]
+
+            ## Filaments found
+            percentiles = [90.,80.,70.,60.]
+            thresholds = [scoreatpercentile(self.image[~np.isnan(self.image)], percent) for percent in percentiles]
+            for i, thresh in enumerate(thresholds):
+                p.subplot(2,2,i+1)
+                p.imshow(self.image, vmax=thresh, origin="lower", interpolation="nearest")
+                p.contour(self.mask)
+                p.title("".join([save_name," Contours at ", str(thresh)]))
+            p.show()
+            # p.savefig("".join([save_name,"_filaments.pdf"]))
+            p.close()
+
+            ## Skeletons
+            masked_image = self.image * self.mask
+            skel_points = np.where(self.skeleton==1)
+            for i in range(len(skel_points[0])):
+                masked_image[skel_points[0][i],skel_points[1][i]] = np.NaN
+            p.imshow(masked_image,interpolation=None,origin="lower")
+            p.savefig("".join([save_name,"_skeletons.pdf"]))
+            p.close()
+
+            Analysis(self.dataframe, save=True, save_name=save_name).make_plots()
+
+        return self
 
 
 

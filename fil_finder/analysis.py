@@ -77,14 +77,17 @@ class Analysis(object):
             p.hist(widths, num_bins)
             p.xlabel("Widths (pc)")
             p.savefig("".join([self.save_name,"_widths.pdf"]))
+            p.close()
 
             p.hist(lengths, num_bins)
             p.xlabel("Lengths (pc)")
             p.savefig("".join([self.save_name,"_lengths.pdf"]))
+            p.close()
 
-            p.hist(widths, num_bins)
-            p.xlabel("Lengths (pc)")
-            p.savefig("".join([self.save_name,"_lengths.pdf"]))
+            p.hist(curvature, num_bins)
+            p.xlabel("Curvature")
+            p.savefig("".join([self.save_name,"_curvature.pdf"]))
+            p.close()
 
         return self
 

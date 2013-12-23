@@ -13,11 +13,11 @@ and deconvolved with the FWHM beamwidth of the instrument. To describe the shape
 is done by randomly choosing three pixels on the skeleton and using the Menger Curvature Formula.
 
 
-Last Updated: 08/07/13
+Last Updated: 12/22/13
 
 Requires: numpy 1.7.1
           matplotlib
-          pyfits (or astropy)
+          astropy
           scipy
           scikit-image 0.8.0
           networkx
@@ -30,4 +30,5 @@ from pixel_ident import *
 from utilities import *
 from width import *
 
+from analysis import Analysis
 from filfind_class import fil_finder_2D
