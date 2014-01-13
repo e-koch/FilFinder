@@ -19,12 +19,12 @@ Package Dependencies
 --------------------
 
 Requires:
-        *  numpy 1.7.1
-        *  matplotlib
-        *  astropy
-        *  scipy
-        *  scikits-image 0.8.0
-        *  networkx
-	    *  pandas
+        *   numpy 1.7.1
+        *   matplotlib
+        *   astropy
+        *   scipy
+        *   scikits-image 0.8.0
+        *   networkx
+	    *   pandas
 
 Optional: pygraphviz -- to make connectivity graphs (set verbose = True)
