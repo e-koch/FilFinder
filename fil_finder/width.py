@@ -70,15 +70,9 @@ def dist_transform(labelisofil, offsets, orig_size, pad_size):
 	  	pad_labelisofil = pad_labelisofil[:,excess_y_bottom:]
 	  	print "REDUCED FILAMENT %s TO FIT IN ORIGINAL ARRAY" %(n)
 
-	  # pad_labelisofil = np.pad(pad_labelisofil,pad_size,padwithzeros)
-
-	  ## A problem may arise when the pad exceeds the edge of the master array
 	  x,y = np.where(pad_labelisofil>=1)
 	  for i in range(len(x)):
 	    pad_labelisofil[x[i],y[i]]=1
-	    # if x[i] + x_off >= orig_size[0] or y[i] + y_off >= orig_size[1]:
-	    # 	pass ## pixel is outside of original image, can be ignored
-	    # else:
 	    filclean_all[x[i]+ x_off - pad_size,y[i]+ y_off - pad_size]=0
 	  dist_transform_sep.append(nd.distance_transform_edt(np.logical_not(pad_labelisofil)))
 
@@ -148,7 +142,7 @@ def gauss_width(img,dist_transform_all,dist_transform_sep,img_beam,img_scale,off
 			opts,cov = param,None
 			fits.append(opts)
 			fit_errors.append(cov)
-		deconv = (2.35*abs(opts[1]))**2. - img_beam**2. #*img_scale Removed since scaling now done in av_dist
+		deconv = (2.35*abs(opts[1]))**2. - img_beam**2.
 		if deconv>0:
 			widths.append(np.sqrt(deconv))
 		else:

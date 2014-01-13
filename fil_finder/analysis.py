@@ -1,6 +1,6 @@
 '''
 
-Analysis routines for the ouput of the filament finder. These can be run from the filament finder or from a saved .csv file.
+Analysis routines for the output of the filament finder. These can be run from the filament finder or from a saved .csv file.
 
 '''
 
@@ -10,25 +10,29 @@ from scipy.stats import nanmean, nanmedian, nanstd
 class Analysis(object):
     """
 
-    docstring for Analysis
-
-    INPUTS
-    ------
-
-    dataframe - Pandas dataframe
-                Contains the output of the filament finder
-
-    verbose - bool
-              run in verbose mode for visual inspection. If false, will save plots.
-
-    save - bool
-           sets whether to save the plots
-
-    save_name - str
-                Prefix of any output
+    The Analysis class is meant to house the statistical analysis of the fil_finder output.
+    *The complete functionality is not yet in place.*
 
     """
     def __init__(self, dataframe, save=False ,save_name=None, verbose=False):
+        '''
+        Parameters
+        ----------
+
+        dataframe : Pandas dataframe
+                    The dataframe contains the output of fil_finder. This is the .csv file
+                    saved by the algorithm.
+
+        verbose : bool
+                  Enable this for visual inspection of this histograms. If False,
+                  it will enable saving the plots.
+
+        save : bool
+               This sets whether to save the plots.
+
+        save_name : str
+                    The prefix for the saved file. If None, the name from the header is used.
+        '''
         super(Analysis, self).__init__()
         if isinstance(dataframe, str):
             from pandas import read_csv

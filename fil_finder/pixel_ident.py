@@ -51,7 +51,7 @@ def isolatefilaments(skel_img,mask,size_threshold):
   if num_mask!=num: raise ValueError('The number of objects must match the number of skeletons.')
   sums = nd.sum(skel_img,labels,range(num))
   for n in range(num):
-    if sums[n]<size_threshold: ## Less than 10 pixels only?? Add a parameter
+    if sums[n]<size_threshold:
       x,y = np.where(labels==n)
       for i in range(len(x)):
         if labels_mask[x[i],y[i]]==skel_img[x[i],y[i]]: #Make sure each label array has the same label

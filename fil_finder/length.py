@@ -245,7 +245,7 @@ def longest_path(edge_list,nodes,lengths,verbose=False):
       clean_graph = p.figure(1.,facecolor='1.0')
       graph = clean_graph.add_subplot(1,2,2)
       elist = [(u,v) for (u,v,d) in G.edges(data=True)]
-      pos = nx.graphviz_layout(G)#,arg=str(lengths[n]))
+      pos = nx.graphviz_layout(G)#,arg=str(lengths[n])) # The argument throws an error. I have yet to understand why...
       nx.draw_networkx_nodes(G,pos,node_size=200)
       nx.draw_networkx_edges(G,pos,edgelist=elist,width=2)
       nx.draw_networkx_labels(G,pos,font_size=10,font_family='sans-serif')
