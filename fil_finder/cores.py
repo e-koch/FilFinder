@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 """
+**THESE ARE NOT CURRENTLY USED IN THE ALGORITHM**
+
 Finding/Analyzing Cores Routines for fil-finder
 
 Contains: abs_thresh

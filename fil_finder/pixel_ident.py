@@ -28,7 +28,6 @@ Requires:
 
 
 import numpy as np
-#from skimage.filter import threshold_adaptive
 import scipy.ndimage as nd
 from length import *
 import matplotlib.pyplot as p
@@ -38,11 +37,32 @@ import skimage.filter as skfilter
 
 def isolatefilaments(skel_img,mask,size_threshold):
   '''
-  Separates each filament, over a threshold of number of pixels, into its own array with the same dimensions as the inputed image.
-  skel_img is the result of the Medial Axis Transform
-  mask is the image used to make skel_img
-  sep_arr allows for just the number of and overall labels filaments to be returned as nd.label will not ignore small regions
-  Size_threshold sets the pixel size on the size of objects
+  This function separates each filament, over a threshold of number of
+  pixels, into its own array with the same dimensions as the inputed image.
+
+  Parameters
+  ----------
+  skel_img : numpy.ndarray
+             the resultant skeletons from the Medial Axis Transform
+
+  mask : numpy.ndarray
+         the binary mask from adaptive thresholding
+
+  size_threshold : int
+                   sets the pixel size on the size of objects
+
+  Returns
+  -------
+  filarrays : list
+              contains the individual arrays for each skeleton
+  mask : numpy.ndarray
+         Updated version of the mask where small objects have been eliminated
+  num : int
+        Number of filaments
+  corners : list
+            Contains the indices where each skeleton array was taken from
+            the original
+
   '''
 
   filarrays = []; pix_val = []; corners = []
@@ -63,7 +83,6 @@ def isolatefilaments(skel_img,mask,size_threshold):
         mask[x[i],y[i]]=0
 
   labels,num = nd.label(skel_img,eight_con())
-  # eachfil = np.zeros((skel_img.shape)) ## this needs to be scaled to the size of the filament due to memory concerns
   for n in range(1,num+1):
     x,y = np.where(labels==n)
     lower = (x.min()-10,y.min()-10)
@@ -81,41 +100,54 @@ def isolatefilaments(skel_img,mask,size_threshold):
 
 def find_filpix(branches,labelfil,final=True):
   '''
-   find_filpix identifies the types of pixels contained in the skeleton. This is done by creating lists of the pixel values surrounding the pixel to be determined.
-   Eg. a 3x3 array about a pixel is [1,0,1]
- 				                            [0,1,0] which creates a list of [0,0,1,0,1,0,0,1]
-				                            [0,1,0]
-  by taking the pixel values that surround the pixel. The list is then shifted once to the right giving [1,0,0,1,0,1,0,0]. The shifted list is subtracted from the original giving [-1,0,1,-1,1,-1,0,1].
-  The number of 1s (or -1s) give the amount of step-ups around the pixel. By comparing the step-ups and the number of non-zero elements in the original list, the pixel can be identified into a category.
+   This function identifies the types of pixels contained in the skeleton.
+   This is done by creating lists of the pixel values surrounding the pixel
+   to be determined.
+   For example, consider a 3x3 array about a pixel is
+            [1,0,1]
+ 				    [0,1,0]
+				    [0,1,0]
+  By considering the surrounding pixels around the center, we get the list,
+            [0,0,1,0,1,0,0,1]
+  The list is then shifted once to the right giving
+            [1,0,0,1,0,1,0,0].
+  The shifted list is subtracted from the original yielding
+            [-1,0,1,-1,1,-1,0,1].
+  The number of 1s (or -1s) give the amount of step-ups around the pixel.
+  By comparing the step-ups and the number of non-zero elements in the original
+  list, the pixel can be identified into an end point, body point, or an
+  intersection point. In this example, the middle pixel is an intersection
+  point.
 
-  INPUTS
-  ------
+  Parameters
+  ----------
 
-  branches - list
-            number of branches in each skeleton
+  branches : list
+             Contains the number of branches in each skeleton.
 
-  labelfil - list
-            list of arrays each containing one skeleton
+  labelfil : list
+             Contains the arrays of each skeleton.
 
-  final - bool
-         if true, corner points, intersections, and body points as all labelled as a body point
-         for use when the skeletons have already been cleaned
+  final : bool
+          If true, corner points, intersections, and body points are all
+          labeled as a body point for use when the skeletons have already
+          been cleaned.
 
-  OUTPUTS
+  Returns
   -------
 
-  fila_pts - list
-            all points on the body of the skeleton
+  fila_pts : list
+             All points on the body of each skeleton.
 
-  inters - list
-          all points associated with an intersection in the skeleton
+  inters : list
+           All points associated with an intersection in each skeleton.
 
-  labelfil - list
-            list of arrays
-            intersections have been removed from the skeletons
+  labelfil : list
+             Contains the arrays of each skeleton where all intersections
+             have been removed.
 
-  endpts_return - list
-                 end points of each branch on the skeleton
+  endpts_return : list
+                  The end points of each branch of each skeleton.
 '''
 
   initslices = [];initlist = []; shiftlist = [];sublist = [];endpts = [];blockpts = []
@@ -163,15 +195,14 @@ def find_filpix(branches,labelfil,final=True):
     subvallist.append(subslist)
     subslist = []
 
-# x represents the subtracted list (step-ups) and y is the values of the surrounding pixels. The categories of pixels are ENDPTS (x<=1), BODYPTS (x=2,y=2),CORNERPTS (x=2,y=3),BLOCKPTS (x=3,y>=4), and INTERPTS (x>=3).
-# A cornerpt is [*,0,0] (*s) associated with an intersection, but their exclusion from
-#		[1,*,0] the intersection keeps eight-connectivity, they are included
-#		[0,1,0] intersections for this reason.
-# A blockpt is  [1,0,1] They are typically found in a group of four, where all four
-#		[0,*,*] constitute a single intersection.
-#		[1,*,*]
-# The "final" designation is used when finding the final branch lengths. At this point, blockpts and cornerpts should be eliminated.
-  # for k in range(len(slices)):
+  # x represents the subtracted list (step-ups) and y is the values of the surrounding pixels. The categories of pixels are ENDPTS (x<=1), BODYPTS (x=2,y=2),CORNERPTS (x=2,y=3),BLOCKPTS (x=3,y>=4), and INTERPTS (x>=3).
+  # A cornerpt is [*,0,0] (*s) associated with an intersection, but their exclusion from
+  #		[1,*,0] the intersection keeps eight-connectivity, they are included
+  #		[0,1,0] intersections for this reason.
+  # A blockpt is  [1,0,1] They are typically found in a group of four, where all four
+  #		[0,*,*] constitute a single intersection.
+  #		[1,*,*]
+  # The "final" designation is used when finding the final branch lengths. At this point, blockpts and cornerpts should be eliminated.
   for k in range(branches):
     for l in range(len(filpix[k])):
       x = [j for j,y in enumerate(subvallist[k][l]) if y==k+1]
@@ -198,7 +229,7 @@ def find_filpix(branches,labelfil,final=True):
     if len(dups)>0:
           for i in dups:
             bodypts.remove(i)
-#Cornerpts without a partner diagonally attached can be included as a bodypt.
+    #Cornerpts without a partner diagonally attached can be included as a bodypt.
     if len(cornerpts)>0:
         deleted_cornerpts = []
         for i,j in zip(cornerpts,cornerpts):
@@ -235,7 +266,7 @@ def find_filpix(branches,labelfil,final=True):
     if len(intertemps)>0:
         for i in intertemps:
           all_pts.append(i)
-# Pairs of cornerpts, blockpts, and interpts are combined into an array. If there is eight connectivity between them, they are labelled as a single intersection.
+    # Pairs of cornerpts, blockpts, and interpts are combined into an array. If there is eight connectivity between them, they are labelled as a single intersection.
     arr = np.zeros((labelfil.shape))
     for z in all_pts:
       labelfil[z[0],z[1]]=0
@@ -255,8 +286,28 @@ def find_filpix(branches,labelfil,final=True):
   return fila_pts,inters,labelfil,endpts_return
 
 def find_extran(branches,labelfil):
-  # The purpose of find_extran is to indentify pixels that are not neceassary to keep the connectivity of the skeleton.
-  #It uses the same process as find_filpix. Extraneous pixels tend to be those from former intersections whose attached branch was eliminated in the cleaning process.
+  '''
+  This function's purpose is to identify pixels that are not necessary
+  to keep the connectivity of the skeleton. It uses a same process as find_filpix.
+  Extraneous pixels tend to be those from former intersections, whose attached
+  branch was eliminated in the cleaning process.
+
+  Parameters
+  ----------
+
+  branches : list
+             Contains the number of branches in each skeleton.
+
+  labelfil : list
+             Contains arrays of the labeled versions of each skeleton.
+
+  Returns
+  -------
+
+  labelfil : list
+             Contains the updated labeled arrays with extraneous pieces
+             removed.
+  '''
   initslices = [];initlist = []; shiftlist = [];sublist = [];extran= []
   slices = []; vallist = [];shiftvallist=[]
   subvallist = []
@@ -319,16 +370,46 @@ def find_extran(branches,labelfil):
 
 
 ######################################################################
-###				Composite Functions
+###				Wrapper Functions
 ######################################################################
 
 
 def pix_identify(isolatefilarr,num):
   '''
-    Inputs: isolatefilarr - list of segmented filaments
-            num           - number of filaments (doesn't really need to be an input since len(isolatefilarr) would work)
+    This function is essentially a wrapper on find_filpix. It returns the
+    outputs of find_filpix in the form that are used during the analysis.
+
+    Parameters
+    ----------
+
+    isolatefilarr : list
+                    Contains individual arrays of each skeleton.
+
+    num  : int
+           The number of skeletons.
+
+    Returns
+    -------
+
+    interpts : list
+               Contains lists of all intersections points in each skeleton.
+
+    hubs : list
+           Contains the number of intersections in each filament. This is
+           useful for identifying those with no intersections as their analysis
+           is straight-forward.
+
+    ends : list
+           Contains the positions of all end points in each skeleton.
+
+    filbranches : list
+                  Contains the number of branches in each skeleton.
+
+    labelisofil : list
+                  Contains individual arrays for each skeleton where the
+                  branches are labeled and the intersections have been removed.
   '''
-	#Initialize lists
+
   interpts = []
   hubs = []
   ends = []
@@ -350,10 +431,31 @@ def pix_identify(isolatefilarr,num):
   return interpts, hubs, ends, filbranches, labelisofil
 
 def extremum_pts(labelisofil,extremum,ends):
-  # Returns the the farthest points of the filament
-  # For use in "global gradient" finding
+  '''
+  This function returns the the farthest extents of each filament. This
+  is useful for determining how well the shortest path algorithm has worked.
+
+  Parameters
+  ----------
+
+  labelisofil : list
+                 Contains individual arrays for each skeleton.
+
+  extremum : list
+             Contains the extents as determined by the shortest
+             path algorithm.
+
+  ends : list
+         Contains the positions of each end point in eahch filament.
+
+  Returns
+  -------
+
+  extren_pts : list
+               Contains the indices of the extremum points.
+  '''
+
   num = len(labelisofil)
-  # Initialize List
   extrem_pts = []
 
   for n in range(num):

@@ -18,19 +18,21 @@ from scipy.stats import scoreatpercentile
 class fil_finder_2D(object):
     """
 
-    fil_finder is intended for use on astronomical images for detecting and analyzing filamentary
-    structure in molecular clouds. Our method is largely based on mathematical morphology. When
-    properly tuned, it is capable of extracting a complete catalog of filaments from an image
+    fil_finder is intended for use on astronomical images for detecting
+    and analyzing filamentary structure in molecular clouds. Our method
+    is largely based on mathematical morphology. When properly tuned, it
+    is capable of extracting a complete catalog of filaments from an image
     over the complete range of intensities.
 
-    This class acts as an overall wrapper to run the fil-finder algorithm on 2D images and enables
-    visualization and saving capabilities.
+    This class acts as an overall wrapper to run the fil-finder algorithm
+    on 2D images and enables visualization and saving capabilities.
 
     Examples
     --------
     >>> from fil_finder import fil_finder_2D
     >>> img,hdr = fromfits("/srv/astro/erickoch/gould_belt/chamaeleonI-250.fits")
-    >>> filfind = fil_finder_2D(img, hdr, 15.1, 30, 5, 10, 95 ,distance=160,region_slice=[620,1400,430,1700])
+    >>> filfind = fil_finder_2D(img, hdr, 15.1, 30, 5, 10, 95 ,distance=160,
+                                region_slice=[620,1400,430,1700])
     >>> filfind.run(verbose=False, save_name="chamaeleonI-250", save_plots=True)
 
     """

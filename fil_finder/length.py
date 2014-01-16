@@ -35,8 +35,45 @@ import operator,string
 
 
 def fil_length(n,pixels,initial=True):
- #fil_length calculates the length of the branches, or filament. It does this by creating an array of the distances between each pixel. It then searches each column, beginning with the first, and identifies the minimum of that row. The column of the minimum is the next row to be searched. After a row is searched, the corresponding row and column are set to zero. In the initial case, the maximum distance between connected pixels is sqrt(2). The non-initial case accounts for the average position of intersections when finding the overall length of the filament. Due to the somewhat unpredictablility of these larger intersections, the minimum distances can be much larger. The value of 5 is an approximation for the largest gap that can be created, but it is possible to have values larger than this.
-  dists = [];tempps = [];orders = [];order = []
+  '''
+  This function calculates either the length of the branches, or the entire
+  filament. It does this by creating an array of the distances between each
+  pixel. It then searches each column and identifies the minimum of that
+  row. The column containing the minimum is the next row to be searched.
+  After a row is searched, the corresponding row and column are set to
+  zero and ignored. When initial is True, the maximum distance between
+  connected pixels is sqrt(2). When initial is False, the function accounts
+  for the average position of intersections when finding the overall length
+  of the filament. Due to the somewhat unpredictable size of the larger
+  intersections, the minimum distances are allowed to be much larger than
+  sqrt(2). The threshold is set at 5 as an approximation for the largest
+  gap that should be created. At this point, the intersections are the
+  only places where a distance of sqrt(2) can be returned.
+
+  Parameters
+  ----------
+
+  n : int
+      The number of the skeleton being analyzed.
+
+  pixels : list
+           Contains the positions of the pixels in the skeleton or branch.
+
+  initial : bool, optional
+            If True, the initial branches are inputted. If False, the
+            entire cleaned skeleton is inputted.
+
+  Returns
+  -------
+
+  distances : list
+              Contains the length of the inputted structure.
+
+  orders : list
+           Contains the order of the pixels.
+
+  '''
+  dists = [];distances = [];orders = [];order = []
   for i in range(len(pixels)):
     if pixels[i]==[[]]: pass
     else:
@@ -54,8 +91,10 @@ def fil_length(n,pixels,initial=True):
           try:
             min_dist = np.min(eucarr[:,j][np.nonzero(eucarr[:,j])])
           except ValueError:
-            min_dist = 0 # Check to make sure this does not seriously affect the length
-                         # This Error has ony
+            min_dist = 0 # In some cases, a duplicate of the first pixel
+                         # is added to the end, causing issues. This takes
+                         # corrects the length while I try to find the
+                         # issue.
           if initial:
             if min_dist>np.sqrt(2.0):
               print "PROBLEM : Dist %s, Obj# %s,Branch# %s, # In List %s" % (min_dist,n,i,pixels[i][j])
@@ -63,7 +102,6 @@ def fil_length(n,pixels,initial=True):
             if min_dist>5.0:
               if j==1:
                 min_dist = 0
-            else: pass#print "PROBLEM : Dist %s, Obj# %s,Branch# %s, # In List %s" % (min_dist,n,i,pixels[i][j])
           dists.append(min_dist)
           x,y = np.where(eucarr==min_dist)
           order.append(j)
@@ -72,14 +110,42 @@ def fil_length(n,pixels,initial=True):
               last = x[z]
               eucarr[:,j]=0
               eucarr[j,:]=0
-    tempps.append(sum(dists))
+    distances.append(sum(dists))
     orders.append(order)
     dists = [];order = []
-  return tempps,orders
+
+  return distances, orders
 
 
 def curve(n,pts):
-  #The average curvature of the filament is found using the Menger curvature. The formula relates the area of the triangle created by the three points and the distance between the points. The formula is given as 4*area/|x-y||y-z||z-x|=curvature. The curvature is weighted by the euclidean length of the three pixels.
+  '''
+  The average curvature of the filament is found using the Menger curvature.
+  The formula relates the area of the triangle created by the three points
+  and the distance between the points. The formula is given as 4*area/|x-y||y-z||z-x|=curvature.
+  The curvature is weighted by the Euclidean length of the three pixels.
+
+  *Note:* The normalization is still an issue with this method. Its results
+  should **NOT** be used.
+
+  Parameters
+  ----------
+
+  n : int
+      The number of the skeleton being analyzed.
+
+  pts : list
+        Contains the pixels contained in the inputted structure.
+
+  Returns
+  -------
+
+  numer/denom : float
+                The value of the Menger Curvature.
+
+  References
+  ----------
+
+  '''
   lenn = len(pts)
   kappa = [];seg_len = []
   for i in range(lenn-2):
@@ -103,14 +169,32 @@ def curve(n,pts):
     raise ValueError('Sum of length segments is zero.')
 
 def av_curvature(n,finalpix,ra_picks=100,seed=500):
-  #Calculates the average curvature using final skeleton points from final_lengths
-  # Picks 3 random points on the filament and calculates the curvature. The average is taken of 100 picks.
+  '''
+  This function acts as a wrapper on curve. It calculates the average curvature
+  by choosing 3 random points on the filament and calculating the curvature.
+  The average of many iterations of this method is reported as the curvature
+  for that skeleton.
+
+  Parameters
+  ----------
+
+  n : int
+      The number of the skeleton being analyzed.
+
+  finalpix : list
+             Contains the pixels contained in the inputted structure.
+
+  ra_picks : int
+             The number of iterations to run.
+
+  seed : int
+         Sets the seed.
+  '''
   import numpy.random as ra
   seed = int(seed)
   ra.seed(seed=int(seed))
   ra_picks = int(ra_picks)
 
-  #Initialize lists
   curvature = []
 
   for i in range(len(finalpix)):
@@ -131,6 +215,30 @@ def av_curvature(n,finalpix,ra_picks=100,seed=500):
 
 
 def init_lengths(labelisofil,filbranches):
+  '''
+
+  This is a wrapper on fil_length for running on the branches of the skeletons.
+
+  Parameters
+  ----------
+
+  labelisofil : list
+                Contains individual arrays for each skeleton where the
+                branches are labeled and the intersections have been removed.
+
+  filbranches : list
+                Contains the number of branches in each skeleton.
+
+  Returns
+  -------
+
+  lengths : list
+            Contains the lengths of eahc branch on each skeleton.
+
+  filpts : list
+           Contains the pixels in each branch.
+
+  '''
   num = len(labelisofil)
 
   #Initialize Lists
@@ -153,10 +261,49 @@ def init_lengths(labelisofil,filbranches):
 
 
 def pre_graph(labelisofil,lengths,interpts,ends):
+  '''
+
+  This function converts the skeletons into a graph object compatible with
+  networkx. The graphs have nodes corresponding to end and intersection points
+  and edges defining the connectivity as the branches with the weights set
+  to the branch length.
+
+  Parameters
+  ----------
+
+  labelisofil : list
+                Contains individual arrays for each skeleton where the
+                branches are labeled and the intersections have been removed.
+
+  lengths : list
+            Contains the lengths of all of the branches.
+
+  interpts : list
+             Contains the pixels which belong to each intersection.
+
+  ends : list
+         Contains the end pixels for each skeleton.
+
+  Returns
+  -------
+
+  end_nodes : list
+              Contains the nodes corresponding to end points.
+
+  inter_nodes : list
+                Contains the nodes corresponding to intersection points.
+
+  edge_list : list
+              Contains the connectivity information for the graphs.
+
+  nodes : list
+          A complete list of all of the nodes. The other nodes lists have
+          been separated as they are labeled differently.
+
+  '''
 
   num = len(labelisofil)
 
-  # Initialize lists
   end_nodes_temp = []
   end_nodes = []
   uniqs = []
@@ -177,7 +324,9 @@ def pre_graph(labelisofil,lengths,interpts,ends):
     nodes.append(nodes_temp);nodes_temp = []
     end_nodes_temp = []
 
-  #Intersection nodes are given by the intersections points of the filament. They are labelled alphabetically (if len(interpts[n])>26, subsequent labels are AA,AB,...). The branch labels attached to each intersection are included for future use.
+  # Intersection nodes are given by the intersections points of the filament.
+  # They are labeled alphabetically (if len(interpts[n])>26, subsequent labels are AA,AB,...).
+  # The branch labels attached to each intersection are included for future use.
     for j in range(len(interpts[n])):
         for i in interpts[n][j]:
           int_arr = np.array([[labelisofil[n][i[0]-1,i[1]+1],labelisofil[n][i[0],i[1]+1],labelisofil[n][i[0]+1,i[1]+1]],\
@@ -219,7 +368,37 @@ def pre_graph(labelisofil,lengths,interpts,ends):
 
 
 def longest_path(edge_list,nodes,lengths,verbose=False):
-  # Given nodes and edges from pre_graph(), finds the longest shortest path
+  '''
+  Takes the output of pre_graph and runs the shortest path algorithm.
+
+  Parameters
+  ----------
+
+  edge_list : list
+              Contains the connectivity information for the graphs.
+
+  nodes : list
+          A complete list of all of the nodes. The other nodes lists have
+          been separated as they are labeled differently.
+
+  lengths : list
+            Contains the lengths of each branch.
+
+  verbose : bool, optional
+            If True, enables the plotting of the graph. *Requires pygraphviz
+            be installed.*
+
+  Returns
+  -------
+
+  max_path : list
+             Contains the paths corresponding to the longest lengths for
+             each skeleton.
+
+  extremum : list
+             Contains the starting and ending points of max_path
+
+  '''
   num = len(nodes)
 
   # Initialize lists
@@ -257,7 +436,66 @@ def longest_path(edge_list,nodes,lengths,verbose=False):
 
 
 def final_lengths(img,max_path,edge_list,labelisofil,filpts,interpts,filbranches,lengths,img_scale,length_thresh):
-  #Finds the overall length of the filament from the longest_path and pre_graph outputs
+  '''
+  The function finds the overall length of the filament from the longest_path
+  and pre_graph outputs. For intersections of more than one pixel, it calculates
+  a weighted average (based on intensity) and uses that position for calculating
+  the length. The curvature routines are also wrapped in this function.
+
+  This function also performs the "pruning". Branches that are less than
+  length_thresh are deleted.
+
+  Parameters
+  ----------
+
+  img : numpy.ndarray
+        The image being analyzed.
+
+  max_path : list
+             Contains the longest paths through the skeleton.
+
+  edge_list : list
+              Contains the connectivity of the graphs
+
+  labelisofil : list
+                Contains individual arrays for each skeleton where the
+                branches are labeled and the intersections have been removed.
+
+  filpts : list
+           Contains the pixels belonging to each skeleton.
+
+  interpts : list
+             Contains the pixels which belong to the intersections.
+
+  filbranches : list
+                Contains the number of branches in each filament.
+
+  lengths : list
+            Contains the lengths of the branches.
+
+  img_scale : float
+              The conversion to physical units (pc).
+
+  length_thresh : float
+                  The minimum length a branch must be.
+
+  Returns
+  -------
+
+  main_lengths : list
+                 Contains the overall skeleton lengths.
+
+  lengths : list
+            The updated list of the lengths of the skeleton branches.
+
+  labelisofil : list
+                The updated versions of the skeleton arrays. The intersection
+                points have been re-added and the short branches pruned off.
+
+  curvature : list
+              The Menger Curvature values for the main extents of each skeleton.
+
+  '''
   num = len(max_path)
 
   # Initialize lists
@@ -358,6 +596,35 @@ def final_lengths(img,max_path,edge_list,labelisofil,filpts,interpts,filbranches
 
 
 def final_analysis(labelisofil):
+  '''
+
+  In the case that a skeleton has been split into parts during the pruning
+  process in final_lengths, this function re-analyzes and corrects any such
+  problems.
+
+  Parameters
+  ----------
+
+  labelisofil : list
+                The versions of the skeleton arrays outputted from final_lengths.
+
+  Returns
+  -------
+
+  labelisofil : list
+                The updated version of the skeleton arrays.
+
+  filbranches : list
+                The updated version of the number of branches in each skeleton.
+
+  hubs : list
+         The updated version of the number of intersections in eahc skeleton.
+
+  lengths : list
+            Updated version of the lengths of the branches.
+
+
+  '''
   num = len(labelisofil)
 
   # Initialize lists

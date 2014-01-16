@@ -6,8 +6,8 @@ import numpy as np
 
 
 '''
-Routines for calculating the curvature of filaments
-
+Routines for calculating the Menger Curvature of filaments
+**The active versions of these routines are in length.py.**
 Contains:
 		curve
 		av_curvature
@@ -18,22 +18,35 @@ Requires:
 '''
 
 
+def curve(n,pts):
+  '''
+  The average curvature of the filament is found using the Menger curvature.
+  The formula relates the area of the triangle created by the three points
+  and the distance between the points. The formula is given as 4*area/|x-y||y-z||z-x|=curvature.
+  The curvature is weighted by the Euclidean length of the three pixels.
 
+  *Note:* The normalization is still an issue with this method. Its results
+  should **NOT** be used.
 
+  Parameters
+  ----------
 
+  n : int
+      The number of the skeleton being analyzed.
 
+  pts : list
+        Contains the pixels contained in the inputted structure.
 
+  Returns
+  -------
 
+  numer/denom : float
+                The value of the Menger Curvature.
 
+  References
+  ----------
 
-
-
-
-
-
-
-def curve(pts):
-  #The average curvature of the filament is found using the Menger curvature. The formula relates the area of the triangle created by the three points and the distance between the points. The formula is given as 4*area/|x-y||y-z||z-x|=curvature. The curvature is weighted by the euclidean length of the three pixels.
+  '''
   lenn = len(pts)
   kappa = [];seg_len = []
   for i in range(lenn-2):
@@ -46,41 +59,56 @@ def curve(pts):
       kappa.append(0)
     else:
       kappa.append(num/den)
-    seg_len.append(fil_length([[pts[i],pts[i+1],pts[i+2]]],initial=True)[0])      
+    seg_len.append(fil_length(n,[[pts[i],pts[i+1],pts[i+2]]],initial=False)[0])
   numer = sum(kappa[i] * seg_len[i][0] for i in range(len(kappa)))
-  denom = sum(seg_len[i][0] for i in range(len(seg_len))) 
+  denom = sum(seg_len[i][0] for i in range(len(seg_len)))
   if denom!= 0:
     return numer/denom
   else:
     print n
     print pts
     raise ValueError('Sum of length segments is zero.')
-    #return np.NaN
 
+def av_curvature(n,finalpix,ra_picks=100,seed=500):
+  '''
+  This function acts as a wrapper on curve. It calculates the average curvature
+  by choosing 3 random points on the filament and calculating the curvature.
+  The average of many iterations of this method is reported as the curvature
+  for that skeleton.
 
+  Parameters
+  ----------
 
-def av_curvature(finalpix,ra_picks=1000,seed=500):
-	#Calculates the average curvature using final skeleton points from final_lengths
-	# Picks 3 random points on the filament and calculates the curvature. The average is taken of 100 picks.
-	import numpy.random as ra
-	seed = int(seed)
-	ra.seed(seed=int(seed))
-	ra_picks = int(ra_picks)
+  n : int
+      The number of the skeleton being analyzed.
 
-	#Initialize lists
-	curvature = []
+  finalpix : list
+             Contains the pixels contained in the inputted structure.
 
-	for n in range(len(finalpix)):
-		if len(finalpix[n])>3:
-			trials = []
-			for _ in range(ra_picks):
-				picks = ra.choice(len(finalpix[n])+1,3,replace=False)
-				points = [finalpix[n][i] for i in picks]
-				trials.append(curve(points))
-			curvature.append(np.mean(trials))
-		else:
-			curvature.append("Fail")
-	return curvature
+  ra_picks : int
+             The number of iterations to run.
+
+  seed : int
+         Sets the seed.
+  '''
+  import numpy.random as ra
+  seed = int(seed)
+  ra.seed(seed=int(seed))
+  ra_picks = int(ra_picks)
+
+  curvature = []
+
+  for i in range(len(finalpix)):
+    if len(finalpix[i])>3:
+      trials = []
+      for _ in range(ra_picks):
+        picks = ra.choice(len(finalpix[i]),3,replace=False) ### REQUIRE NUMPY 1.7!!!
+        points = [finalpix[i][j] for j in picks]
+        trials.append(curve(n,points))
+      curvature.append(np.mean(trials))
+    else:
+      curvature.append("Fail")
+  return curvature
 
 
 

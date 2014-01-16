@@ -6,26 +6,13 @@ Utility functions for fil-finder package
 
 """
 
-import astropy.io.fits as pyfits
 import itertools
 import numpy as np
 from scipy import optimize as op
 from skimage import morphology as mo
 import operator
 
-def fromfits(fromfile, hdu=0):
-
-	pixelarray,hdr = pyfits.getdata(fromfile,hdu, header=True)
-	pixelarray = np.asarray(pixelarray).transpose()
-
-	pixelarrayshape = pixelarray.shape
-	print "Shape : (%i,%i)" % (pixelarrayshape[0],pixelarrayshape[1])
-	print "BITPIX : %s" % (hdr["BITPIX"])
-	print "Array Type :", pixelarray.dtype.name
-
-	return pixelarray,hdr
-
-
+# from http://stackoverflow.com/questions/3157374/how-do-you-remove-a-numpy-array-from-a-list-of-numpy-arrays
 def removearray(l,arr):
   ind = 0
   size = len(l)
@@ -48,6 +35,7 @@ def weighted_av(items,weight):
     return (num/denom) if denom != 0 else None
 
 ## Raw Input with a timer
+## from http://stackoverflow.com/questions/2933399/how-to-set-time-limit-on-input
 
 import thread
 import threading

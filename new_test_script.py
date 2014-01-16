@@ -1,8 +1,10 @@
 #!/usr/bin/python
 
 from fil_finder import *
+from astropy.io.fits import getdata
 
-img,hdr = fromfits("/srv/astro/erickoch/gould_belt/chamaeleonI-250.fits")
+img,hdr = fgetdata("/srv/astro/erickoch/gould_belt/chamaeleonI-250.fits",
+    header=True)
 
 ## Utilize fil_finder_2D class
 ## See filfind_class.py for inputs
