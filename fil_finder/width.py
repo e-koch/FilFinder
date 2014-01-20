@@ -26,12 +26,43 @@ Requires:
 def dist_transform(labelisofil, offsets, orig_size, pad_size):
 	'''
 
-	Recombines the cleaned skeletons from final analysis and takes the Euclidean Distance Transform.
-	Since each filament is in an array defined by its own size, the offsets need to be taken into account when
-	adding back into a master array.
+	Recombines the cleaned skeletons from final analysis and takes the
+	Euclidean Distance Transform of each. Since each filament is in an
+	array defined by its own size, the offsets need to be taken into account
+	when adding back into the master array.
 
-	NOTE: pad_size must be chosen to be smaller than the smallest filament array shape. The filament will be cut out
-		  if it needs to be trimmed to fit within the original image
+	*Note:* pad_size must be chosen to be smaller than the smallest filament
+		  array shape. The filament will be cut out if it needs to be trimmed
+		  to fit within the original image.
+
+	Parameters
+	----------
+
+	labelisofil : list
+				  Contains arrays of the cleaned individual skeletons
+
+	offsets : list
+			  The output from isolatefilaments during the segmentation
+			  process. Contains the indices where each skeleton was cut
+			  out of the original array.
+
+	orig_size : tuple
+				The shape of the original image.
+
+	pad_size : int
+			   The size to pad each skeleton array with. If the edges go
+			   beyond the original image's size, they are trimmed to size.
+
+	Returns
+	-------
+
+	dist_transform_all : numpy.ndarray
+						 A Euclidean Distance Transform of all of the skeletons
+						 combined.
+
+	dist_transform_sep : list
+						 Contains the Euclidean Distance Transform of each
+						 individual skeleton.
 
 	'''
 	num  = len(labelisofil)
@@ -84,7 +115,56 @@ def dist_transform(labelisofil, offsets, orig_size, pad_size):
 
 
 def gauss_width(img,dist_transform_all,dist_transform_sep,img_beam,img_scale,offsets,verbose=False):
-	# Fits a Gaussian to the radial profile of a filament using the output from dist_transform, the image, beam_width and spatial scale
+	'''
+	Fits a Gaussian to the radial profile of each filament by comparing
+	the intensity profile from the center of the skeleton using the output
+	of dist_transform. The FWHM width of the Gaussian is deconvolved with
+	the beam-size of the image. Errors are estimated from the trace of
+	the covariance matrix of the fit.
+
+	Parameters
+	----------
+
+	img : numpy.ndarray
+		  The original image.
+
+	dist_transform_all : numpy.ndarray
+						 The distance transform of all the skeletons.
+						 Outputted from dist_transform.
+
+	dist_transform_sep : list
+						 The distance transforms of each individual skeleton.
+						 Outputted from dist_transform.
+
+    img_beam : float
+    		   The beam size of the instrument used to collect the data
+    		   in units of pc or pixels based on the algorithm inputs.
+
+    img_scale : float
+    			The physical scale of the image in pc. Or in pixels if
+    			no distance is provided.
+
+    offsets : list
+   			  The output from isolatefilaments during the segmentation
+			  process. Contains the indices where each skeleton was cut
+			  out of the original array.
+
+	verbose : bool, optional
+			  If True, plots the radial profile and the fit for each skeleton.
+
+	Returns
+	-------
+
+	widths : list
+			 Contains the deconvolved FWHM widths of the skeletons.
+
+	fits : list
+		   Contains the fitted Gaussian parameters.
+
+	fit_errors : list
+				 Contains the estimated errors from each fit.
+
+	'''
 	num = len(dist_transform_sep)
 	#Initialize lists
 	fits = []
@@ -160,7 +240,10 @@ def gauss_width(img,dist_transform_all,dist_transform_sep,img_beam,img_scale,off
 
 
 def cyl_model(img,dist_transform_all,dist_transform_sep,img_beam,img_scale,img_freq):
-	# Fits the radial profile of filament to a cylindrical model
+	'''
+	**NOT IN USE.**
+	Fits the radial profile of filament to a cylindrical model
+	'''
 	num = len(dist_transform_sep)
 	p0 = (1e20,0.03,2.)
 

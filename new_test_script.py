@@ -3,7 +3,7 @@
 from fil_finder import *
 from astropy.io.fits import getdata
 
-img,hdr = fgetdata("/srv/astro/erickoch/gould_belt/chamaeleonI-250.fits",
+img,hdr = getdata("/srv/astro/erickoch/gould_belt/chamaeleonI-250.fits",
     header=True)
 
 ## Utilize fil_finder_2D class
