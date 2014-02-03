@@ -1,0 +1,320 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Length Finding Routines &mdash; fil_finder 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="fil_finder 1.0 documentation" href="index.html" />
+    <link rel="up" title="Welcome to fil_finder’s documentation!" href="docs.html" />
+    <link rel="prev" title="Pixel Identification Routines" href="pixel_ident.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="pixel_ident.html" title="Pixel Identification Routines"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">fil_finder 1.0 documentation</a> &raquo;</li>
+          <li><a href="docs.html" accesskey="U">Welcome to fil_finder&#8217;s documentation!</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="length-finding-routines">
+<h1>Length Finding Routines<a class="headerlink" href="#length-finding-routines" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="fil_finder.fil_length">
+<tt class="descclassname">fil_finder.</tt><tt class="descname">fil_length</tt><big>(</big><em>n</em>, <em>pixels</em>, <em>initial=True</em><big>)</big><a class="headerlink" href="#fil_finder.fil_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function calculates either the length of the branches, or the entire
+filament. It does this by creating an array of the distances between each
+pixel. It then searches each column and identifies the minimum of that
+row. The column containing the minimum is the next row to be searched.
+After a row is searched, the corresponding row and column are set to
+zero and ignored. When initial is True, the maximum distance between
+connected pixels is sqrt(2). When initial is False, the function accounts
+for the average position of intersections when finding the overall length
+of the filament. Due to the somewhat unpredictable size of the larger
+intersections, the minimum distances are allowed to be much larger than
+sqrt(2). The threshold is set at 5 as an approximation for the largest
+gap that should be created. At this point, the intersections are the
+only places where a distance of sqrt(2) can be returned.</p>
+<dl class="docutils">
+<dt>n <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The number of the skeleton being analyzed.</dd>
+<dt>pixels <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the positions of the pixels in the skeleton or branch.</dd>
+<dt>initial <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd>If True, the initial branches are inputted. If False, the
+entire cleaned skeleton is inputted.</dd>
+</dl>
+<dl class="docutils">
+<dt>distances <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the length of the inputted structure.</dd>
+<dt>orders <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the order of the pixels.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="fil_finder.curve">
+<tt class="descclassname">fil_finder.</tt><tt class="descname">curve</tt><big>(</big><em>n</em>, <em>pts</em><big>)</big><a class="headerlink" href="#fil_finder.curve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The average curvature of the filament is found using the Menger curvature.
+The formula relates the area of the triangle created by the three points
+and the distance between the points. The formula is given as 4*area/<a href="#id1"><span class="problematic" id="id2">|</span></a>x-y||y-z||z-x|=curvature.
+The curvature is weighted by the Euclidean length of the three pixels.</p>
+<p><em>Note:</em> The normalization is still an issue with this method. Its results
+should <strong>NOT</strong> be used.</p>
+<dl class="docutils">
+<dt>n <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The number of the skeleton being analyzed.</dd>
+<dt>pts <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the pixels contained in the inputted structure.</dd>
+</dl>
+<dl class="docutils">
+<dt>numer/denom <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The value of the Menger Curvature.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="fil_finder.av_curvature">
+<tt class="descclassname">fil_finder.</tt><tt class="descname">av_curvature</tt><big>(</big><em>n</em>, <em>finalpix</em>, <em>ra_picks=100</em>, <em>seed=500</em><big>)</big><a class="headerlink" href="#fil_finder.av_curvature" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function acts as a wrapper on curve. It calculates the average curvature
+by choosing 3 random points on the filament and calculating the curvature.
+The average of many iterations of this method is reported as the curvature
+for that skeleton.</p>
+<dl class="docutils">
+<dt>n <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The number of the skeleton being analyzed.</dd>
+<dt>finalpix <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the pixels contained in the inputted structure.</dd>
+<dt>ra_picks <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The number of iterations to run.</dd>
+<dt>seed <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>Sets the seed.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="fil_finder.init_lengths">
+<tt class="descclassname">fil_finder.</tt><tt class="descname">init_lengths</tt><big>(</big><em>labelisofil</em>, <em>filbranches</em><big>)</big><a class="headerlink" href="#fil_finder.init_lengths" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is a wrapper on fil_length for running on the branches of the skeletons.</p>
+<dl class="docutils">
+<dt>labelisofil <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains individual arrays for each skeleton where the
+branches are labeled and the intersections have been removed.</dd>
+<dt>filbranches <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the number of branches in each skeleton.</dd>
+</dl>
+<dl class="docutils">
+<dt>lengths <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the lengths of eahc branch on each skeleton.</dd>
+<dt>filpts <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the pixels in each branch.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="fil_finder.pre_graph">
+<tt class="descclassname">fil_finder.</tt><tt class="descname">pre_graph</tt><big>(</big><em>labelisofil</em>, <em>lengths</em>, <em>interpts</em>, <em>ends</em><big>)</big><a class="headerlink" href="#fil_finder.pre_graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function converts the skeletons into a graph object compatible with
+networkx. The graphs have nodes corresponding to end and intersection points
+and edges defining the connectivity as the branches with the weights set
+to the branch length.</p>
+<dl class="docutils">
+<dt>labelisofil <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains individual arrays for each skeleton where the
+branches are labeled and the intersections have been removed.</dd>
+<dt>lengths <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the lengths of all of the branches.</dd>
+<dt>interpts <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the pixels which belong to each intersection.</dd>
+<dt>ends <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the end pixels for each skeleton.</dd>
+</dl>
+<dl class="docutils">
+<dt>end_nodes <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the nodes corresponding to end points.</dd>
+<dt>inter_nodes <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the nodes corresponding to intersection points.</dd>
+<dt>edge_list <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the connectivity information for the graphs.</dd>
+<dt>nodes <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>A complete list of all of the nodes. The other nodes lists have
+been separated as they are labeled differently.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="fil_finder.longest_path">
+<tt class="descclassname">fil_finder.</tt><tt class="descname">longest_path</tt><big>(</big><em>edge_list</em>, <em>nodes</em>, <em>lengths</em>, <em>verbose=False</em><big>)</big><a class="headerlink" href="#fil_finder.longest_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes the output of pre_graph and runs the shortest path algorithm.</p>
+<dl class="docutils">
+<dt>edge_list <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the connectivity information for the graphs.</dd>
+<dt>nodes <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>A complete list of all of the nodes. The other nodes lists have
+been separated as they are labeled differently.</dd>
+<dt>lengths <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the lengths of each branch.</dd>
+<dt>verbose <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd>If True, enables the plotting of the graph. <em>Requires pygraphviz
+be installed.</em></dd>
+</dl>
+<dl class="docutils">
+<dt>max_path <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the paths corresponding to the longest lengths for
+each skeleton.</dd>
+<dt>extremum <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the starting and ending points of max_path</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="fil_finder.final_lengths">
+<tt class="descclassname">fil_finder.</tt><tt class="descname">final_lengths</tt><big>(</big><em>img</em>, <em>max_path</em>, <em>edge_list</em>, <em>labelisofil</em>, <em>filpts</em>, <em>interpts</em>, <em>filbranches</em>, <em>lengths</em>, <em>img_scale</em>, <em>length_thresh</em><big>)</big><a class="headerlink" href="#fil_finder.final_lengths" title="Permalink to this definition">¶</a></dt>
+<dd><p>The function finds the overall length of the filament from the longest_path
+and pre_graph outputs. For intersections of more than one pixel, it calculates
+a weighted average (based on intensity) and uses that position for calculating
+the length. The curvature routines are also wrapped in this function.</p>
+<p>This function also performs the &#8220;pruning&#8221;. Branches that are less than
+length_thresh are deleted.</p>
+<dl class="docutils">
+<dt>img <span class="classifier-delimiter">:</span> <span class="classifier">numpy.ndarray</span></dt>
+<dd>The image being analyzed.</dd>
+<dt>max_path <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the longest paths through the skeleton.</dd>
+<dt>edge_list <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the connectivity of the graphs</dd>
+<dt>labelisofil <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains individual arrays for each skeleton where the
+branches are labeled and the intersections have been removed.</dd>
+<dt>filpts <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the pixels belonging to each skeleton.</dd>
+<dt>interpts <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the pixels which belong to the intersections.</dd>
+<dt>filbranches <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the number of branches in each filament.</dd>
+<dt>lengths <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the lengths of the branches.</dd>
+<dt>img_scale <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The conversion to physical units (pc).</dd>
+<dt>length_thresh <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The minimum length a branch must be.</dd>
+</dl>
+<dl class="docutils">
+<dt>main_lengths <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Contains the overall skeleton lengths.</dd>
+<dt>lengths <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>The updated list of the lengths of the skeleton branches.</dd>
+<dt>labelisofil <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>The updated versions of the skeleton arrays. The intersection
+points have been re-added and the short branches pruned off.</dd>
+<dt>curvature <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>The Menger Curvature values for the main extents of each skeleton.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="fil_finder.final_analysis">
+<tt class="descclassname">fil_finder.</tt><tt class="descname">final_analysis</tt><big>(</big><em>labelisofil</em><big>)</big><a class="headerlink" href="#fil_finder.final_analysis" title="Permalink to this definition">¶</a></dt>
+<dd><p>In the case that a skeleton has been split into parts during the pruning
+process in final_lengths, this function re-analyzes and corrects any such
+problems.</p>
+<dl class="docutils">
+<dt>labelisofil <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>The versions of the skeleton arrays outputted from final_lengths.</dd>
+</dl>
+<dl class="docutils">
+<dt>labelisofil <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>The updated version of the skeleton arrays.</dd>
+<dt>filbranches <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>The updated version of the number of branches in each skeleton.</dd>
+<dt>hubs <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>The updated version of the number of intersections in eahc skeleton.</dd>
+<dt>lengths <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Updated version of the lengths of the branches.</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="pixel_ident.html"
+                        title="previous chapter">Pixel Identification Routines</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/length.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="pixel_ident.html" title="Pixel Identification Routines"
+             >previous</a> |</li>
+        <li><a href="index.html">fil_finder 1.0 documentation</a> &raquo;</li>
+          <li><a href="docs.html" >Welcome to fil_finder&#8217;s documentation!</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Eric Koch &amp; Erik Rosolowsky.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

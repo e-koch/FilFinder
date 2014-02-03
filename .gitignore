@@ -7,3 +7,5 @@ evm.py
 index.html
 fil_mod.py
 run_gouldbelt.py
+build/
+.DS_store

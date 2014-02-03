@@ -104,9 +104,9 @@ def find_filpix(branches,labelfil,final=True):
    This is done by creating lists of the pixel values surrounding the pixel
    to be determined.
    For example, consider a 3x3 array about a pixel is
-            [1,0,1]
- 				    [0,1,0]
-				    [0,1,0]
+            [1,0,1] \n
+ 				    [0,1,0] \n
+				    [0,1,0] \n
   By considering the surrounding pixels around the center, we get the list,
             [0,0,1,0,1,0,0,1]
   The list is then shifted once to the right giving

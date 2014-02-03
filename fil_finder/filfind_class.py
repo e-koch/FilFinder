@@ -14,6 +14,8 @@ import scipy.ndimage as nd
 from skimage.filter import threshold_adaptive
 from skimage.morphology import remove_small_objects, medial_axis
 from scipy.stats import scoreatpercentile
+from astropy.io import fits
+from copy import deepcopy
 
 class fil_finder_2D(object):
     """
@@ -27,6 +29,55 @@ class fil_finder_2D(object):
     This class acts as an overall wrapper to run the fil-finder algorithm
     on 2D images and enables visualization and saving capabilities.
 
+    Parameters
+    ------
+    image : numpy.ndarray
+            A 2D array of the data to be analyzed.
+    hdr   : dictionary
+            The header from fits file containing the data.
+    beamwidth : float
+                The FWHM beamwidth (in arcseconds) of the instrument used to take the data.
+    skel_thresh : float
+                  Below this cut off, skeletons with less pixels will be deleted
+    branch_thresh : float
+                    Any branches shorter than this length (in pixels) will be labeled as extraneous and pruned off.
+    pad_size :  int
+                The size of the pad (in pixels) used to pad the individual filament arrays.
+                This is necessary to build the radial intensity profile.
+    flatten_thresh : int
+                     The percentile of the data used in the normalization of the arctan transform. If the data contains
+                     regions of a much higher intensity than the mean, it is recommended this be set >95 percentile.
+    smooth_size : int, optional
+                  The patch size (in pixels) used to smooth the flatten image before adaptive thresholding is performed.
+                  Smoothing is necessary to ensure the extraneous branches on the skeletons is minimized.
+                  If None, the patch size is set to ~0.05 pc. This ensures the large scale structure is not affected while
+                  smoothing extraneous pixels off the edges.
+    size_thresh : int, optional
+                  This sets the lower threshold on the size of objects found in the adaptive thresholding. If None, the
+                  value is set at ~0.1*pi*(0.5 pc)*(0.75*0.1 pc) which is 0.1* area of ellipse with a length 0.5 pc and
+                  0.75(1/10) pc width, which represent the approximate smallest size of a filament [add citation].
+                  Multiplying by 0.1 is meant to take into account an extremely curvy filament, likely more than is
+                  physically realizable. Any region smaller than this threshold may be safely labeled as an artifact of
+                  the thresholding.
+    glob_thresh : float, optional
+                  This is the percentile to cut off searching for filamentary structure. Any regions with intensities
+                  below this percentile are ignored.
+    adapt_thresh : int, optional
+                   This is the size of the patch used in the adaptive thresholding. Bright structure is not very sensitive
+                   to the choice of patch size, but faint structure is very sensitive. If None, the patch size is set to
+                   twice the width of a typical filament (~0.2 pc). As the width of filaments is ubiquitous[citation here],
+                   this patch size generally segments all filamentary structure in a given image.
+    distance : float, optional
+               The distance to the region being examined (in pc). If None, the analysis is carried out in pixel and
+               angular units. In this case, the physical priors used in other optional parameters is meaningless
+               and each must be specified initially.
+    region_slice : list, optional
+                   This gives the option to examine a specific region in the given image. The expected input
+                   is [xmin,xmax,ymin,max].
+    mask : numpy.ndarray, optional
+           A pre-made, boolean mask may be supplied to skip the segmentation process. The algorithm will skeletonize
+           and run the analysis portions only.
+
     Examples
     --------
     >>> from fil_finder import fil_finder_2D
@@ -35,63 +86,14 @@ class fil_finder_2D(object):
                                 region_slice=[620,1400,430,1700])
     >>> filfind.run(verbose=False, save_name="chamaeleonI-250", save_plots=True)
 
+
+    References
+    ----------
+
     """
     def __init__(self, image, hdr, beamwidth, skel_thresh, branch_thresh, pad_size, flatten_thresh, smooth_size=None, \
                 size_thresh=None, glob_thresh=None, adapt_thresh=None, distance=None, region_slice=None, mask=None):
-        '''
-        Parameters
-        ------
-        image : numpy.ndarray
-                A 2D array of the data to be analyzed.
-        hdr   : dictionary
-                The header from fits file containing the data.
-        beamwidth : float
-                    The FWHM beamwidth (in arcseconds) of the instrument used to take the data.
-        skel_thresh : float
-                      Below this cut off, skeletons with less pixels will be deleted
-        branch_thresh : float
-                        Any branches shorter than this length (in pixels) will be labeled as extraneous and pruned off.
-        pad_size :  int
-                    The size of the pad (in pixels) used to pad the individual filament arrays.
-                    This is necessary to build the radial intensity profile.
-        flatten_thresh : int
-                         The percentile of the data used in the normalization of the arctan transform. If the data contains
-                         regions of a much higher intensity than the mean, it is recommended this be set >95 percentile.
-        smooth_size : int, optional
-                      The patch size (in pixels) used to smooth the flatten image before adaptive thresholding is performed.
-                      Smoothing is necessary to ensure the extraneous branches on the skeletons is minimized.
-                      If None, the patch size is set to ~0.05 pc. This ensures the large scale structure is not affected while
-                      smoothing extraneous pixels off the edges.
-        size_thresh : int, optional
-                      This sets the lower threshold on the size of objects found in the adaptive thresholding. If None, the
-                      value is set at ~0.1*pi*(0.5 pc)*(0.75*0.1 pc) which is 0.1* area of ellipse with a length 0.5 pc and
-                      0.75(1/10) pc width, which represent the approximate smallest size of a filament [add citation].
-                      Multiplying by 0.1 is meant to take into account an extremely curvy filament, likely more than is
-                      physically realizable. Any region smaller than this threshold may be safely labeled as an artifact of
-                      the thresholding.
-        glob_thresh : float, optional
-                      This is the percentile to cut off searching for filamentary structure. Any regions with intensities
-                      below this percentile are ignored.
-        adapt_thresh : int, optional
-                       This is the size of the patch used in the adaptive thresholding. Bright structure is not very sensitive
-                       to the choice of patch size, but faint structure is very sensitive. If None, the patch size is set to
-                       twice the width of a typical filament (~0.2 pc). As the width of filaments is ubiquitous[citation here],
-                       this patch size generally segments all filamentary structure in a given image.
-        distance : float, optional
-                   The distance to the region being examined (in pc). If None, the analysis is carried out in pixel and
-                   angular units. In this case, the physical priors used in other optional parameters is meaningless
-                   and each must be specified initially.
-        region_slice : list, optional
-                       This gives the option to examine a specific region in the given image. The expected input
-                       is [xmin,xmax,ymin,max].
-        mask : numpy.ndarray, optional
-               A pre-made, boolean mask may be supplied to skip the segmentation process. The algorithm will skeletonize
-               and run the analysis portions only.
 
-        References
-        ----------
-
-        '''
 
         img_dim = len(image.shape)
         if img_dim<2 or img_dim>2:
@@ -381,6 +383,14 @@ class fil_finder_2D(object):
                          The results of the Menger Curvature algorithm.
 
         '''
+
+        try: ## Check if graphviz is available
+            import graphviz
+
+        except ImportError:
+            verbose = False
+            print "pygraphviz is not installed. Verbose output for graphs is disabled."
+
         isolated_filaments, new_mask, num, offsets = \
                 isolatefilaments(self.skeleton,self.mask,self.skel_thresh)
         self.filament_arrays = isolated_filaments
@@ -549,7 +559,76 @@ class fil_finder_2D(object):
 
         return self
 
+    def save_plots(self, save_name=None, percentile=80.):
+      '''
 
+      Creates saved PDF plots of several quantities/images.
+
+      '''
+
+      threshold = scoreatpercentile(self.image[~np.isnan(self.image)], percentile)
+      p.imshow(self.image, vmax=threshold, origin="lower", interpolation="nearest")
+      p.contour(self.mask)
+      p.title("".join([save_name," Contours at ", str(round(threshold))]))
+      p.savefig("".join([save_name,"_filaments.pdf"]))
+      p.close()
+
+      ## Skeletons
+      masked_image = self.image * self.mask
+      skel_points = np.where(self.skeleton==1)
+      for i in range(len(skel_points[0])):
+          masked_image[skel_points[0][i],skel_points[1][i]] = np.NaN
+      p.imshow(masked_image, vmax=threshold, interpolation=None, origin="lower")
+      p.savefig("".join([save_name,"_skeletons.pdf"]))
+      p.close()
+
+      # Return histograms of the population statistics
+      Analysis(self.dataframe, save=True, save_name=save_name).make_plots()
+
+      return self
+
+    def save_fits(self, save_name=None):
+      '''
+
+      This function saves the mask and the skeleton array as FITS files.
+      Included in the header are the setting used to create them.
+
+      Parameters
+      ----------
+
+      save_name : str, optional
+                  The prefix for the saved file. If None, the name from the header is used.
+
+
+      '''
+
+      ## Save mask
+      hdr_mask = deepcopy(self.header)
+      hdr_mask.update("BUNIT", value="bool", comment="")
+      hdr_skel.add_comment("Mask created by fil_finder. See fil_finder \
+                            documentation for more info on parameter meanings.")
+      hdr_mask.add_comment("Smoothing Filter Size: "+str(self.smooth_size))
+      hdr_mask.add_comment("Area Threshold: "+str(self.size_thresh))
+      hdr_mask.add_comment("Global Intensity Threshold: "+str(self.glob_thresh))
+      hdr_mask.add_comment("Size of Adaptive Threshold Patch: "+str(self.adapt_thresh))
+
+      fits.writeto(save_name+"_mask.fits", self.mask, hdr_mask)
+
+      ## Save skeletons
+      hdr_skel = deepcopy(self.header)
+      hdr_skel.update("BUNIT", value="bool", comment="")
+      hdr_skel.add_comment("Mask created by fil_finder. See fil_finder \
+                            documentation for more info on parameter meanings.")
+      hdr_skel.add_comment("Smoothing Filter Size: "+str(self.smooth_size))
+      hdr_skel.add_comment("Area Threshold: "+str(self.size_thresh))
+      hdr_skel.add_comment("Global Intensity Threshold: "+str(self.glob_thresh))
+      hdr_skel.add_comment("Size of Adaptive Threshold Patch: "+str(self.adapt_thresh))
+      hdr_skel.add_comment("Skeleton Size Threshold: "+str(self.skel_thresh))
+      hdr_skel.add_comment("Branch Size Threshold: "+str(self.branch_thresh))
+
+      fits.writeto(save_name+"_skeletons.fits", self.skeleton, hdr_skel)
+
+      return self
 
     def __str__(self):
             print("%s filaments found.") % (self.number_of_filaments)
@@ -577,11 +656,6 @@ class fil_finder_2D(object):
                     The prefix for the saved file. If None, the name from the header is used.
 
         '''
-        try: ## Check if graphviz is available
-            import graphviz
-            graph_verbose = verbose
-        except ImportError:
-            graph_verbose = False
 
         if verbose:
             print "Best to run in pylab for verbose output."
@@ -592,50 +666,19 @@ class fil_finder_2D(object):
         self.create_mask(verbose = verbose)
         self.medskel(verbose = verbose)
 
-        self.analyze_skeletons(verbose = graph_verbose)
+        self.analyze_skeletons(verbose = verbose)
         self.find_widths(verbose = verbose)
         self.results()
         self.save_table(save_name=save_name)
-
-        ## Save the mask (most important bit)
-        np.save("".join([save_name,"_mask"]), self.mask)
+        self.save_fits(save_name=save_name)
 
         if verbose:
             self.__str__()
 
         if save_plots:
+          self.save_plots(save_name=save_name)
 
-            ## Filaments found
-            # from matplotlib.backends.backend_pdf import PdfPages
-            # percentiles = np.linspace(100., 60., 8)
-            # thresholds = [scoreatpercentile(self.image[~np.isnan(self.image)], percent) for percent in percentiles]
-            # pdfplot = PdfPages("".join([save_name,"_filaments.pdf"]))
-            # for thresh in thresholds:
-            #     p.imshow(self.image, vmax=thresh, origin="lower", interpolation="nearest")
-            #     p.contour(self.mask)
-            #     p.title("".join([save_name," Contours at ", str(round(thresh))]))
-            #     pdfplot.savefig()
-            # p.show()
-            # # p.savefig("".join([save_name,"_filaments.pdf"]))
-            # pdfplot.close()
-            threshold = scoreatpercentile(self.image[~np.isnan(self.image)], 70)
-            p.imshow(self.image, vmax=threshold, origin="lower", interpolation="nearest")
-            p.contour(self.mask)
-            p.title("".join([save_name," Contours at ", str(round(threshold))]))
-            p.savefig("".join([save_name,"_filaments.pdf"]))
-            p.close()
 
-            ## Skeletons
-            masked_image = self.image * self.mask
-            skel_points = np.where(self.skeleton==1)
-            for i in range(len(skel_points[0])):
-                masked_image[skel_points[0][i],skel_points[1][i]] = np.NaN
-            p.imshow(masked_image,interpolation=None,origin="lower")
-            p.savefig("".join([save_name,"_skeletons.pdf"]))
-            p.close()
-
-            # Return histograms of the population statistics
-            Analysis(self.dataframe, save=True, save_name=save_name).make_plots()
 
         return self
 
