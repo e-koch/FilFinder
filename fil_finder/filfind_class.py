@@ -605,14 +605,14 @@ class fil_finder_2D(object):
       ## Save mask
       hdr_mask = deepcopy(self.header)
       hdr_mask.update("BUNIT", value="bool", comment="")
-      hdr_skel.add_comment("Mask created by fil_finder. See fil_finder \
+      hdr_mask.add_comment("Mask created by fil_finder. See fil_finder \
                             documentation for more info on parameter meanings.")
       hdr_mask.add_comment("Smoothing Filter Size: "+str(self.smooth_size))
       hdr_mask.add_comment("Area Threshold: "+str(self.size_thresh))
       hdr_mask.add_comment("Global Intensity Threshold: "+str(self.glob_thresh))
       hdr_mask.add_comment("Size of Adaptive Threshold Patch: "+str(self.adapt_thresh))
 
-      fits.writeto(save_name+"_mask.fits", self.mask, hdr_mask)
+      fits.writeto("".join([save_name,"_mask.fits"]), self.mask.astype("float"), hdr_mask)
 
       ## Save skeletons
       hdr_skel = deepcopy(self.header)
@@ -626,7 +626,7 @@ class fil_finder_2D(object):
       hdr_skel.add_comment("Skeleton Size Threshold: "+str(self.skel_thresh))
       hdr_skel.add_comment("Branch Size Threshold: "+str(self.branch_thresh))
 
-      fits.writeto(save_name+"_skeletons.fits", self.skeleton, hdr_skel)
+      fits.writeto("".join([save_name,"_skeletons.fits"]), self.skeleton.astype("float"), hdr_skel)
 
       return self
 
