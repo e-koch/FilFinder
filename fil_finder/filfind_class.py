@@ -150,7 +150,8 @@ class fil_finder_2D(object):
 
         self.dataframe = None
 
-    def create_mask(self, glob_thresh=None, adapt_thresh=None, smooth_size=None, size_thresh=None, verbose=False):
+    def create_mask(self, glob_thresh=None, adapt_thresh=None, smooth_size=None, size_thresh=None, verbose=False, \
+                     test_mode=False):
         '''
 
         This runs the complete segmentation process and returns a mask of the filaments found.
@@ -189,6 +190,10 @@ class fil_finder_2D(object):
                   filaments are picked out over a large range of intensities, visualizing at multiple
                   thresholds is key to determine the performance of the algorithm.
 
+        test_mode : bool, optional
+                    This enables a more in-depth look at the individual steps of the masking process.
+
+
         Returns
         -------
 
@@ -219,7 +224,7 @@ class fil_finder_2D(object):
         if self.adapt_thresh is None:
             self.adapt_thresh = round(0.2/self.imgscale) ## twice average FWHM for filaments
         if self.smooth_size is None:
-            self.smooth_size = round(0.05 / self.imgscale) ## half average FWHM for filaments
+            self.smooth_size = round(0.02 / self.imgscale) ## half average FWHM for filaments
 
         self.flat_img = np.arctan(self.image/scoreatpercentile(self.image[~np.isnan(self.image)],self.flatten_thresh))
         self.smooth_img = nd.median_filter(self.flat_img, size=self.smooth_size)
@@ -227,11 +232,38 @@ class fil_finder_2D(object):
         opening = nd.binary_opening(adapt, structure=np.ones((3,3)))
         cleaned = remove_small_objects(opening, min_size=self.size_thresh)
         self.mask = nd.binary_closing(cleaned, structure=np.ones((3,3)))
+        self.mask = nd.median_filter(self.mask, size=self.smooth_size)
 
 
         if self.glob_thresh is not None:
             premask = self.flat_img > scoreatpercentile(self.flat_img[~np.isnan(self.flat_img)], self.glob_thresh)
             self.mask = premask * self.mask
+
+        if test_mode:
+          # p.subplot(3,3,1)
+          p.imshow(np.log10(self.image), origin="lower", interpolation=None)
+          p.colorbar()
+          p.show()
+          # p.subplot(3,3,2)
+          p.imshow(self.flat_img, origin="lower", interpolation=None)
+          p.colorbar()
+          p.show()
+          # p.subplot(3,3,3)
+          p.imshow(self.smooth_img, origin="lower", interpolation=None)
+          p.colorbar()
+          p.show()
+          # p.subplot(3,3,4)
+          p.imshow(adapt, origin="lower", interpolation=None)
+          p.show()
+          # p.subplot(3,3,5)
+          p.imshow(opening, origin="lower", interpolation=None)
+          p.show()
+          # p.subplot(3,3,6)
+          p.imshow(cleaned, origin="lower", interpolation=None)
+          p.show()
+          # p.subplot(3,3,7)
+          p.imshow(self.mask, origin="lower", interpolation=None)
+          p.show()
 
         if verbose:
             scale = 0
