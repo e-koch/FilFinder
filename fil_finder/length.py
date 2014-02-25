@@ -317,7 +317,7 @@ def pre_graph(labelisofil,lengths,interpts,ends):
 
   for n in range(num):
     for i in ends[n]:
-      end_nodes_temp.append((labelisofil[n][i[0],i[1]],lengths[n][labelisofil[n][i[0],i[1]]-1]))
+      end_nodes_temp.append((labelisofil[n][i[0],i[1]],lengths[n][int(labelisofil[n][i[0],i[1]]-1)]))
     end_nodes.append(end_nodes_temp)
     for i in end_nodes_temp:
       nodes_temp.append(i[0])
@@ -331,6 +331,7 @@ def pre_graph(labelisofil,lengths,interpts,ends):
         for i in interpts[n][j]:
           int_arr = np.array([[labelisofil[n][i[0]-1,i[1]+1],labelisofil[n][i[0],i[1]+1],labelisofil[n][i[0]+1,i[1]+1]],\
             [labelisofil[n][i[0]-1,i[1]],0,labelisofil[n][i[0]+1,i[1]]],[labelisofil[n][i[0]-1,i[1]-1],labelisofil[n][i[0],i[1]-1],labelisofil[n][i[0]+1,i[1]-1]]])
+          int_arr =  int_arr.astype(int)
           for x in np.unique(int_arr[np.nonzero(int_arr)]):
             uniqs.append((x,lengths[n][x-1]))
         uniqs = list(set(uniqs))
@@ -519,7 +520,7 @@ def final_lengths(img,max_path,edge_list,labelisofil,filpts,interpts,filbranches
             keep_branches = list(set(keep_branches))
       fils = [];good_inter = []
       for i in keep_branches:
-        fils.append(filpts[n][i-1])
+        fils.append(filpts[n][int(i-1)])
       branches = range(1,filbranches[n]+1)
       match = list(set(branches) & set(keep_branches))
       for i in match:

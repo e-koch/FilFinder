@@ -31,7 +31,7 @@ import numpy as np
 import scipy.ndimage as nd
 from length import *
 import matplotlib.pyplot as p
-from skimage.morphology import medial_axis
+from skimage.morphology import medial_axis, label
 import skimage.filter as skfilter
 
 
@@ -66,9 +66,10 @@ def isolatefilaments(skel_img,mask,size_threshold):
   '''
 
   filarrays = []; pix_val = []; corners = []
-  labels,num = nd.label(skel_img,eight_con())
-  labels_mask,num_mask = nd.label(mask,eight_con())
-  if num_mask!=num: raise ValueError('The number of objects must match the number of skeletons.')
+  labels,num = label(skel_img,neighbors=8, return_num=True, background=0)#nd.label(skel_img,eight_con())
+  labels_mask,num_mask = label(mask,neighbors=8, return_num=True, background=0)#nd.label(mask,eight_con())
+  if num_mask!=num:
+    raise ValueError('The number of objects must match the number of skeletons.')
   sums = nd.sum(skel_img,labels,range(num))
   for n in range(num):
     if sums[n]<size_threshold:
@@ -76,7 +77,8 @@ def isolatefilaments(skel_img,mask,size_threshold):
       for i in range(len(x)):
         if labels_mask[x[i],y[i]]==skel_img[x[i],y[i]]: #Make sure each label array has the same label
           mask_n = n
-        else: mask_n = labels_mask[x[i],y[i]]
+        else:
+          mask_n = labels_mask[x[i],y[i]]
         skel_img[x[i],y[i]]=0
       x,y = np.where(labels_mask==mask_n)
       for i in range(len(x)):
@@ -93,7 +95,6 @@ def isolatefilaments(skel_img,mask,size_threshold):
       eachfil[x[i]-lower[0],y[i]-lower[1]] = 1
     filarrays.append(eachfil)
     corners.append([lower,upper])
-    eachfil = np.zeros((skel_img.shape))
   return filarrays,mask,num,corners
 
 
