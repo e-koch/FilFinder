@@ -57,15 +57,15 @@ class Analysis(object):
         lengths_stats = [nanmean(lengths), nanstd(lengths), nanmedian(lengths)]
 
         ## Histogram of Curvature
-        curvature = self.dataframe["Curvature"]
-        curvature_stats = [nanmean(curvature), nanstd(curvature), nanmedian(curvature)]
+        rht_curvature = self.dataframe["RHT Curvature"]
+        rht_curvature_stats = [nanmean(rht_curvature), nanstd(rht_curvature), nanmedian(rht_curvature)]
 
 
 
         if self.verbose:
             print "Widths Stats: %s" % (widths_stats)
             print "Lengths Stats: %s" % (lengths_stats)
-            print "Curvature Stats: %s" % (curvature_stats)
+            print "Curvature Stats: %s" % (rht_curvature_stats)
 
             p.subplot(131)
             p.hist(widths, num_bins)
@@ -88,9 +88,9 @@ class Analysis(object):
             p.savefig("".join([self.save_name,"_lengths.pdf"]))
             p.close()
 
-            p.hist(curvature, num_bins)
-            p.xlabel("Curvature")
-            p.savefig("".join([self.save_name,"_curvature.pdf"]))
+            p.hist(rht_curvature, num_bins)
+            p.xlabel("RHT Curvature")
+            p.savefig("".join([self.save_name,"_rht_curvature.pdf"]))
             p.close()
 
         return self

@@ -6,6 +6,7 @@ from length import *
 from pixel_ident import *
 from utilities import *
 from width import *
+from rollinghough import rht
 from analysis import Analysis
 
 import numpy as np
@@ -137,7 +138,8 @@ class fil_finder_2D(object):
         self.lengths = None
         self.widths = None
         self.width_fits = None
-        self.curvature = None
+        self.menger_curvature = None
+        self.rht_curvature = {"Mean":[], "Std":[]}
         self.filament_arrays = None
         self.labelled_filament_arrays = None
         self.number_of_filaments = None
@@ -325,7 +327,15 @@ class fil_finder_2D(object):
                 width_threshold = float(width_threshold)
             else:
                 width_threshold = round((0.1/10.)/self.imgscale) # (in pc) Set to be a tenth of expected filament width
-            self.skeleton[np.nonzero(self.medial_axis_distance)<width_threshold] = 0 ## Eliminate narrow connections
+            narrow_pts = np.where(self.medial_axis_distance<width_threshold)
+            # self.skeleton[narrow_pts] = 0 ## Eliminate narrow connections
+            # ## ADD CHECK FOR NO PTS
+            # for pt in narrow_pts:
+            #   ## Pick out 8-connected mask pixels
+            #   del_regions = np.where(self.mask[pt[0]-1:pt[0]+1,pt[1]-1:pt[1]+1]!=0)
+            #   del_regions[0] += pt[0]
+            #   del_regions[1] += pt[1]
+            #   self.mask[del_regions] = 0 ## Eliminate narrow connections
         else:
             self.skeleton = medial_axis(self.mask)
 
@@ -411,13 +421,13 @@ class fil_finder_2D(object):
                            The significant branches of the skeletons have their length
                            and number of branches in each skeleton stored here.
                            The keys are: *filament_branches*, *branch_lengths*
-        self.curvature : list
+        self.menger_curvature : list
                          The results of the Menger Curvature algorithm.
 
         '''
 
         try: ## Check if graphviz is available
-            import graphviz
+            import pygraphviz
 
         except ImportError:
             verbose = False
@@ -451,9 +461,49 @@ class fil_finder_2D(object):
         self.lengths = main_lengths
         self.labelled_filament_arrays = labeled_fil_arrays
         self.branch_info = {"filament_branches":filbranches, "branch_lengths":branch_lengths}
-        self.curvature = curvature
+        self.menger_curvature = curvature
 
         return self
+
+    def exec_rht(self, radius=5, verbose=False):
+      '''
+
+      Implements the Rolling Hough Transform (Clark et al., 2013). The orientation
+      of each filament is denoted by the mean value of the RHT. "Curvature"
+      is represented by the standard deviation of the transform.
+
+      **NOTE** We recommend using this curvature value rather than the Menger Curvature.
+
+      Parameters
+      **********
+
+      radius : int
+               Sets the patch size that the RHT uses.
+
+      verbose : bool
+
+      Returns
+      *******
+
+      self.rht_curvature : dictionary
+
+      References
+      **********
+
+      Clark et al. (2013)
+
+      '''
+
+      for n in range(self.number_of_filaments):
+        theta, R = rht(self.labelled_filament_arrays[n], radius)
+        self.rht_curvature["Mean"].append(theta[np.where(np.mean(R))])
+        self.rht_curvature["Std"].append(theta[np.where(np.std(R))])
+
+        if verbose:
+          p.plot(theta, R, "kD--")
+          p.show()
+
+      return self
 
     def find_widths(self, verbose=False):
         '''
@@ -565,7 +615,9 @@ class fil_finder_2D(object):
 
         ## The info included in the dataframe and its form needs to be reviewed and finalized...
         data = {"Lengths" : Series(self.lengths), \
-                "Curvature" : Series(self.curvature),\
+                "Menger Curvature" : Series(self.menger_curvature),\
+                "Plane Orientation (RHT)" : Series(self.rht_curvature["Mean"]),\
+                "RHT Curvature" : Series(self.rht_curvature["Std"]),\
                 "Widths" : Series(self.widths), \
                 # "Peak Intensity" : Series(self.width_fits["Parameters"][0]), \
                 # "Intensity Error" : Series(self.width_fits["Errors"][0]), \
@@ -666,7 +718,7 @@ class fil_finder_2D(object):
             print("%s filaments found.") % (self.number_of_filaments)
             for fil in range(self.number_of_filaments):
                 print "Filament: %s, Width: %s, Length: %s, Curvature: %s" % \
-                        (fil,self.widths[fil],self.lengths[fil], self.curvature[fil])
+                        (fil,self.widths[fil],self.lengths[fil], self.menger_curvature[fil])
 
     def run(self, verbose=False, save_plots=False, save_name=None):
         '''
@@ -699,6 +751,7 @@ class fil_finder_2D(object):
         self.medskel(verbose = verbose)
 
         self.analyze_skeletons(verbose = verbose)
+        self.exec_rht(verbose=verbose)
         self.find_widths(verbose = verbose)
         self.results()
         self.save_table(save_name=save_name)
