@@ -494,13 +494,23 @@ class fil_finder_2D(object):
 
       '''
 
+      def find_nearest(array,value):
+        idx = (np.abs(array-value)).argmin()
+        return array[idx]
+
       for n in range(self.number_of_filaments):
         theta, R = rht(self.labelled_filament_arrays[n], radius)
-        self.rht_curvature["Mean"].append(theta[np.where(np.mean(R))])
-        self.rht_curvature["Std"].append(theta[np.where(np.std(R))])
+        ecdf = np.cumsum(R/np.sum(R))
+
+        self.rht_curvature["Mean"].append(theta[np.where(ecdf==find_nearest(ecdf,0.5))].mean()) ## 50th percentile
+        self.rht_curvature["Std"].append(np.abs(theta[np.where(ecdf==find_nearest(ecdf,0.75))].mean() - \
+                                        theta[np.where(ecdf==find_nearest(ecdf,0.25))].mean())) ## Interquartile range
 
         if verbose:
+          p.subplot(211)
           p.plot(theta, R, "kD--")
+          p.subplot(212)
+          p.plot(theta, ecdf, "k")
           p.show()
 
       return self
