@@ -11,7 +11,7 @@ from scipy.stats import scoreatpercentile
 # from skimage.transform import hough_line, hough_line_peaks
 import matplotlib.pyplot as p
 
-def rht(mask, radius, ntheta=180):
+def rht(mask, radius, ntheta=180, background_percentile=25):
     '''
 
     INPUTS
@@ -36,7 +36,11 @@ def rht(mask, radius, ntheta=180):
             line = region * np.isclose(diff, 0.0)
 
             R[posn] += np.nansum(line)
+    ## You're likely to get a somewhat constant background, so subtract that out
     R /= float(ntheta)
+    R = R - np.median(R[R<scoreatpercentile(R,background_percentile)])
+    R[R<0.0] = 0.0 ## Ignore negative values after subtraction
+
     return theta, R
 
 

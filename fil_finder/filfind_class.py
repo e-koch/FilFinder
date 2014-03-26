@@ -471,7 +471,7 @@ class fil_finder_2D(object):
 
         return self
 
-    def exec_rht(self, radius=5, verbose=False):
+    def exec_rht(self, radius=5, ntheta=180, background_percentile=25, verbose=False):
       '''
 
       Implements the Rolling Hough Transform (Clark et al., 2013). The orientation
@@ -485,6 +485,12 @@ class fil_finder_2D(object):
 
       radius : int
                Sets the patch size that the RHT uses.
+
+      ntheta : int, optional
+               The number of bins to use for the RHT.
+
+      background : int, optional
+                   RHT distribution often has a constant background. This sets the percentile to subtract off (see )
 
       verbose : bool
 
@@ -505,7 +511,7 @@ class fil_finder_2D(object):
         return array[idx]
 
       for n in range(self.number_of_filaments):
-        theta, R = rht(self.labelled_filament_arrays[n], radius)
+        theta, R = rht(self.labelled_filament_arrays[n], radius, ntheta, background_percentile)
         ecdf = np.cumsum(R/np.sum(R))
 
         self.rht_curvature["Mean"].append(theta[np.where(ecdf==find_nearest(ecdf,0.5))].mean()) ## 50th percentile
