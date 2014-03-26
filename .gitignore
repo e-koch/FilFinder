@@ -9,3 +9,4 @@ fil_mod.py
 run_gouldbelt.py
 build/
 .DS_store
+fil_finder.egg-info/

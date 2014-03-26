@@ -115,12 +115,6 @@ def product_gen(n):
     for i in itertools.product(n,repeat=r):
       yield "".join(i)
 
-def gaussian(x,*p):
-  # Peak Height is p[0]
-  # Sigma is p[1]
-  # Background is p[2]
-  return p[0]*np.exp(-1*np.power(x,2) / (2*np.power(p[1],2))) + p[2]
-
 def planck(T,freq):
   return (( 2.0*(6.63*10**(-34))*freq**3)/(9*10**16))* (1/(np.expm1((6.63*10**(-34)*freq)/(1.38*10**(-23)*float(T)))))
 

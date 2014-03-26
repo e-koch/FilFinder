@@ -79,6 +79,9 @@ class fil_finder_2D(object):
            A pre-made, boolean mask may be supplied to skip the segmentation process. The algorithm will skeletonize
            and run the analysis portions only.
 
+    freq : float
+           Frequency of the image. This is required for using the cylindrical model (cyl_model) for the widths.
+
     Examples
     --------
     >>> from fil_finder import fil_finder_2D
@@ -93,7 +96,8 @@ class fil_finder_2D(object):
 
     """
     def __init__(self, image, hdr, beamwidth, skel_thresh, branch_thresh, pad_size, flatten_thresh, smooth_size=None, \
-                size_thresh=None, glob_thresh=None, adapt_thresh=None, distance=None, region_slice=None, mask=None):
+                size_thresh=None, glob_thresh=None, adapt_thresh=None, distance=None, region_slice=None, mask=None, \
+                freq=None):
 
 
         img_dim = len(image.shape)
@@ -110,6 +114,7 @@ class fil_finder_2D(object):
         self.skel_thresh = skel_thresh
         self.branch_thresh = branch_thresh
         self.pad_size = pad_size
+        self.freq = freq
 
         self.mask = None
         if mask is not None:
@@ -136,10 +141,10 @@ class fil_finder_2D(object):
         self.smooth_image = None
         self.flat_image = None
         self.lengths = None
-        self.widths = None
-        self.width_fits = None
+        self.widths = {"Fitted Width": [], "Estimated Width": []}
+        self.width_fits = {"Parameters": [], "Errors": [], "Names": None}
         self.menger_curvature = None
-        self.rht_curvature = {"Mean":[], "Std":[]}
+        self.rht_curvature = {"Mean": [], "Std": []}
         self.filament_arrays = None
         self.labelled_filament_arrays = None
         self.number_of_filaments = None
@@ -319,6 +324,7 @@ class fil_finder_2D(object):
 
         if return_distance:
             self.skeleton,self.medial_axis_distance = medial_axis(self.mask, return_distance=return_distance)
+            self.medial_axis_distance  = self.medial_axis_distance * self.skeleton
             if self.pixel_unit_flag:
                 print "Setting arbitrary width threshold to 2 pixels"
                 width_threshold = raw_input("Enter threshold change or pass: ") ## Put time limit on this
@@ -515,7 +521,7 @@ class fil_finder_2D(object):
 
       return self
 
-    def find_widths(self, verbose=False):
+    def find_widths(self, fit_model=gauss_model, verbose=False):
         '''
 
         The final step of the algorithm is to find the widths of each of the skeletons. We do this
@@ -524,14 +530,18 @@ class fil_finder_2D(object):
               each skeleton. The skeletons are also recombined onto a single array. The individual
               filament arrays are padded to ensure a proper radial profile is created. If the padded
               arrays fall outside of the original image, they are trimmed.
-            * A gaussian is fit to each of the radial profiles. This returns the width and central
-              intensity of each filament. The reported widths are the deconvolved FWHM of the gaussian
-              width. For faint filaments, the fit has a tendency to fail due to lack of data to fit to.
-              In this case, the distance transform from the medial axis transform(self.medial_axis_distance)
-              may be used to provide an estimate of the width.
+            * A user-specified model is fit to each of the radial profiles. There are two models included
+              in this package; a gaussian model and a cylindrical filament model (Arzoumanian et al., 2011).
+              This returns the width and central intensity of each filament. The reported widths are the
+              deconvolved FWHM of the gaussian width. For faint or crowded filaments, the fit can fail
+              due to lack of data to fit to. In this case, the distance transform from the medial axis transform
+              (self.medial_axis_distance) may be used to provide an estimate of the width.
 
         Parameters
         ----------
+
+        model : function
+                Function to fit to the radial profile. "cyl_model" and "gauss_model" are available in widths.py.
 
         verbose : bool
                   If True, each of the resultant gaussian fits is plotted on the radial profile. The average
@@ -549,19 +559,51 @@ class fil_finder_2D(object):
         dist_transform_all, dist_transform_separate = dist_transform(self.labelled_filament_arrays, \
                     self.array_offsets, self.image.shape, self.pad_size)
 
-        widths, fit_params, fit_errors = gauss_width(self.image, dist_transform_all, dist_transform_separate, \
-                                                self.beamwidth, self.imgscale, self.array_offsets, verbose=verbose)
+        for n in range(self.number_of_filaments):
+            dist, radprof = radial_profile(self.image, dist_transform_all,\
+                     dist_transform_separate[n], self.array_offsets[n], self.imgscale)
 
-        self.widths = widths
-        self.width_fits = {"Parameters":fit_params, "Errors":fit_errors}
+            if fit_model==cyl_model:
+                if self.freq is None:
+                    print "Image not converted to column density. Fit parameters will not match physical meaning. \
+                       Please specify frequency."
+                else:
+                    assert isinstance(self.freq, float)
+                    radprof = dens_func(planck(20.,self.freq), 0.2, radprof)*(5.7e19)
+
+            fit, fit_error, model, parameter_names, fail_flag = fit_model(dist, radprof, self.beamwidth)
+
+            if n==0:
+                ## Prepare the storage
+                self.width_fits["Parameters"] = np.empty((self.number_of_filaments, len(parameter_names)))
+                self.width_fits["Errors"] = np.empty((self.number_of_filaments, len(parameter_names)))
+
+
+            if verbose:
+                print "Fit Parameters: %s \\ Fit Errors: %s" % (fit, fit_error)
+                p.plot(dist, radprof, "kD")
+                points = np.linspace(np.min(dist), np.max(dist), 2*len(dist))
+                p.plot(points, model(points, *fit), "r")
+                p.xlabel(r'Radial Distance (pc)')
+                p.ylabel(r'Integrated Intensity ( $\frac{K km}{s}$ )')
+                p.grid(True)
+                p.show()
+
+            if fail_flag:
+                fit = [np.NaN] * len(fit)
+                fit_error = [np.NaN] * len(fit_error)
+
+            self.widths["Fitted Width"].append(fit[1])
+            self.width_fits["Parameters"][n,:] = fit
+            self.width_fits["Errors"][n,:] = fit_error
+        self.width_fits["Names"] =  parameter_names
 
         ## Implement check for failed fits and replace with average width from medial_axis_distance
         if self.medial_axis_distance != None:
-            labels, n = nd.label(self.mask, eight_con())
-            av_widths = nd.sum(self.medial_axis_distance, labels, range(1, n+1)) / nd.sum(self.skeleton, labels, range(1, n+1))
-            if verbose:
-                p.hist(av_widths)
-                p.show()
+            self.widths["Estimated Width"] = medial_axis_width(self.medial_axis_distance, \
+                                                               self.mask, self.skeleton) * self.imgscale
+            p.hist(self.widths["Estimated Width"])
+            p.show()
 
         return self
 
@@ -581,20 +623,20 @@ class fil_finder_2D(object):
         '''
         overall_lengths = []
         overall_widths = []
-        for i in range(self.number_of_filaments):
-            if isinstance(self.widths[i],float):
-                if self.lengths[i]>self.widths[i]:
-                    overall_lengths.append(self.lengths[i] + self.widths[i])
-                    overall_widths.append(self.widths[i])
+        for i, width in enumerate(self.widths["Fitted Width"]):
+            if np.isfinite(width):
+                if self.lengths[i]>width:
+                    overall_lengths.append(self.lengths[i] + width) # Adaptive Threshold shortens ends, so add the width on
+                    overall_widths.append(width)
                 else:
                     overall_lengths.append(self.lengths[i])
-                    overall_widths.append("Fit Fail")
+                    overall_widths.append(np.NaN)
             else:
                 overall_lengths.append(self.lengths[i])
-                overall_widths.append(self.widths[i])
+                overall_widths.append(width)
 
-        self.lengths = overall_lengths
-        self.widths = overall_widths
+        self.lengths = np.asarray(overall_lengths)
+        self.widths["Fitted Width"] = np.asarray(overall_widths)
 
         return self
 
@@ -628,15 +670,13 @@ class fil_finder_2D(object):
                 "Menger Curvature" : Series(self.menger_curvature),\
                 "Plane Orientation (RHT)" : Series(self.rht_curvature["Mean"]),\
                 "RHT Curvature" : Series(self.rht_curvature["Std"]),\
-                "Widths" : Series(self.widths), \
-                # "Peak Intensity" : Series(self.width_fits["Parameters"][0]), \
-                # "Intensity Error" : Series(self.width_fits["Errors"][0]), \
-                # "Gauss. Width" : Series(self.width_fits["Parameters"][1]), \
-                # "Width Error" : Series(self.width_fits["Errors"][1]), \
-                # "Background" : Series(self.width_fits["Parameters"][2]), \
-                # "Background Error" : Series(self.width_fits["Errors"][2]), \
+                "Estimated Width" : Series(self.widths["Estimated Width"]), \
                 "Branches" : Series(self.branch_info["filament_branches"]), \
                 "Branch Lengths" : Series(self.branch_info["branch_lengths"])}
+
+        for i, param in enumerate(self.width_fits["Names"]):
+            data[param] = self.width_fits["Parameters"][:,i]
+            data[param+" Error"] = self.width_fits["Errors"][:,i]
 
         df = DataFrame(data)
 
@@ -776,9 +816,3 @@ class fil_finder_2D(object):
 
 
         return self
-
-
-
-if __name__ == "__main__":
-    import sys
-    fib(int(sys.argv[1]))

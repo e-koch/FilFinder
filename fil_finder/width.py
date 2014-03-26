@@ -4,6 +4,7 @@ from utilities import *
 import numpy as np
 import scipy.ndimage as nd
 import scipy.optimize as op
+from scipy.integrate import quad
 import matplotlib.pyplot as p
 '''
 Routines for calculating the widths of filaments.
@@ -112,16 +113,99 @@ def dist_transform(labelisofil, offsets, orig_size, pad_size):
 	return dist_transform_all,dist_transform_sep
 
 
-
-
-def gauss_width(img,dist_transform_all,dist_transform_sep,img_beam,img_scale,offsets,verbose=False):
+def cyl_model(distance, rad_profile, img_beam):
 	'''
-	Fits a Gaussian to the radial profile of each filament by comparing
+
+	Fits the radial profile of filament to a cylindrical model (see Arzoumanian et al. (2011)).
+
+	'''
+
+	p0 = (np.max(rad_profile), 0.1, 2.0)
+
+	A_p_func = lambda u,p: (1+u**2.)**(-p/2.)
+
+	def model(r, *params):
+		peak_dens, r_flat, p = params[0], params[1], params[2]
+
+		A_p = quad(A_p_func, -np.inf, np.inf, args=(p))[0]
+
+		return A_p * (peak_dens * r_flat)/(1+r/r_flat)**((p-1)/2.)
+
+	try:
+		fit,cov = op.curve_fit(model, distance, rad_profile, p0=p0, maxfev=100*(len(distance)+1))
+		fit_errors = np.sqrt(np.diag(cov))
+	except:
+		fit,cov = p0,None
+		fit_errors = cov
+
+	# ## Deconvolve the width with the beam size.
+	# deconv = (2.35*abs(fit[1])**2.) - img_beam**2.
+	# if deconv>0:
+	# 	fit[1] = np.sqrt(deconv)
+	# else:
+	# 	fit[1] = "Neg. FWHM"
+	fail_flag = False
+	if cov==None or (fit_errors>fit).any():
+		fail_flag = True
+
+	parameters = [r"$\pho_c$", "r_{flat}", "p"]
+
+	return fit, fit_errors, model, parameters, fail_flag
+
+def gauss_model(distance, rad_profile, img_beam):
+	'''
+		Fits a Gaussian to the radial profile of each filament by comparing
 	the intensity profile from the center of the skeleton using the output
 	of dist_transform. The FWHM width of the Gaussian is deconvolved with
 	the beam-size of the image. Errors are estimated from the trace of
 	the covariance matrix of the fit.
+	'''
 
+	p0 = (np.max(rad_profile), 0.1, np.min(rad_profile))
+
+	def gaussian(x,*p):
+		'''
+
+		Parameters
+		**********
+
+		x : list or numpy.ndarray
+			1D array of values where the model is evaluated
+
+		p : tuple
+			Components are:
+				* p[0] Amplitude
+				* p[1] Width
+				* p[2] Background
+
+		'''
+		return (p[0]-p[2])*np.exp(-1*np.power(x,2) / (2*np.power(p[1],2))) + p[2]
+
+	try:
+		fit, cov = op.curve_fit(gaussian, distance, rad_profile, p0=p0, maxfev=100*(len(distance)+1))
+		fit_errors = np.sqrt(np.diag(cov))
+	except:
+		fit, cov = p0, None
+
+	fit = list(fit)
+	## Deconvolve the width with the beam size.
+	deconv = (2.35*abs(fit[1])**2.) - img_beam**2.
+	if deconv>0:
+		fit[1] = np.sqrt(deconv)
+	else:
+		fit[1] = img_beam ## If you can't devolve it, set it to minimum, which is the beam-size.
+
+	fail_flag = False
+	if cov==None or (fit_errors>fit).any() or fit[0]<fit[2]:
+		fail_flag = True
+
+	parameters = ["Amplitude", "Width", "Background"]
+
+	return fit, fit_errors, gaussian, parameters, fail_flag
+
+def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,\
+					 img_scale, bins=None, bintype="linear"):
+	'''
 	Parameters
 	----------
 
@@ -136,199 +220,71 @@ def gauss_width(img,dist_transform_all,dist_transform_sep,img_beam,img_scale,off
 						 The distance transforms of each individual skeleton.
 						 Outputted from dist_transform.
 
-    img_beam : float
-    		   The beam size of the instrument used to collect the data
-    		   in units of pc or pixels based on the algorithm inputs.
 
-    img_scale : float
-    			The physical scale of the image in pc. Or in pixels if
-    			no distance is provided.
+	offsets : list
+	   		The output from isolatefilaments during the segmentation
+			process. Contains the indices where each skeleton was cut
+			out of the original array.
+	'''
+	# Try to scale region looked at by image size
 
-    offsets : list
-   			  The output from isolatefilaments during the segmentation
-			  process. Contains the indices where each skeleton was cut
-			  out of the original array.
+	width_value = []
+	width_distance = []
+	x,y = np.where(np.isfinite(dist_transform_sep))
+	x_full = x + offsets[0][0] ## Transform into coords of master image
+	y_full = y + offsets[0][1]
 
-	verbose : bool, optional
-			  If True, plots the radial profile and the fit for each skeleton.
+  	for i in range(len(x)):
+		# Check overall distance transform to make sure pixel belongs to proper filament
+		if dist_transform_sep[x[i],y[i]]<=dist_transform_all[x_full[i],y_full[i]]:
+			if img[x_full[i],y_full[i]]!=0.0 and np.isfinite(img[x_full[i],y_full[i]]):
+				width_value.append(img[x_full[i],y_full[i]])
+				width_distance.append(dist_transform_sep[x[i],y[i]])
+	# Binning
+	if bins is None:
+		nbins = np.sqrt(len(width_value))
+		maxbin = np.max(width_distance)
+		if bintype is "log":
+			bins = np.logspace(0,np.log10(maxbin),nbins+1)
+		elif bintype is "linear":
+			bins = np.linspace(0,maxbin,nbins+1) ## bins must start at 1 if logspaced
+
+
+	bin_centers = (bins[1:]+bins[:-1])/2.0
+	radial_prof = np.histogram(width_distance, bins, weights=(width_value))[0] / \
+				  np.histogram(width_distance, bins)[0]
+
+	bin_centers = bin_centers[~np.isnan(radial_prof)]
+	radial_prof = radial_prof[~np.isnan(radial_prof)]
+
+	return bin_centers * img_scale, radial_prof
+
+def medial_axis_width(medial_axis_distance, mask, skeleton):
+	'''
+	Estimate the filament width using the distance transform from the
+	medial axis transform.
+
+	Parameters
+	**********
+
+	medial_axis_distance : numpy.ndarray
+						   Distance Transform
+
+	mask : numpy.ndarray
+		   Mask of filaments
+
+	skeleton : numpy.ndarray
+			   Skeletonized mask.
 
 	Returns
-	-------
+	*******
 
-	widths : list
-			 Contains the deconvolved FWHM widths of the skeletons.
-
-	fits : list
-		   Contains the fitted Gaussian parameters.
-
-	fit_errors : list
-				 Contains the estimated errors from each fit.
+	av_widths : numpy.array
+				1D array of the average widths
 
 	'''
-	num = len(dist_transform_sep)
-	#Initialize lists
-	fits = []
-	fit_errors = []
-	widths = []
 
-	param0 = (15.,2.,1.)
+	labels, n = nd.label(skeleton, eight_con())
+	av_widths = 2. * nd.sum(medial_axis_distance, labels, range(1, n+1)) / nd.sum(skeleton, labels, range(1, n+1))
 
-	# Try to scale region looked at by image size
-	if img.shape[0]>img.shape[1]:
-		near_region = img.shape[1]/4.
-	else:
-		near_region = img.shape[0]/4.
-
-	for n in range(num):
-		width_value = []
-		width_distance = []
-		x,y = np.where(dist_transform_sep[n]<near_region)
-		x_full = x + offsets[n][0][0] ## Transform into coords of master image
-		y_full = y + offsets[n][0][1]
-	  	num_nan = 0
-	  	for i in range(len(x)):
-			if dist_transform_sep[n][x[i],y[i]]<=dist_transform_all[x_full[i],y_full[i]] and np.isnan(img[x_full[i],y_full[i]])==False:
-				# Check overall distance transform to make sure pixel belongs to proper filament
-				#print i
-				width_value.append(img[x_full[i],y_full[i]])
-				width_distance.append(dist_transform_sep[n][x[i],y[i]])
-			else: num_nan+=1
-		# Binning
-	  	av_dists = [];av_val = [];ave_dist = [];ave_val = []
-	  	for j in range(150):
-			val_bin = [];dists_bin = []
-			for i in width_distance:
-				if i>=j and i<j+1:
-					dists_bin.append(i)
-					val_bin.append(abs(width_value[width_distance.index(i)]))
-			if len(val_bin)==0 or len(dists_bin)==0: pass
-			else:
-				av_d = sum(dists_bin)/len(dists_bin) * img_scale
-				av_v = sum(val_bin)/len(val_bin)
-				av_dists.append(av_d)
-				av_val.append(av_v)
-		# Attempt to find initial params assuming data is Gaussian-ish
-		if len(av_val)>0:
-			param = (np.max(av_val),np.sqrt(np.var(av_dists)),np.min(av_val))
-		else:
-			print "No points to fit"
-			param = param0
-	  	try:
-			opts,cov = op.curve_fit(gaussian,av_dists,av_val,p0=param,maxfev=100*(len(width_value)+1))
-			fits.append(opts)
-			fit_errors.append(np.sqrt(np.diag(cov)))
-	  	except:
-	  		print "Fit Fail"
-			opts,cov = param,None
-			fits.append(opts)
-			fit_errors.append(cov)
-		deconv = (2.35*abs(opts[1]))**2. - img_beam**2.
-		if deconv>0:
-			widths.append(np.sqrt(deconv))
-		else:
-			widths.append("Neg. FWHM")
-		if verbose:
-			print param
-			print opts
-			p.plot(av_dists,av_val,"kD",np.linspace(0,1,100),gaussian(np.linspace(0,1,100),*opts),"r")
-			p.xlabel(r'Radial Distance (pc)')
-			p.ylabel(r'Integrated Intensity ( $\frac{K km}{s}$ )')
-			p.grid(True)
-			p.show()
-		param = None # Reset param for next filament
-	return widths,fits,fit_errors
-
-
-def cyl_model(img,dist_transform_all,dist_transform_sep,img_beam,img_scale,img_freq):
-	'''
-	**NOT IN USE.**
-	Fits the radial profile of filament to a cylindrical model
-	'''
-	num = len(dist_transform_sep)
-	p0 = (1e20,0.03,2.)
-
-	# Initialize Lists
-	widths = []
-	fits = []
-	fit_errors =[]
-
-
-	for n in range(num):
-		width_value = []
-		width_distance = []
-		x,y = np.where(dist_transform_sep[n]<50.0)
-		for i in range(len(x)):
-			if dist_transform_sep[n][x[i],y[i]]>dist_transform_all[x[i],y[i]]: pass # Check overall distance transform to make sure pixel belongs to proper filament
-			else:
-				width_value.append(img[x[i],y[i]])
-				width_distance.append(dist_transform_sep[n][x[i],y[i]])
-		# Binning
-	  	av_dists = [];av_val = [];ave_dist = [];ave_val = []
-	  	for j in range(50):
-			val_bin = [];dists_bin = []
-			for i in width_distance:
-				if i>=j and i<j+1:
-					dists_bin.append(i)
-					val_bin.append(abs(width_value[width_distance.index(i)]))
-		if len(val_bin)==0 or len(dists_bin)==0: pass
-		else:
-			av_d = sum(dists_bin)/len(dists_bin)
-			av_v = sum(val_bin)/len(val_bin)
-			av_dists.append(av_d * img_scale)
-			av_val.append(dens_func(planck(20.,img_freq),0.2,av_v*img_scale**-1)*(5.7*10**19))
-	    # Fitting
-		try:
-			fit,cov = op.curve_fit(cyl_model,av_dists,av_val,p0=p0,maxfev=100*(len(av_dists)+1))
-			fits.append(fit)
-			fit_errors.append(np.sqrt(np.diag(cov)))
-		except:
-			fit,cov = p0,None
-			fits.append(fit)
-			fit_errors.append(cov)
-		deconv = (2.35*abs(fit[1])**2.) - img_beam**2.
-		if deconv>0:
-			widths.append(np.sqrt(deconv))
-		else:
-			widths.append("Neg. FWHM")
-
-	return widths,fits,fit_errors
-
-
-
-if __name__ == "__main__":
-    import sys
-    fib(int(sys.argv[1]))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	return av_widths
