@@ -66,8 +66,13 @@ def isolatefilaments(skel_img,mask,size_threshold):
   '''
 
   filarrays = []; pix_val = []; corners = []
-  labels,num = nd.label(skel_img,eight_con())#label(skel_img,neighbors=8, return_num=True, background=0)
-  labels_mask,num_mask = nd.label(mask,eight_con())# label(mask,neighbors=8, return_num=True, background=0)
+  labels,num = nd.label(skel_img,eight_con())
+  labels_mask,num_mask = nd.label(mask,eight_con())
+
+  if num_mask!=num: # I ran into an issue with nd.label in numpy 1.7.1. Try to avoid problem by using skimage.
+    labels,num = label(skel_img,neighbors=8, return_num=True, background=0)
+    labels_mask,num_mask = label(mask,neighbors=8, return_num=True, background=0)
+
   if num_mask!=num:
     raise ValueError('The number of objects must match the number of skeletons.')
   sums = nd.sum(skel_img,labels,range(num))
