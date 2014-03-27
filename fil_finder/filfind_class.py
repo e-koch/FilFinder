@@ -527,7 +527,7 @@ class fil_finder_2D(object):
 
       return self
 
-    def find_widths(self, fit_model=gauss_model, verbose=False):
+    def find_widths(self, fit_model=lorentzian_model, verbose=False):
         '''
 
         The final step of the algorithm is to find the widths of each of the skeletons. We do this
@@ -536,8 +536,8 @@ class fil_finder_2D(object):
               each skeleton. The skeletons are also recombined onto a single array. The individual
               filament arrays are padded to ensure a proper radial profile is created. If the padded
               arrays fall outside of the original image, they are trimmed.
-            * A user-specified model is fit to each of the radial profiles. There are two models included
-              in this package; a gaussian model and a cylindrical filament model (Arzoumanian et al., 2011).
+            * A user-specified model is fit to each of the radial profiles. There are three models included
+              in this package; a gaussian, lorentzian and a cylindrical filament model (Arzoumanian et al., 2011).
               This returns the width and central intensity of each filament. The reported widths are the
               deconvolved FWHM of the gaussian width. For faint or crowded filaments, the fit can fail
               due to lack of data to fit to. In this case, the distance transform from the medial axis transform
@@ -597,7 +597,7 @@ class fil_finder_2D(object):
 
             if fail_flag:
                 fit = [np.NaN] * len(fit)
-                fit_error = [np.NaN] * len(fit_error)
+                fit_error = [np.NaN] * len(fit)
 
             self.widths["Fitted Width"].append(fit[1])
             self.width_fits["Parameters"][n,:] = fit
@@ -774,7 +774,7 @@ class fil_finder_2D(object):
             print("%s filaments found.") % (self.number_of_filaments)
             for fil in range(self.number_of_filaments):
                 print "Filament: %s, Width: %s, Length: %s, Curvature: %s" % \
-                        (fil,self.widths[fil],self.lengths[fil], self.menger_curvature[fil])
+                        (fil,self.widths["Fitted Width"][fil],self.lengths[fil], self.rht_curvature[fil])
 
     def run(self, verbose=False, save_plots=False, save_name=None):
         '''
@@ -807,7 +807,7 @@ class fil_finder_2D(object):
         self.medskel(verbose = verbose)
 
         self.analyze_skeletons(verbose = verbose)
-        self.exec_rht(verbose=verbose)
+        # self.exec_rht(verbose=verbose)
         self.find_widths(verbose = verbose)
         self.results()
         self.save_table(save_name=save_name)

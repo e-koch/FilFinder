@@ -185,23 +185,74 @@ def gauss_model(distance, rad_profile, img_beam):
 		fit, cov = op.curve_fit(gaussian, distance, rad_profile, p0=p0, maxfev=100*(len(distance)+1))
 		fit_errors = np.sqrt(np.diag(cov))
 	except:
-		fit, cov = p0, None
+		fit, fit_errors = p0, None
 
 	fit = list(fit)
 	## Deconvolve the width with the beam size.
-	deconv = (2.35*abs(fit[1])**2.) - img_beam**2.
+	deconv = (2.35*fit[1])**2. - img_beam**2.
 	if deconv>0:
 		fit[1] = np.sqrt(deconv)
 	else:
 		fit[1] = img_beam ## If you can't devolve it, set it to minimum, which is the beam-size.
 
 	fail_flag = False
-	if cov==None or (fit_errors>fit).any() or fit[0]<fit[2]:
+	if fit_errors==None or (fit_errors>fit).any() or fit[0]<fit[2]:
 		fail_flag = True
 
 	parameters = ["Amplitude", "Width", "Background"]
 
 	return fit, fit_errors, gaussian, parameters, fail_flag
+
+def lorentzian_model(distance, rad_profile, img_beam):
+	'''
+		Fits a Gaussian to the radial profile of each filament by comparing
+	the intensity profile from the center of the skeleton using the output
+	of dist_transform. The FWHM width of the Gaussian is deconvolved with
+	the beam-size of the image. Errors are estimated from the trace of
+	the covariance matrix of the fit.
+	'''
+
+	p0 = (np.max(rad_profile), 0.1, np.min(rad_profile))
+
+	def lorentzian(x,*p):
+		'''
+
+		Parameters
+		**********
+
+		x : list or numpy.ndarray
+			1D array of values where the model is evaluated
+
+		p : tuple
+			Components are:
+				* p[0] Amplitude
+				* p[1] FWHM Width
+				* p[2] Background
+
+		'''
+		return (p[0]-p[2])*(0.5 * p[1])**2 / ((0.5 * p[1])**2 + x**2) + p[2]
+
+	try:
+		fit, cov = op.curve_fit(lorentzian, distance, rad_profile, p0=p0, maxfev=100*(len(distance)+1))
+		fit_errors = np.sqrt(np.diag(cov))
+	except:
+		fit, fit_errors = p0, None
+
+	fit = list(fit)
+	## Deconvolve the width with the beam size.
+	deconv = fit[1]**2. - img_beam**2.
+	if deconv>0:
+		fit[1] = np.sqrt(deconv)
+	else:
+		fit[1] = img_beam ## If you can't devolve it, set it to minimum, which is the beam-size.
+
+	fail_flag = False
+	if fit_errors==None or (fit_errors>fit).any() or fit[0]<fit[2]:
+		fail_flag = True
+
+	parameters = ["Amplitude", "Width", "Background"]
+
+	return fit, fit_errors, lorentzian, parameters, fail_flag
 
 def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,\
 					 img_scale, bins=None, bintype="linear"):
