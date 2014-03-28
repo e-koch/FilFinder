@@ -236,15 +236,15 @@ class fil_finder_2D(object):
         self.flat_img = np.arctan(self.image/scoreatpercentile(self.image[~np.isnan(self.image)],self.flatten_thresh))
         self.smooth_img = nd.median_filter(self.flat_img, size=self.smooth_size)
         adapt = threshold_adaptive(self.smooth_img, self.adapt_thresh)
+
+        if self.glob_thresh is not None:
+            glob = self.flat_img > scoreatpercentile(self.flat_img[~np.isnan(self.flat_img)], self.glob_thresh)
+            adapt = glob * adapt
+
         opening = nd.binary_opening(adapt, structure=np.ones((3,3)))
         cleaned = remove_small_objects(opening, min_size=self.size_thresh)
         self.mask = nd.binary_closing(cleaned, structure=np.ones((3,3)))
         self.mask = nd.median_filter(self.mask, size=self.smooth_size)
-
-
-        if self.glob_thresh is not None:
-            premask = self.flat_img > scoreatpercentile(self.flat_img[~np.isnan(self.flat_img)], self.glob_thresh)
-            self.mask = premask * self.mask
 
         if test_mode:
           # p.subplot(3,3,1)
@@ -562,8 +562,8 @@ class fil_finder_2D(object):
                           Contains the fit parameters and estimations of the errors from each fit.
         '''
 
-        dist_transform_all, dist_transform_separate = dist_transform(self.labelled_filament_arrays, \
-                    self.array_offsets, self.image.shape, self.pad_size)
+        dist_transform_all, dist_transform_separate, self.skeleton = dist_transform(self.labelled_filament_arrays, \
+                    self.array_offsets, self.image.shape, self.pad_size, self.branch_thresh)
 
         for n in range(self.number_of_filaments):
             dist, radprof = radial_profile(self.image, dist_transform_all,\
@@ -608,8 +608,6 @@ class fil_finder_2D(object):
         if self.medial_axis_distance != None:
             self.widths["Estimated Width"] = medial_axis_width(self.medial_axis_distance, \
                                                                self.mask, self.skeleton) * self.imgscale
-            p.hist(self.widths["Estimated Width"])
-            p.show()
 
         return self
 
@@ -774,7 +772,7 @@ class fil_finder_2D(object):
             print("%s filaments found.") % (self.number_of_filaments)
             for fil in range(self.number_of_filaments):
                 print "Filament: %s, Width: %s, Length: %s, Curvature: %s" % \
-                        (fil,self.widths["Fitted Width"][fil],self.lengths[fil], self.rht_curvature[fil])
+                        (fil,self.widths["Fitted Width"][fil],self.lengths[fil], self.rht_curvature["Std"][fil])
 
     def run(self, verbose=False, save_plots=False, save_name=None):
         '''

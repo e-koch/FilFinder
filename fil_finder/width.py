@@ -24,7 +24,7 @@ Requires:
 
 
 
-def dist_transform(labelisofil, offsets, orig_size, pad_size):
+def dist_transform(labelisofil, offsets, orig_size, pad_size, length_threshold):
 	'''
 
 	Recombines the cleaned skeletons from final analysis and takes the
@@ -53,6 +53,10 @@ def dist_transform(labelisofil, offsets, orig_size, pad_size):
 	pad_size : int
 			   The size to pad each skeleton array with. If the edges go
 			   beyond the original image's size, they are trimmed to size.
+
+	length_threshold : int
+					   Threshold length for filaments. Used as a check
+					   in making the final filament map.
 
 	Returns
 	-------
@@ -110,7 +114,7 @@ def dist_transform(labelisofil, offsets, orig_size, pad_size):
 
 	dist_transform_all = nd.distance_transform_edt(filclean_all) # Distance Transform of all cleaned filaments
 
-	return dist_transform_all,dist_transform_sep
+	return dist_transform_all, dist_transform_sep, filclean_all
 
 
 def cyl_model(distance, rad_profile, img_beam):

@@ -584,14 +584,15 @@ def final_lengths(img,max_path,edge_list,labelisofil,filpts,interpts,filbranches
       # p.show()
       # Re-adding long branches, "long" greater than length 3.0
       del_length = []
-      for i in delete_branches:
-        if lengths[n][i-1]> length_thresh:
-          for x,y in filpts[n][i-1]:
-            labelisofil[n][x,y]=i
-            good_pts.insert(i,filpts[n][i-1])
-      else: del_length.append(lengths[n][i-1])
-      lengths[n] = list(set(lengths[n]) - set(del_length))
-      filpts[n] = [];[filpts[n].append(i) for i in good_pts]
+      # for i in delete_branches:
+      #   if lengths[n][i-1]> length_thresh:
+      #     for x,y in filpts[n][i-1]:
+      #       labelisofil[n][x,y]=i
+      #       good_pts.insert(i,filpts[n][i-1])
+      #   else:
+      #     del_length.append(lengths[n][i-1])
+      # lengths[n] = list(set(lengths[n]) - set(del_length))
+      # filpts[n] = [];[filpts[n].append(i) for i in good_pts]
 
   return main_lengths,lengths,labelisofil,curvature # Returns the main lengths, the updated branch lengths, the final skeleton arrays, and curvature
 
