@@ -805,7 +805,7 @@ class fil_finder_2D(object):
         self.medskel(verbose = verbose)
 
         self.analyze_skeletons(verbose = verbose)
-        # self.exec_rht(verbose=verbose)
+        self.exec_rht(verbose=verbose)
         self.find_widths(verbose = verbose)
         self.results()
         self.save_table(save_name=save_name)
