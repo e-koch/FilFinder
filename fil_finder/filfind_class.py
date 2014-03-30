@@ -238,7 +238,7 @@ class fil_finder_2D(object):
         adapt = threshold_adaptive(self.smooth_img, self.adapt_thresh)
 
         if self.glob_thresh is not None:
-            glob = self.flat_img > scoreatpercentile(self.flat_img[~np.isnan(self.flat_img)], self.glob_thresh)
+            glob = self.image > scoreatpercentile(self.image[~np.isnan(self.image)], self.glob_thresh)
             adapt = glob * adapt
 
         opening = nd.binary_opening(adapt, structure=np.ones((3,3)))
