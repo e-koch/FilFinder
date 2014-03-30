@@ -234,11 +234,12 @@ class fil_finder_2D(object):
             self.smooth_size = round(0.02 / self.imgscale) ## half average FWHM for filaments
 
         self.flat_img = np.arctan(self.image/scoreatpercentile(self.image[~np.isnan(self.image)],self.flatten_thresh))
+        self.flat_img[np.isnan(self.flat_img)] = 0.0
         self.smooth_img = nd.median_filter(self.flat_img, size=self.smooth_size)
-        adapt = threshold_adaptive(self.smooth_img, self.adapt_thresh)
+        adapt = threshold_adaptive(self.smooth_img, self.adapt_thresh) * np.isfinite(self.image)
 
         if self.glob_thresh is not None:
-            glob = self.image > scoreatpercentile(self.image[~np.isnan(self.image)], self.glob_thresh)
+            glob = self.flat_img > scoreatpercentile(self.flat_img[~np.isnan(self.flat_img)], self.glob_thresh)
             adapt = glob * adapt
 
         opening = nd.binary_opening(adapt, structure=np.ones((3,3)))
@@ -527,7 +528,7 @@ class fil_finder_2D(object):
 
       return self
 
-    def find_widths(self, fit_model=lorentzian_model, verbose=False):
+    def find_widths(self, fit_model=gauss_model, verbose=False):
         '''
 
         The final step of the algorithm is to find the widths of each of the skeletons. We do this

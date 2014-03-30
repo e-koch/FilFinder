@@ -24,7 +24,7 @@ def rht(mask, radius, ntheta=180, background_percentile=25):
     pad_mask = np.pad(mask.astype(float), radius, padwithnans)
     theta = np.linspace(0,np.pi, ntheta)
 
-    R = np.empty((ntheta,))
+    R = np.zeros((ntheta,))
     x, y = np.where(mask!=0.0)
     for i,j in zip(x,y):
         region = circle * pad_mask[i:i+2*radius+1,j:j+2*radius+1]
@@ -34,11 +34,13 @@ def rht(mask, radius, ntheta=180, background_percentile=25):
 
             line = region * np.isclose(diff, 0.0)
 
-            R[posn] += np.nansum(line)
+            if np.isnan(line).all():
+                pass ## If all nans, ignore
+            else:
+                R[posn] += np.nansum(line)
     ## You're likely to get a somewhat constant background, so subtract that out
-    R[~np.isfinite(R)] = 0.0
     R = R - np.median(R[R<scoreatpercentile(R,background_percentile)])
-    if not (R<0.0).any():
+    if (R<0.0).any():
         R[R<0.0] = 0.0 ## Ignore negative values after subtraction
 
     return theta, R
