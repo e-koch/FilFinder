@@ -524,22 +524,18 @@ def final_lengths(img,max_path,edge_list,labelisofil,filpts,interpts,filbranches
           big_inters.append(intersec)
         for pix in intersec:
           labelisofil[n][pix]=filbranches[n]+1
+      # find_pilpix is used again to find the end-points of the remaining branches. The
+      # branch labels are used to check which intersections are included in the longest
+      #path. For intersections containing multiple points, an average of the
+      #positions, weighted by their value in the image, is used in the length
+      #calculation.
       relabel, numero=  nd.label(labelisofil[n],eight_con())
-    # find_pilpix is used again to find the endpts of the remaining branches. The     branch labels are used to check which intersections are included in the longest   #path. For intersections containing multiple points, an average of the
-    #positions, weighted by their value in the image, is used in the length
-    #calculation.
-      endpts = []; endpts.append(find_filpix(numero,relabel,final=False)[3])
-      for i in interpts[n]:
-        match = list(set(endpts[0]) & set(i))
+      endpts = find_filpix(numero,relabel,final=False)[3]
+      for intersec in interpts[n]:
+        match = list(set(endpts) & set(intersec))
         if len(match)>0:
           for h in match:
-            endpts[0].remove(h)
-      num_inter = []
-      all_zip = zip(product_gen(string.ascii_uppercase),range(len(interpts[n])))
-      for i in all_zip:
-        num_inter.append(i[0])
-      inter_exc = list(set(max_path[n]) & set(num_inter))
-      inter_excl = list(set(num_inter) - set(inter_exc))
+            endpts.remove(h)
       for i in big_inters:
         weight = [];xs = [];ys = []
         for x,y in i:
@@ -549,20 +545,22 @@ def final_lengths(img,max_path,edge_list,labelisofil,filpts,interpts,filbranches
         av_y = weighted_av(ys,weight)
         interpts[n].insert(interpts[n].index(i),[(av_x,av_y)])
         interpts[n].remove(i)
-  # The pixels of the longest path are combined with the intersection pixels. This gives overall length of the filament.
+      # The pixels of the longest path are combined with the intersection pixels. This gives overall length of the filament.
       good_pts = [];[[good_pts.append(i[j]) for j in range(len(i))]for i in fils]
-      match = list(set(endpts[0]) & set(good_pts))
+      match = list(set(endpts) & set(good_pts))
       if len(match)>0:
         for i in match:
           good_pts.remove(i)
-      for i in endpts[0]:
+      for i in endpts:
         good_pts.insert(0,i)
-      inter_find = list(set(max_path[n]) & set(string.ascii_uppercase))
+
+      intersec_labels = [zip(product_gen(string.ascii_uppercase),range(len(interpts[n])))[0]]
+      inter_find = list(set(max_path[n]) & set(intersec_labels))
 
       good_inter = []
       if len(inter_find) != 0:
         for i in inter_find:
-          good_inter.append(interpts[n][string.ascii_uppercase.index(i)-1])
+          good_inter.append(interpts[n][intersec_labels.index(i)])
       interpts[n] = [];[[interpts[n].append(i[j]) for j in range(len(i))] for i in good_inter]
       finalpix = [good_pts + interpts[n]]
       lengthh,order = fil_length(n,finalpix,initial=False)
