@@ -441,7 +441,6 @@ class fil_finder_2D(object):
 
         isolated_filaments, new_mask, num, offsets = \
                 isolatefilaments(self.skeleton,self.mask,self.skel_thresh)
-        self.filament_arrays = isolated_filaments
         self.mask = new_mask
         self.number_of_filaments = num
         self.array_offsets = offsets
@@ -454,7 +453,7 @@ class fil_finder_2D(object):
         end_nodes, inter_nodes, edge_list, nodes = \
             pre_graph(labeled_fil_arrays, initial_lengths, interpts, ends)
 
-        max_path, extremum = longest_path(edge_list, nodes, initial_lengths, verbose = verbose)
+        max_path, extremum = longest_path(edge_list, nodes, initial_lengths, verbose=verbose)
 
         self.filament_extents = extremum_pts(labeled_fil_arrays, extremum, ends)
 
@@ -462,10 +461,11 @@ class fil_finder_2D(object):
             final_lengths(self.image, max_path, edge_list, labeled_fil_arrays, filament_pixels, interpts, filbranches, \
                             initial_lengths, self.imgscale, self.branch_thresh)
 
-        labeled_fil_arrays, filbranches, final_hubs, branch_lengths = final_analysis(labeled_fil_arrays)
+        labeled_fil_arrays, filbranches, final_hubs, branch_lengths, filament_arrays = final_analysis(labeled_fil_arrays)
 
         self.lengths = main_lengths
         self.labelled_filament_arrays = labeled_fil_arrays
+        self.filament_arrays = filament_arrays
         self.branch_info = {"filament_branches":filbranches, "branch_lengths":branch_lengths}
         self.menger_curvature = curvature
 
@@ -511,7 +511,7 @@ class fil_finder_2D(object):
         return array[idx]
 
       for n in range(self.number_of_filaments):
-        theta, R = rht(self.labelled_filament_arrays[n], radius, ntheta, background_percentile)
+        theta, R = rht(self.filament_arrays[n], radius, ntheta, background_percentile)
         ecdf = np.cumsum(R/np.sum(R))
 
         self.rht_curvature["Mean"].append(theta[np.where(ecdf==find_nearest(ecdf,0.5))].mean()) ## 50th percentile

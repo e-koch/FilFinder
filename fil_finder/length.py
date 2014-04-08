@@ -529,10 +529,10 @@ def final_lengths(img,max_path,edge_list,labelisofil,filpts,interpts,filbranches
       #path. For intersections containing multiple points, an average of the
       #positions, weighted by their value in the image, is used in the length
       #calculation.
-      relabel, numero=  nd.label(labelisofil[n],eight_con())
+      relabel, numero = nd.label(labelisofil[n],eight_con())
       endpts = find_filpix(numero,relabel,final=False)[3]
       for intersec in interpts[n]:
-        match = list(set(endpts) & set(intersec))
+        match = list(set(endpts) & set(intersec)) # Remove duplicates in endpts
         if len(match)>0:
           for h in match:
             endpts.remove(h)
@@ -567,10 +567,8 @@ def final_lengths(img,max_path,edge_list,labelisofil,filpts,interpts,filbranches
       main_lengths.append(lengthh[0] * img_scale)
 
       curvature.append(av_curvature(n,finalpix)[0]) ### SEE CURVE FOR EXPLANATION
-      # import matplotlib.pyplot as p
-      # p.imshow(labelisofil[n],origin='lower',interpolation=None)
-      # p.show()
-      # Re-adding long branches, "long" greater than length 3.0
+
+      # Re-adding long branches, "long" greater than the length threshold
       del_length = []
       for i in delete_branches:
         if lengths[n][i-1]> length_thresh:
@@ -582,7 +580,7 @@ def final_lengths(img,max_path,edge_list,labelisofil,filpts,interpts,filbranches
       lengths[n] = list(set(lengths[n]) - set(del_length))
       filpts[n] = [];[filpts[n].append(i) for i in good_pts]
 
-  return main_lengths,lengths,labelisofil,curvature # Returns the main lengths, the updated branch lengths, the final skeleton arrays, and curvature
+  return main_lengths, lengths, labelisofil, curvature # Returns the main lengths, the updated branch lengths, the final skeleton arrays, and curvature
 
 
 def final_analysis(labelisofil):
@@ -608,7 +606,7 @@ def final_analysis(labelisofil):
                 The updated version of the number of branches in each skeleton.
 
   hubs : list
-         The updated version of the number of intersections in eahc skeleton.
+         The updated version of the number of intersections in each skeleton.
 
   lengths : list
             Updated version of the lengths of the branches.
@@ -618,74 +616,29 @@ def final_analysis(labelisofil):
   num = len(labelisofil)
 
   # Initialize lists
-  filbranches = [];hubs = [];lengths = []
+  filbranches = []
+  hubs = []
+  lengths = []
+  filament_arrays = []
 
   for n in range(num):
     x,y = np.where(labelisofil[n]>0)
     for i in range(len(x)):
       labelisofil[n][x[i],y[i]]=1
     deletion = find_extran(1,labelisofil[n])
+    filament_arrays.append(deletion) # A cleaned, final skeleton is returned here.
     funcreturn = find_filpix(1,deletion,final=False)
-    relabel,kk = nd.label(funcreturn[2],eight_con())
-    for i in range(kk):
-      x,y = np.where(relabel==kk+1)
-      if len(x)==1.0:
+    relabel,num_branches = nd.label(funcreturn[2],eight_con())
+    for i in range(num_branches):
+      x,y = np.where(relabel==num_branches+1)
+      if len(x)==1:
         labelisofil[x[0],y[0]]=0
     labelisofil.pop(n)
     labelisofil.insert(n,relabel)
-    filbranches.insert(n,kk)
+    filbranches.insert(n,num_branches)
     hubs.append(len(funcreturn[1]))
-    funcsreturn = find_filpix(kk,relabel,final=True)
+    funcsreturn = find_filpix(num_branches,relabel,final=True)
     lenn,ordd = fil_length(n,funcsreturn[0],initial=True)
     lengths.append(lenn)
 
-  return labelisofil,filbranches,hubs,lengths
-
-
-if __name__ == "__main__":
-    import sys
-    fib(int(sys.argv[1]))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  return labelisofil, filbranches, hubs, lengths, filament_arrays
