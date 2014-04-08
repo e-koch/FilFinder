@@ -304,64 +304,54 @@ def pre_graph(labelisofil,lengths,interpts,ends):
 
   num = len(labelisofil)
 
-  end_nodes_temp = []
   end_nodes = []
-  uniqs = []
-  inter_nodes_temp = []
   inter_nodes = []
   nodes = []
-  nodes_temp = []
-  edge_list_temp = []
   edge_list = []
 
 
   for n in range(num):
-    for i in ends[n]:
-      end_nodes_temp.append((labelisofil[n][i[0],i[1]],lengths[n][int(labelisofil[n][i[0],i[1]]-1)]))
-    end_nodes.append(end_nodes_temp)
-    for i in end_nodes_temp:
-      nodes_temp.append(i[0])
-    nodes.append(nodes_temp);nodes_temp = []
-    end_nodes_temp = []
+    inter_nodes_temp = []
+    ## Create end_nodes, which contains lengths, and nodes, which we will later add in the intersections
+    end_nodes.append([(labelisofil[n][i[0],i[1]],lengths[n][int(labelisofil[n][i[0],i[1]]-1)]) for i in ends[n]])
+    nodes.append([labelisofil[n][i[0],i[1]] for i in ends[n]])
 
   # Intersection nodes are given by the intersections points of the filament.
   # They are labeled alphabetically (if len(interpts[n])>26, subsequent labels are AA,AB,...).
   # The branch labels attached to each intersection are included for future use.
-    for j in range(len(interpts[n])):
-        for i in interpts[n][j]:
-          int_arr = np.array([[labelisofil[n][i[0]-1,i[1]+1],labelisofil[n][i[0],i[1]+1],labelisofil[n][i[0]+1,i[1]+1]],\
-            [labelisofil[n][i[0]-1,i[1]],0,labelisofil[n][i[0]+1,i[1]]],[labelisofil[n][i[0]-1,i[1]-1],labelisofil[n][i[0],i[1]-1],labelisofil[n][i[0]+1,i[1]-1]]])
-          int_arr =  int_arr.astype(int)
+    for intersec in interpts[n]:
+        uniqs = []
+        for i in intersec: ## Intersections can contain multiple pixels
+          int_arr = np.array([[labelisofil[n][i[0]-1,i[1]+1], labelisofil[n][i[0],i[1]+1], labelisofil[n][i[0]+1,i[1]+1]],\
+                              [labelisofil[n][i[0]-1,i[1]]  , 0, labelisofil[n][i[0]+1,i[1]]],\
+                              [labelisofil[n][i[0]-1,i[1]-1], labelisofil[n][i[0],i[1]-1], labelisofil[n][i[0]+1,i[1]-1]]]).astype(int)
           for x in np.unique(int_arr[np.nonzero(int_arr)]):
             uniqs.append((x,lengths[n][x-1]))
+        # Intersections with multiple pixels can give the same branches. Get rid of duplicates
         uniqs = list(set(uniqs))
         inter_nodes_temp.append(uniqs)
-        uniqs = []
 
+    # Add the intersection labels. Also append those to nodes
     inter_nodes.append(zip(product_gen(string.ascii_uppercase),inter_nodes_temp))
-    inter_nodes_temp = []
-    for k in inter_nodes[n]:
-      nodes[n].append(k[0])
+    nodes[n].append(zip(product_gen(string.ascii_uppercase),inter_nodes_temp)[0])
 
-  #Edges are created from the information contained in the nodes.
-  for n in range(num):
-    for i in range(len(inter_nodes[n])):
-      end_match = list(set(inter_nodes[n][i][1]) & set(end_nodes[n]))
+    #Edges are created from the information contained in the nodes.
+    edge_list_temp = []
+    for i, inters in enumerate(inter_nodes[n]):
+      end_match = list(set(inters[1]) & set(end_nodes[n]))
       for k in end_match:
-        edge_list_temp.append((inter_nodes[n][i][0],k[0],k))
+        edge_list_temp.append((inters[0],k[0],k))
 
-      for j in range(len(inter_nodes[n])):
+      for j, inters_2 in enumerate(inter_nodes[n]):
         if i != j:
-          match = list(set(inter_nodes[n][i][1]) & set(inter_nodes[n][j][1]))
-          match = list(set(match))
+          match = list(set(inters[1]) & set(inters_2[1]))
           if len(match)==1:
-            edge_list_temp.append((inter_nodes[n][i][0],inter_nodes[n][j][0],match[0]))
+            edge_list_temp.append((inters[0],inters_2[0],match[0]))
           elif len(match)>1:
             multi = [match[l][1] for l in range(len(match))]
             keep = multi.index(min(multi))
-            edge_list_temp.append((inter_nodes[n][i][0],inter_nodes[n][j][0],match[keep]))
+            edge_list_temp.append((inters[0],inters_2[0],match[keep]))
     edge_list.append(edge_list_temp)
-    edge_list_temp = []
 
 
   return end_nodes, inter_nodes, edge_list, nodes
@@ -505,37 +495,36 @@ def final_lengths(img,max_path,edge_list,labelisofil,filpts,interpts,filbranches
 
   for n in range(num):
 
-    if len(max_path[n])==1: #and max_path[n][0]==max_path[n][1]: #Catch fil with no intersections
+    if len(max_path[n])==1: #Catch filaments with no intersections
       main_lengths.append(lengths[n][0] * img_scale)
       curvature.append(av_curvature(n,filpts[n])[0])
     else:
-      good_edge_list = []
-      for i in range(len(max_path[n])-1):
-        good_edge_list.append((max_path[n][i],max_path[n][i+1]))
+      good_edge_list = [(max_path[n][i],max_path[n][i+1]) for i in range(len(max_path[n])-1)]
+      # Find the branches along the longest path.
       keep_branches = []
       for i in good_edge_list:
         for j in edge_list[n]:
           if (i[0]==j[0] and i[1]==j[1]) or (i[0]==j[1] and i[1]==j[0]):
             keep_branches.append(j[2][0])
-            keep_branches = list(set(keep_branches))
-      fils = [];good_inter = []
-      for i in keep_branches:
-        fils.append(filpts[n][int(i-1)])
+      # Each branch label is duplicated, get rid of extras
+      keep_branches = list(set(keep_branches))
+      fils = [filpts[n][int(i-1)] for i in keep_branches]
+
       branches = range(1,filbranches[n]+1)
-      match = list(set(branches) & set(keep_branches))
-      for i in match:
-        branches.remove(i)
-      delete_branches = branches
-      for i in delete_branches:
-        x,y = np.where(labelisofil[n]==i)
-        for j in range(len(x)):
-          labelisofil[n][x[j],y[j]]=0
+      # Find the branches which are not in keep_branches, then delete them from labelisofil array
+      delete_branches = list(set(branches) ^ set(keep_branches))
+      for branch in delete_branches:
+        x,y = np.where(labelisofil[n]==branch)
+        for i in range(len(x)):
+          labelisofil[n][x[i],y[i]]=0
+      # A "big_inter" is any intersection which contains multiple pixels
       big_inters = []
-      for i in interpts[n]:
-        if len(i)>1: big_inters.append(i)
-        for j in i:
-          labelisofil[n][j[0],j[1]]=filbranches[n]+1
-      relabel,numero=  nd.label(labelisofil[n],eight_con())
+      for intersec in interpts[n]:
+        if len(intersec)>1:
+          big_inters.append(intersec)
+        for pix in intersec:
+          labelisofil[n][pix]=filbranches[n]+1
+      relabel, numero=  nd.label(labelisofil[n],eight_con())
     # find_pilpix is used again to find the endpts of the remaining branches. The     branch labels are used to check which intersections are included in the longest   #path. For intersections containing multiple points, an average of the
     #positions, weighted by their value in the image, is used in the length
     #calculation.
@@ -570,6 +559,7 @@ def final_lengths(img,max_path,edge_list,labelisofil,filpts,interpts,filbranches
         good_pts.insert(0,i)
       inter_find = list(set(max_path[n]) & set(string.ascii_uppercase))
 
+      good_inter = []
       if len(inter_find) != 0:
         for i in inter_find:
           good_inter.append(interpts[n][string.ascii_uppercase.index(i)-1])
