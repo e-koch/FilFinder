@@ -30,7 +30,7 @@ import networkx as nx
 from utilities import *
 from pixel_ident import *
 #from curvature import *
-import operator,string
+import operator,string, copy
 
 
 
@@ -330,12 +330,23 @@ def pre_graph(labelisofil, lengths, branch_intensity, interpts, ends):
   nodes = []
   edge_list = []
 
+  def path_weighting(idx, length, intensity, w=0.5):
+    '''
+
+    Relative weighting for the shortest path algorithm using the branch
+    lengths and the average intensity along the branch.
+
+    '''
+    if w>1.0:
+      raise ValueError("Relative weighting w must be between 0.0 and 1.0.")
+    return  (1-w) * (length[idx]/ np.sum(length)) + w * (intensity[idx]/np.sum(intensity))
+
 
   for n in range(num):
     inter_nodes_temp = []
     ## Create end_nodes, which contains lengths, and nodes, which we will later add in the intersections
     # end_nodes.append([(labelisofil[n][i[0],i[1]],lengths[n][int(labelisofil[n][i[0],i[1]]-1)]) for i in ends[n]])
-    end_nodes.append([(labelisofil[n][i[0],i[1]],branch_intensity[n][int(labelisofil[n][i[0],i[1]]-1)]) for i in ends[n]])
+    end_nodes.append([(labelisofil[n][i[0],i[1]], path_weighting(int(labelisofil[n][i[0],i[1]]-1), lengths[n], branch_intensity[n])) for i in ends[n]])
     nodes.append([labelisofil[n][i[0],i[1]] for i in ends[n]])
 
   # Intersection nodes are given by the intersections points of the filament.
@@ -648,7 +659,7 @@ def final_analysis(labelisofil):
     for i in range(len(x)):
       labelisofil[n][x[i],y[i]]=1
     deletion = find_extran(1,labelisofil[n])
-    filament_arrays.append(deletion) # A cleaned, final skeleton is returned here.
+    filament_arrays.append(copy.copy(deletion)) # A cleaned, final skeleton is returned here.
     funcreturn = find_filpix(1,deletion,final=False)
     relabel,num_branches = nd.label(funcreturn[2],eight_con())
     for i in range(num_branches):
