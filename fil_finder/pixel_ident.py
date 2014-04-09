@@ -35,7 +35,7 @@ from skimage.morphology import medial_axis, label
 import skimage.filter as skfilter
 
 
-def isolatefilaments(skel_img,mask,size_threshold):
+def isolatefilaments(skel_img, mask, size_threshold, pad_size=5):
   '''
   This function separates each filament, over a threshold of number of
   pixels, into its own array with the same dimensions as the inputed image.
@@ -92,16 +92,18 @@ def isolatefilaments(skel_img,mask,size_threshold):
   labels,num = nd.label(skel_img,eight_con())
   for n in range(1,num+1):
     x,y = np.where(labels==n)
-    lower = (x.min()-10,y.min()-10)
-    upper = (x.max()+10,y.max()+10)
-    shapes = (upper[0]-lower[0],upper[1]-lower[1])
+    # Make an array shaped to the skeletons size and padded on each edge
+    shapes = (x.max()-x.min()+2*pad_size, y.max()-y.min()+2*pad_size)
     eachfil = np.zeros(shapes)
     for i in range(len(x)):
-      eachfil[x[i]-lower[0],y[i]-lower[1]] = 1
-    skelton_arrays.append(eachfil)
+      eachfil[x[i]-x.min()+pad_size,y[i]-y.min()+pad_size] = 1
+    skeleton_arrays.append(eachfil)
+    # Keep the coordinates from the original image
+    lower = (x.min()-pad_size,y.min()-pad_size)
+    upper = (x.max()+pad_size,y.max()+pad_size)
     corners.append([lower,upper])
 
-  return skelton_arrays, mask, num, corners
+  return skeleton_arrays, mask, num, corners
 
 
 

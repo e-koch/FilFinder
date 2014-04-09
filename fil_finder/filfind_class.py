@@ -440,7 +440,7 @@ class fil_finder_2D(object):
             print "pygraphviz is not installed. Verbose output for graphs is disabled."
 
         isolated_filaments, new_mask, num, offsets = \
-                isolatefilaments(self.skeleton,self.mask,self.skel_thresh)
+                isolatefilaments(self.skeleton,self.mask,self.skel_thresh, pad_size=self.pad_size)
         self.mask = new_mask
         self.number_of_filaments = num
         self.array_offsets = offsets
@@ -600,10 +600,9 @@ class fil_finder_2D(object):
                 p.subplot(122)
                 xlow, ylow = (self.array_offsets[n][0][0], self.array_offsets[n][0][1])
                 xhigh, yhigh = (self.array_offsets[n][1][0], self.array_offsets[n][1][1])
-                print (xlow, xhigh), (ylow, yhigh)
-                print self.image[xlow:xhigh, ylow:yhigh].shape==self.filament_arrays[n].shape
-                p.contour(self.filament_arrays[n])
-                p.imshow(self.image[xlow:xhigh, ylow:yhigh], interpolation=None)
+                p.contour(self.filament_arrays[n][self.pad_size:shape[0]-self.pad_size,self.pad_size:shape[1]-self.pad_size], colors="k")
+                p.imshow(self.image[xlow+self.pad_size:xhigh-self.pad_size, ylow+self.pad_size:yhigh-self.pad_size], interpolation=None)
+                p.colorbar()
                 p.show()
 
             if fail_flag:
