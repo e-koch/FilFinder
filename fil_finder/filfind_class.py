@@ -560,6 +560,9 @@ class fil_finder_2D(object):
                       List of the FWHM widths returned from the fits.
         self.width_fits : dict
                           Contains the fit parameters and estimations of the errors from each fit.
+        self.skeleton : numpy.ndarray
+                        Updated versions of the array of skeletons.
+
         '''
 
         dist_transform_all, dist_transform_separate, self.skeleton = dist_transform(self.labelled_filament_arrays, \
