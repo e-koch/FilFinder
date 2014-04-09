@@ -53,7 +53,7 @@ def isolatefilaments(skel_img,mask,size_threshold):
 
   Returns
   -------
-  filarrays : list
+  skelton_arrays : list
               contains the individual arrays for each skeleton
   mask : numpy.ndarray
          Updated version of the mask where small objects have been eliminated
@@ -65,7 +65,7 @@ def isolatefilaments(skel_img,mask,size_threshold):
 
   '''
 
-  filarrays = []; pix_val = []; corners = []
+  skelton_arrays = []; pix_val = []; corners = []
   labels,num = nd.label(skel_img,eight_con())
   labels_mask,num_mask = nd.label(mask,eight_con())
 
@@ -98,9 +98,10 @@ def isolatefilaments(skel_img,mask,size_threshold):
     eachfil = np.zeros(shapes)
     for i in range(len(x)):
       eachfil[x[i]-lower[0],y[i]-lower[1]] = 1
-    filarrays.append(eachfil)
+    skelton_arrays.append(eachfil)
     corners.append([lower,upper])
-  return filarrays,mask,num,corners
+
+  return skelton_arrays, mask, num, corners
 
 
 

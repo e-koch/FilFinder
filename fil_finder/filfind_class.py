@@ -448,10 +448,10 @@ class fil_finder_2D(object):
         interpts, hubs, ends, filbranches, labeled_fil_arrays =  \
                 pix_identify(isolated_filaments, num)
 
-        initial_lengths, filament_pixels = init_lengths(labeled_fil_arrays, filbranches)
+        initial_lengths, filament_pixels, branch_intensity = init_lengths(labeled_fil_arrays, filbranches)
 
         end_nodes, inter_nodes, edge_list, nodes = \
-            pre_graph(labeled_fil_arrays, initial_lengths, interpts, ends)
+            pre_graph(labeled_fil_arrays, initial_lengths, branch_intensity, interpts, ends)
 
         max_path, extremum = longest_path(edge_list, nodes, initial_lengths, verbose=verbose)
 
@@ -590,12 +590,20 @@ class fil_finder_2D(object):
 
             if verbose:
                 print "Fit Parameters: %s \\ Fit Errors: %s" % (fit, fit_error)
+                p.subplot(121)
                 p.plot(dist, radprof, "kD")
                 points = np.linspace(np.min(dist), np.max(dist), 2*len(dist))
                 p.plot(points, model(points, *fit), "r")
                 p.xlabel(r'Radial Distance (pc)')
                 p.ylabel(r'Integrated Intensity ( $\frac{K km}{s}$ )')
                 p.grid(True)
+                p.subplot(122)
+                xlow, ylow = (self.array_offsets[n][0][0], self.array_offsets[n][0][1])
+                xhigh, yhigh = (self.array_offsets[n][1][0], self.array_offsets[n][1][1])
+                print (xlow, xhigh), (ylow, yhigh)
+                print self.image[xlow:xhigh, ylow:yhigh].shape==self.filament_arrays[n].shape
+                p.contour(self.filament_arrays[n])
+                p.imshow(self.image[xlow:xhigh, ylow:yhigh], interpolation=None)
                 p.show()
 
             if fail_flag:

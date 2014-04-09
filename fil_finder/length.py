@@ -25,6 +25,7 @@ Requires:
 
 
 import numpy as np
+from scipy.stats import nanmean
 import networkx as nx
 from utilities import *
 from pixel_ident import *
@@ -214,7 +215,7 @@ def av_curvature(n,finalpix,ra_picks=100,seed=500):
 ########################################################
 
 
-def init_lengths(labelisofil,filbranches):
+def init_lengths(labelisofil,filbranches, array_offsets, img):
   '''
 
   This is a wrapper on fil_length for running on the branches of the skeletons.
@@ -229,6 +230,12 @@ def init_lengths(labelisofil,filbranches):
   filbranches : list
                 Contains the number of branches in each skeleton.
 
+  array_offsets : List
+                  The indices of where each filament array fits in the original image.
+
+  img : numpy.ndarray
+        Original image.
+
   Returns
   -------
 
@@ -238,12 +245,16 @@ def init_lengths(labelisofil,filbranches):
   filpts : list
            Contains the pixels in each branch.
 
+  av_branch_intensity : list
+                        Average Intensity along each branch.
+
   '''
   num = len(labelisofil)
 
   #Initialize Lists
   lengths = []
   filpts = []
+  av_branch_intensity = []
 
   for n in range(num):
     funcreturn = find_filpix(filbranches[n],labelisofil[n],final=False)
@@ -254,13 +265,19 @@ def init_lengths(labelisofil,filbranches):
         leng.insert(i,0.5) # For use in longest path algorithm, will be set to zero for final analysis
     lengths.append(leng)
     filpts.append(funcreturn[0])
+    # Now let's find the average intensity along each branch
+    av_intensity = []
+    x_offset, y_offset = array_offsets[n][0]
+    for pts in funcreturn[0]:
+      av_intensity.append(nanmean([img[pt[0]+x_offset,pt[1]+y_offset] for pt in pts]))
+    av_branch_intensity.append(av_intensity)
 
-  return lengths,filpts
+  return lengths, filpts, av_branch_intensity
 
 
 
 
-def pre_graph(labelisofil,lengths,interpts,ends):
+def pre_graph(labelisofil, lengths, branch_intensity, interpts, ends):
   '''
 
   This function converts the skeletons into a graph object compatible with
@@ -277,6 +294,10 @@ def pre_graph(labelisofil,lengths,interpts,ends):
 
   lengths : list
             Contains the lengths of all of the branches.
+
+  branch_intensity : list
+                     The mean intensities along each branch. Used along
+                     with length as a weight.
 
   interpts : list
              Contains the pixels which belong to each intersection.
@@ -313,7 +334,8 @@ def pre_graph(labelisofil,lengths,interpts,ends):
   for n in range(num):
     inter_nodes_temp = []
     ## Create end_nodes, which contains lengths, and nodes, which we will later add in the intersections
-    end_nodes.append([(labelisofil[n][i[0],i[1]],lengths[n][int(labelisofil[n][i[0],i[1]]-1)]) for i in ends[n]])
+    # end_nodes.append([(labelisofil[n][i[0],i[1]],lengths[n][int(labelisofil[n][i[0],i[1]]-1)]) for i in ends[n]])
+    end_nodes.append([(labelisofil[n][i[0],i[1]],branch_intensity[n][int(labelisofil[n][i[0],i[1]]-1)]) for i in ends[n]])
     nodes.append([labelisofil[n][i[0],i[1]] for i in ends[n]])
 
   # Intersection nodes are given by the intersections points of the filament.
