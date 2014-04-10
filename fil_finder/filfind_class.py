@@ -600,6 +600,7 @@ class fil_finder_2D(object):
                 p.subplot(122)
                 xlow, ylow = (self.array_offsets[n][0][0], self.array_offsets[n][0][1])
                 xhigh, yhigh = (self.array_offsets[n][1][0], self.array_offsets[n][1][1])
+                shape = (xhigh-xlow, yhigh-ylow)
                 p.contour(self.filament_arrays[n][self.pad_size:shape[0]-self.pad_size,self.pad_size:shape[1]-self.pad_size], colors="k")
                 p.imshow(self.image[xlow+self.pad_size:xhigh-self.pad_size, ylow+self.pad_size:yhigh-self.pad_size], interpolation=None)
                 p.colorbar()

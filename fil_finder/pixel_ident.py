@@ -65,7 +65,7 @@ def isolatefilaments(skel_img, mask, size_threshold, pad_size=5):
 
   '''
 
-  skelton_arrays = []; pix_val = []; corners = []
+  skeleton_arrays = []; pix_val = []; corners = []
   labels,num = nd.label(skel_img,eight_con())
   labels_mask,num_mask = nd.label(mask,eight_con())
 
