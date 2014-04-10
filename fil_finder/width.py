@@ -6,6 +6,7 @@ import scipy.ndimage as nd
 import scipy.optimize as op
 from scipy.integrate import quad
 import matplotlib.pyplot as p
+import copy
 '''
 Routines for calculating the widths of filaments.
 
@@ -31,10 +32,6 @@ def dist_transform(labelisofil, offsets, orig_size, pad_size, length_threshold):
 	Euclidean Distance Transform of each. Since each filament is in an
 	array defined by its own size, the offsets need to be taken into account
 	when adding back into the master array.
-
-	*Note:* pad_size must be chosen to be smaller than the smallest filament
-		  array shape. The filament will be cut out if it needs to be trimmed
-		  to fit within the original image.
 
 	Parameters
 	----------
@@ -83,11 +80,11 @@ def dist_transform(labelisofil, offsets, orig_size, pad_size, length_threshold):
 	  x_top,y_top = offsets[n][1]
 
 	  ## Now check if padding will put the array outside of the original array size
-	  excess_x_top =  x_top - orig_size[0] + 2*pad_size
+	  excess_x_top =  x_top - orig_size[0]
 
-	  excess_y_top =  y_top - orig_size[1] + 2*pad_size
+	  excess_y_top =  y_top - orig_size[1]
 
-	  pad_labelisofil = np.pad(labelisofil[n],pad_size,padwithzeros) # Increase size of arrays for better radial fits
+	  pad_labelisofil = copy.copy(labelisofil[n]) # Increase size of arrays for better radial fits
 
 	  if excess_x_top > 0:
 	  	pad_labelisofil = pad_labelisofil[:-excess_x_top,:]
@@ -97,13 +94,11 @@ def dist_transform(labelisofil, offsets, orig_size, pad_size, length_threshold):
 	  	print "REDUCED FILAMENT %s TO FIT IN ORIGINAL ARRAY" %(n)
 
 	  if x_off<0:
-	  	excess_x_bottom =  (x_off - 2*pad_size) * (-1)
-	  	pad_labelisofil = pad_labelisofil[excess_x_bottom:,:]
+	  	pad_labelisofil = pad_labelisofil[-x_off+pad_size:,:]
 	  	print "REDUCED FILAMENT %s TO FIT IN ORIGINAL ARRAY" %(n)
 
 	  if y_off<0:
-	  	excess_y_bottom =  (y_off - 2*pad_size) * (-1)
-	  	pad_labelisofil = pad_labelisofil[:,excess_y_bottom:]
+	  	pad_labelisofil = pad_labelisofil[:,-y_off+pad_size:]
 	  	print "REDUCED FILAMENT %s TO FIT IN ORIGINAL ARRAY" %(n)
 
 	  x,y = np.where(pad_labelisofil>=1)
