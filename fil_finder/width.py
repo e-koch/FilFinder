@@ -153,7 +153,7 @@ def cyl_model(distance, rad_profile, img_beam):
 
 	return fit, fit_errors, model, parameters, fail_flag
 
-def gauss_model(distance, rad_profile, img_beam):
+def gauss_model(distance, rad_profile, weights, img_beam):
 	'''
 		Fits a Gaussian to the radial profile of each filament by comparing
 	the intensity profile from the center of the skeleton using the output
@@ -184,12 +184,14 @@ def gauss_model(distance, rad_profile, img_beam):
 		return (p[0]-p[2])*np.exp(-1*np.power(x,2) / (2*np.power(p[1],2))) + p[2]
 
 	try:
-		fit, cov = op.curve_fit(gaussian, distance, rad_profile, p0=p0, maxfev=100*(len(distance)+1))
-		fit_errors = list(np.sqrt(np.diag(cov)))
-	except:
+		fit, cov = op.curve_fit(gaussian, distance, rad_profile, p0=p0, \
+							maxfev=100*(len(distance)+1), sigma=weights)
+	except RuntimeError:
+		print "curve_fit failed."
 		fit, fit_errors = p0, None
 		return fit, fit_errors, gaussian, parameters, True
 
+	fit_errors = list(np.sqrt(np.diag(cov)))
 	fit = list(fit)
 	## Deconvolve the width with the beam size.
 	deconv = (2.35*fit[1])**2. - img_beam**2.
@@ -258,7 +260,7 @@ def lorentzian_model(distance, rad_profile, img_beam):
 	return fit, fit_errors, lorentzian, parameters, fail_flag
 
 def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,\
-					 img_scale, bins=None, bintype="linear"):
+				   img_scale, bins=None, bintype="linear", weighting="number"):
 	'''
 	Parameters
 	----------
@@ -280,12 +282,11 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,\
 			process. Contains the indices where each skeleton was cut
 			out of the original array.
 	'''
-	# Try to scale region looked at by image size
 
 	width_value = []
 	width_distance = []
 	x,y = np.where(np.isfinite(dist_transform_sep))
-	x_full = x + offsets[0][0] ## Transform into coords of master image
+	x_full = x + offsets[0][0] ## Transform into coordinates of master image
 	y_full = y + offsets[0][1]
 
   	for i in range(len(x)):
@@ -299,19 +300,30 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,\
 		nbins = np.sqrt(len(width_value))
 		maxbin = np.max(width_distance)
 		if bintype is "log":
-			bins = np.logspace(0,np.log10(maxbin),nbins+1)
+			bins = np.logspace(0,np.log10(maxbin),nbins+1) # bins must start at 1 if logspaced
 		elif bintype is "linear":
-			bins = np.linspace(0,maxbin,nbins+1) ## bins must start at 1 if logspaced
+			bins = np.linspace(0,maxbin,nbins+1)
 
 
 	bin_centers = (bins[1:]+bins[:-1])/2.0
 	radial_prof = np.histogram(width_distance, bins, weights=(width_value))[0] / \
 				  np.histogram(width_distance, bins)[0]
 
-	bin_centers = bin_centers[~np.isnan(radial_prof)]
-	radial_prof = radial_prof[~np.isnan(radial_prof)]
+	whichbins = np.digitize(width_distance, bins)
 
-	return bin_centers * img_scale, radial_prof
+	if weighting=="number":
+		weights = np.array([whichbins[whichbins==bin].sum() for bin in range(1,int(nbins)+1)])
+	elif weighting=="var":
+		width_value = np.asarray(width_value)
+		weights = [np.nanvar(width_value[whichbins==bin]) for bin in range(1,int(nbins)+1)]
+		weights[np.isnan(weights)] = 0.0 # Empty bins
+
+	# Ignore empty bins
+	radial_prof = radial_prof[weights>0]
+	bin_centers = bin_centers[weights>0]
+	weights = weights[weights>0]
+
+	return bin_centers * img_scale, radial_prof, weights
 
 def medial_axis_width(medial_axis_distance, mask, skeleton):
 	'''

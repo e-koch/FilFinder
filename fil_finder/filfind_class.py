@@ -569,7 +569,7 @@ class fil_finder_2D(object):
                     self.array_offsets, self.image.shape, self.pad_size, self.branch_thresh)
 
         for n in range(self.number_of_filaments):
-            dist, radprof = radial_profile(self.image, dist_transform_all,\
+            dist, radprof, weights = radial_profile(self.image, dist_transform_all,\
                      dist_transform_separate[n], self.array_offsets[n], self.imgscale)
 
             if fit_model==cyl_model:
@@ -580,7 +580,8 @@ class fil_finder_2D(object):
                     assert isinstance(self.freq, float)
                     radprof = dens_func(planck(20.,self.freq), 0.2, radprof)*(5.7e19)
 
-            fit, fit_error, model, parameter_names, fail_flag = fit_model(dist, radprof, self.beamwidth)
+            fit, fit_error, model, parameter_names, fail_flag = \
+                                    fit_model(dist, radprof, weights, self.beamwidth)
 
             if n==0:
                 ## Prepare the storage
@@ -595,14 +596,16 @@ class fil_finder_2D(object):
                 points = np.linspace(np.min(dist), np.max(dist), 2*len(dist))
                 p.plot(points, model(points, *fit), "r")
                 p.xlabel(r'Radial Distance (pc)')
-                p.ylabel(r'Integrated Intensity ( $\frac{K km}{s}$ )')
+                p.ylabel(r'Intensity$ )')
                 p.grid(True)
                 p.subplot(122)
                 xlow, ylow = (self.array_offsets[n][0][0], self.array_offsets[n][0][1])
                 xhigh, yhigh = (self.array_offsets[n][1][0], self.array_offsets[n][1][1])
                 shape = (xhigh-xlow, yhigh-ylow)
-                p.contour(self.filament_arrays[n][self.pad_size:shape[0]-self.pad_size,self.pad_size:shape[1]-self.pad_size], colors="k")
-                p.imshow(self.image[xlow+self.pad_size:xhigh-self.pad_size, ylow+self.pad_size:yhigh-self.pad_size], interpolation=None)
+                p.contour(self.filament_arrays[n][self.pad_size:shape[0]-self.pad_size, \
+                                self.pad_size:shape[1]-self.pad_size], colors="k")
+                p.imshow(self.image[xlow+self.pad_size:xhigh-self.pad_size, \
+                                ylow+self.pad_size:yhigh-self.pad_size], interpolation=None)
                 p.colorbar()
                 p.show()
 
