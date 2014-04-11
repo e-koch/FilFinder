@@ -565,7 +565,7 @@ class fil_finder_2D(object):
 
         '''
 
-        dist_transform_all, dist_transform_separate, self.skeleton = dist_transform(self.labelled_filament_arrays, \
+        dist_transform_all, dist_transform_separate, self.skeleton = dist_transform(self.filament_arrays, \
                     self.array_offsets, self.image.shape, self.pad_size, self.branch_thresh)
 
         for n in range(self.number_of_filaments):

@@ -94,17 +94,19 @@ def dist_transform(labelisofil, offsets, orig_size, pad_size, length_threshold):
 	  	print "REDUCED FILAMENT %s TO FIT IN ORIGINAL ARRAY" %(n)
 
 	  if x_off<0:
-	  	pad_labelisofil = pad_labelisofil[-x_off+pad_size:,:]
+	  	pad_labelisofil = pad_labelisofil[-x_off:,:]
+	  	x_off = 0
 	  	print "REDUCED FILAMENT %s TO FIT IN ORIGINAL ARRAY" %(n)
 
 	  if y_off<0:
-	  	pad_labelisofil = pad_labelisofil[:,-y_off+pad_size:]
+	  	pad_labelisofil = pad_labelisofil[:,-y_off:]
+	  	y_off = 0
 	  	print "REDUCED FILAMENT %s TO FIT IN ORIGINAL ARRAY" %(n)
 
 	  x,y = np.where(pad_labelisofil>=1)
 	  for i in range(len(x)):
 	    pad_labelisofil[x[i],y[i]]=1
-	    filclean_all[x[i]+ x_off - pad_size,y[i]+ y_off - pad_size]=0
+	    filclean_all[x[i]+ x_off,y[i]+ y_off]=0
 	  dist_transform_sep.append(nd.distance_transform_edt(np.logical_not(pad_labelisofil)))
 
 	dist_transform_all = nd.distance_transform_edt(filclean_all) # Distance Transform of all cleaned filaments
@@ -308,6 +310,10 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,\
 
 	bin_centers = bin_centers[~np.isnan(radial_prof)]
 	radial_prof = radial_prof[~np.isnan(radial_prof)]
+
+	p.plot(width_distance, width_value, "bo")
+	p.plot(bin_centers, radial_prof, "kD")
+	p.show()
 
 	return bin_centers * img_scale, radial_prof
 
