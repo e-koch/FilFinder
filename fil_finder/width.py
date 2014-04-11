@@ -311,10 +311,6 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,\
 	bin_centers = bin_centers[~np.isnan(radial_prof)]
 	radial_prof = radial_prof[~np.isnan(radial_prof)]
 
-	p.plot(width_distance, width_value, "bo")
-	p.plot(bin_centers, radial_prof, "kD")
-	p.show()
-
 	return bin_centers * img_scale, radial_prof
 
 def medial_axis_width(medial_axis_distance, mask, skeleton):
