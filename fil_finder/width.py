@@ -163,7 +163,7 @@ def gauss_model(distance, rad_profile, weights, img_beam):
 	'''
 
 	p0 = (np.max(rad_profile), 0.1, np.min(rad_profile))
-	parameters = ["Amplitude", "Width", "Background"]
+	parameters = ["Amplitude", "Width", "Background", "FWHM"]
 
 	def gaussian(x,*p):
 		'''
@@ -186,24 +186,24 @@ def gauss_model(distance, rad_profile, weights, img_beam):
 	try:
 		fit, cov = op.curve_fit(gaussian, distance, rad_profile, p0=p0, \
 							maxfev=100*(len(distance)+1), sigma=weights)
+		fit_errors = np.sqrt(np.diag(cov))
 	except RuntimeError:
 		print "curve_fit failed."
 		fit, fit_errors = p0, None
 		return fit, fit_errors, gaussian, parameters, True
 
-	fit_errors = list(np.sqrt(np.diag(cov)))
-	fit = list(fit)
+
 	## Deconvolve the width with the beam size.
 	deconv = (2.35*fit[1])**2. - img_beam**2.
 	if deconv>0:
-		fit_errors[1] = (2.34*fit[1]*fit_errors[1])/deconv
-		fit[1] = np.sqrt(deconv)
+		fit_errors = np.append(fit_errors, (2.35*fit[1]*fit_errors[1])/deconv)
+		fit = np.append(fit, np.sqrt(deconv))
 	else:
-		fit[1] = img_beam ## If you can't devolve it, set it to minimum, which is the beam-size.
-		fit_errors[1] = 0.0
+		fit = np.append(fit, img_beam) ## If you can't devolve it, set it to minimum, which is the beam-size.
+		fit_errors = np.append(fit_errors, 0.0)
 
 	fail_flag = False
-	if fit_errors==None or fit[0]<fit[2]:# or (fit_errors>fit).any():
+	if fit_errors==None or fit[0]<fit[2] #or (fit_errors>fit).any():
 		fail_flag = True
 
 	return fit, fit_errors, gaussian, parameters, fail_flag

@@ -471,7 +471,7 @@ class fil_finder_2D(object):
 
         return self
 
-    def exec_rht(self, radius=5, ntheta=180, background_percentile=25, verbose=False):
+    def exec_rht(self, radius=10, ntheta=180, background_percentile=25, verbose=False):
       '''
 
       Implements the Rolling Hough Transform (Clark et al., 2013). The orientation
@@ -594,7 +594,10 @@ class fil_finder_2D(object):
                 p.subplot(121)
                 p.plot(dist, radprof, "kD")
                 points = np.linspace(np.min(dist), np.max(dist), 2*len(dist))
-                p.plot(points, model(points, *fit), "r")
+                try: # If FWHM is appended on, will get TypeError
+                  p.plot(points, model(points, *fit), "r")
+                except TypeError:
+                  p.plot(points, model(points, *fit[:-1]), "r")
                 p.xlabel(r'Radial Distance (pc)')
                 p.ylabel(r'Intensity$ )')
                 p.grid(True)
@@ -613,7 +616,7 @@ class fil_finder_2D(object):
                 fit = [np.NaN] * len(fit)
                 fit_error = [np.NaN] * len(fit)
 
-            self.widths["Fitted Width"].append(fit[1])
+            self.widths["Fitted Width"].append(fit[-1])
             self.width_fits["Parameters"][n,:] = fit
             self.width_fits["Errors"][n,:] = fit_error
         self.width_fits["Names"] =  parameter_names
