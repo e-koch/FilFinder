@@ -11,20 +11,23 @@ fil_finder segments filamentary structure in an integrated intensity image using
 Example Images
 --------------
 
-![Chameleon-250 Scaled to 2150](https://github.com/e-koch/fil_finder/blob/master/images/chameleon-250-filcontours-2150.png "Chameleon-250 Scaled to 2200")
+![Chameleon-250 Scaled to 2150](images/chameleon-250-filcontours-2150.png "Chameleon-250 Scaled to 2200")
 
-![Chameleon-250 Scaled to 2500](https://github.com/e-koch/fil_finder/blob/master/images/chameleon-250-filcontours-2500.png "Chameleon-250 Scaled to 2500")
+![Chameleon-250 Scaled to 2500](images/chameleon-250-filcontours-2500.png "Chameleon-250 Scaled to 2500")
 
 Package Dependencies
 --------------------
 
 Requires:
-        *   numpy 1.7.1
-        *   matplotlib
-        *   astropy
-        *   scipy
-        *   scikits-image 0.8.0
-        *   networkx
-	    *   pandas
 
-Optional: pygraphviz -- to make connectivity graphs (set verbose = True)
+ *   numpy 1.7.1
+ *   matplotlib
+ *   astropy
+ *   scipy
+ *   scikits-image 0.8.0
+ *   networkx
+ *   pandas
+
+Optional: 
+
+ * pygraphviz -- to make connectivity graphs (set verbose = True)
