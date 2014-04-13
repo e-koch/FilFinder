@@ -514,15 +514,25 @@ class fil_finder_2D(object):
         theta, R = rht(self.filament_arrays[n], radius, ntheta, background_percentile)
         ecdf = np.cumsum(R/np.sum(R))
 
-        self.rht_curvature["Mean"].append(theta[np.where(ecdf==find_nearest(ecdf,0.5))].mean()) ## 50th percentile
-        self.rht_curvature["Std"].append(np.abs(theta[np.where(ecdf==find_nearest(ecdf,0.75))].mean() - \
-                                        theta[np.where(ecdf==find_nearest(ecdf,0.25))].mean())) ## Interquartile range
+        median = theta[np.where(ecdf==find_nearest(ecdf,0.5))].mean() ## 50th percentile
+        twofive = theta[np.where(ecdf==find_nearest(ecdf,0.25))].mean()
+        sevenfive = theta[np.where(ecdf==find_nearest(ecdf,0.75))].mean()
+
+        self.rht_curvature["Mean"].append(median)
+        self.rht_curvature["Std"].append(np.abs(sevenfive - twofive)) ## Interquartile range
 
         if verbose:
-          p.subplot(211)
-          p.plot(theta, R, "kD--")
-          p.subplot(212)
-          p.plot(theta, ecdf, "k")
+          ax1 = p.subplot(121, polar=True)
+          ax1.plot(theta, R/R.max(), "kD")
+          ax1.fill_between(theta, 0, R/R.max(), facecolor="blue", interpolate=True, alpha=0.5)
+          ax1.set_rmax(1.0)
+          ax1.plot([median]*2, np.linspace(0.0,1.0, 2), "g")
+          ax1.plot([twofive]*2, np.linspace(0.0,1.0, 2), "b--")
+          ax1.plot([sevenfive]*2, np.linspace(0.0,1.0, 2), "b--")
+          ax2 = p.subplot(122, polar=True)
+          ax2.plot(theta, ecdf, "k")
+          ax2.set_rmax(1.0)
+          ax2.set_yticks([0.25, 0.5, 0.75])
           p.show()
 
       return self

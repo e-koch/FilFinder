@@ -12,6 +12,7 @@ test = fil_finder_2D(img, hdr, 15.1, 30, 5, 50, 95 ,distance=145, glob_thresh=20
 test.create_mask(verbose=False)
 test.medskel()
 test.analyze_skeletons()
+test.exec_rht(verbose=True)
 test.find_widths(verbose=True)
 # test.run(verbose=True, save_name="chamaeleonI-250", save_plots=False) ## Run entire algorithm
 

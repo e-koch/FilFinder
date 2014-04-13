@@ -43,6 +43,11 @@ def rht(mask, radius, ntheta=180, background_percentile=25):
     if (R<0.0).any():
         R[R<0.0] = 0.0 ## Ignore negative values after subtraction
 
+    max_posn = np.where(R==R.max())[0]
+    if max_posn.shape[0]>1:
+        max_posn = int(np.mean(max_posn))
+    theta = np.roll(theta, max_posn)
+
     return theta, R
 
 
