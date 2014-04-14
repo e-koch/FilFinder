@@ -295,6 +295,8 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,\
 			if img[x_full[i],y_full[i]]!=0.0 and np.isfinite(img[x_full[i],y_full[i]]):
 				width_value.append(img[x_full[i],y_full[i]])
 				width_distance.append(dist_transform_sep[x[i],y[i]])
+	width_value = np.asarray(width_value)
+	width_distance = np.asarray(width_distance)
 	# Binning
 	if bins is None:
 		nbins = np.sqrt(len(width_value))
@@ -304,17 +306,13 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,\
 		elif bintype is "linear":
 			bins = np.linspace(0,maxbin,nbins+1)
 
-
-	bin_centers = (bins[1:]+bins[:-1])/2.0
-	radial_prof = np.histogram(width_distance, bins, weights=(width_value))[0] / \
-				  np.histogram(width_distance, bins)[0]
-
 	whichbins = np.digitize(width_distance, bins)
+	bin_centers = (bins[1:]+bins[:-1])/2.0
+	radial_prof = np.array([np.median(width_value[(whichbins==bin)]) for bin in range(1,int(nbins)+1)])
 
 	if weighting=="number":
 		weights = np.array([whichbins[whichbins==bin].sum() for bin in range(1,int(nbins)+1)])
 	elif weighting=="var":
-		width_value = np.asarray(width_value)
 		weights = [np.nanvar(width_value[whichbins==bin]) for bin in range(1,int(nbins)+1)]
 		weights[np.isnan(weights)] = 0.0 # Empty bins
 
