@@ -568,6 +568,10 @@ class fil_finder_2D(object):
         dist_transform_all, dist_transform_separate, self.skeleton = dist_transform(self.filament_arrays, \
                     self.array_offsets, self.image.shape, self.pad_size, self.branch_thresh)
 
+        def red_chisq(data, fit, nparam, sd):
+          N = data.shape[0]
+          return np.sum(((fit-data)/sd)**2.) / float(N-nparam-1)
+
         for n in range(self.number_of_filaments):
             dist, radprof, weights = radial_profile(self.image, dist_transform_all,\
                      dist_transform_separate[n], self.array_offsets[n], self.imgscale)
