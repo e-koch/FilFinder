@@ -334,14 +334,7 @@ class fil_finder_2D(object):
             else:
                 width_threshold = round((0.1/10.)/self.imgscale) # (in pc) Set to be a tenth of expected filament width
             narrow_pts = np.where(self.medial_axis_distance<width_threshold)
-            # self.skeleton[narrow_pts] = 0 ## Eliminate narrow connections
-            # ## ADD CHECK FOR NO PTS
-            # for pt in narrow_pts:
-            #   ## Pick out 8-connected mask pixels
-            #   del_regions = np.where(self.mask[pt[0]-1:pt[0]+1,pt[1]-1:pt[1]+1]!=0)
-            #   del_regions[0] += pt[0]
-            #   del_regions[1] += pt[1]
-            #   self.mask[del_regions] = 0 ## Eliminate narrow connections
+            self.skeleton[narrow_pts] = 0 ## Eliminate narrow connections
         else:
             self.skeleton = medial_axis(self.mask)
 
@@ -408,8 +401,6 @@ class fil_finder_2D(object):
         -------
         self.filament_arrays : list of numpy.ndarray
                                Contains individual arrays of each skeleton
-        self.mask : numpy.ndarray
-                    Updated mask
         self.number_of_filaments : int
                                    The number of individual filaments.
         self.array_offsets : list
@@ -439,9 +430,8 @@ class fil_finder_2D(object):
             verbose = False
             print "pygraphviz is not installed. Verbose output for graphs is disabled."
 
-        isolated_filaments, new_mask, num, offsets = \
-                isolatefilaments(self.skeleton,self.mask,self.skel_thresh, pad_size=self.pad_size)
-        self.mask = new_mask
+        isolated_filaments, num, offsets = \
+                isolatefilaments(self.skeleton, self.skel_thresh, pad_size=self.pad_size)
         self.number_of_filaments = num
         self.array_offsets = offsets
 

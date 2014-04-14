@@ -35,7 +35,7 @@ from skimage.morphology import medial_axis, label
 import skimage.filter as skfilter
 
 
-def isolatefilaments(skel_img, mask, size_threshold, pad_size=5):
+def isolatefilaments(skel_img, size_threshold, pad_size=5):
   '''
   This function separates each filament, over a threshold of number of
   pixels, into its own array with the same dimensions as the inputed image.
@@ -67,29 +67,17 @@ def isolatefilaments(skel_img, mask, size_threshold, pad_size=5):
 
   skeleton_arrays = []; pix_val = []; corners = []
   labels,num = nd.label(skel_img,eight_con())
-  labels_mask,num_mask = nd.label(mask,eight_con())
 
-  if num_mask!=num: # I ran into an issue with nd.label in numpy 1.7.1. Try to avoid problem by using skimage.
-    labels,num = label(skel_img,neighbors=8, return_num=True, background=0)
-    labels_mask,num_mask = label(mask,neighbors=8, return_num=True, background=0)
-
-  if num_mask!=num:
-    raise ValueError('The number of objects must match the number of skeletons.')
   sums = nd.sum(skel_img,labels,range(num))
   for n in range(num):
     if sums[n]<size_threshold:
       x,y = np.where(labels==n)
       for i in range(len(x)):
-        if labels_mask[x[i],y[i]]==skel_img[x[i],y[i]]: #Make sure each label array has the same label
-          mask_n = n
-        else:
-          mask_n = labels_mask[x[i],y[i]]
         skel_img[x[i],y[i]]=0
-      x,y = np.where(labels_mask==mask_n)
-      for i in range(len(x)):
-        mask[x[i],y[i]]=0
 
+  # Relabel after deleting short skeletons.
   labels,num = nd.label(skel_img,eight_con())
+  # Split each skeleton into its own array.
   for n in range(1,num+1):
     x,y = np.where(labels==n)
     # Make an array shaped to the skeletons size and padded on each edge
@@ -103,7 +91,7 @@ def isolatefilaments(skel_img, mask, size_threshold, pad_size=5):
     upper = (x.max()+pad_size,y.max()+pad_size)
     corners.append([lower,upper])
 
-  return skeleton_arrays, mask, num, corners
+  return skeleton_arrays, num, corners
 
 
 
