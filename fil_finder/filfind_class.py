@@ -603,7 +603,7 @@ class fil_finder_2D(object):
                 except TypeError:
                   p.plot(points, model(points, *fit[:-1]), "r")
                 p.xlabel(r'Radial Distance (pc)')
-                p.ylabel(r'Intensity$ )')
+                p.ylabel(r'Intensity')
                 p.grid(True)
                 p.subplot(122)
                 xlow, ylow = (self.array_offsets[n][0][0], self.array_offsets[n][0][1])
@@ -611,8 +611,10 @@ class fil_finder_2D(object):
                 shape = (xhigh-xlow, yhigh-ylow)
                 p.contour(self.filament_arrays[n][self.pad_size:shape[0]-self.pad_size, \
                                 self.pad_size:shape[1]-self.pad_size], colors="k")
-                p.imshow(self.image[xlow+self.pad_size:xhigh-self.pad_size, \
-                                ylow+self.pad_size:yhigh-self.pad_size], interpolation=None)
+                img_slice = self.image[xlow+self.pad_size:xhigh-self.pad_size, \
+                                ylow+self.pad_size:yhigh-self.pad_size]
+                vmin = scoreatpercentile(img_slice[np.isfinite(img_slice)], 10)
+                p.imshow(img_slice, interpolation=None, vmin=vmin)
                 p.colorbar()
                 p.show()
 

@@ -88,7 +88,7 @@ def isolatefilaments(skel_img, size_threshold, pad_size=5):
     skeleton_arrays.append(eachfil)
     # Keep the coordinates from the original image
     lower = (x.min()-pad_size,y.min()-pad_size)
-    upper = (x.max()+pad_size,y.max()+pad_size)
+    upper = (x.max()+pad_size+1,y.max()+pad_size+1)
     corners.append([lower,upper])
 
   return skeleton_arrays, num, corners

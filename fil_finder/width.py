@@ -285,18 +285,30 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,\
 
 	width_value = []
 	width_distance = []
+	nonlocalpix = []
 	x,y = np.where(np.isfinite(dist_transform_sep))
 	x_full = x + offsets[0][0] ## Transform into coordinates of master image
 	y_full = y + offsets[0][1]
 
   	for i in range(len(x)):
 		# Check overall distance transform to make sure pixel belongs to proper filament
-		if dist_transform_sep[x[i],y[i]]<=dist_transform_all[x_full[i],y_full[i]]:
-			if img[x_full[i],y_full[i]]!=0.0 and np.isfinite(img[x_full[i],y_full[i]]):
+		if img[x_full[i],y_full[i]]!=0.0 and np.isfinite(img[x_full[i],y_full[i]]):
+			if dist_transform_sep[x[i],y[i]]<=dist_transform_all[x_full[i],y_full[i]]:
 				width_value.append(img[x_full[i],y_full[i]])
 				width_distance.append(dist_transform_sep[x[i],y[i]])
+			else:
+				nonlocalpix.append([x[i], y[i], x_full[i], y_full[i]])
+
+	if np.max(width_distance)*img_scale < 0.15:
+		pad = int((0.15 - np.max(width_distance)*img_scale) * img_scale**-1)
+		for pix in nonlocalpix:
+			if dist_transform_sep[pix[0],pix[1]]<=dist_transform_all[pix[2],pix[3]]+pad:
+				width_value.append(img[pix[2],pix[3]])
+				width_distance.append(dist_transform_sep[pix[0],pix[1]])
+
 	width_value = np.asarray(width_value)
 	width_distance = np.asarray(width_distance)
+
 	# Binning
 	if bins is None:
 		nbins = np.sqrt(len(width_value))
