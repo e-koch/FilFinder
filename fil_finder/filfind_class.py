@@ -595,6 +595,7 @@ class fil_finder_2D(object):
 
             if verbose:
                 print "Fit Parameters: %s \\ Fit Errors: %s" % (fit, fit_error)
+                print "Red. Chi-squared: %s" % (red_chisq(radprof, model(dist, *fit[:-1]), 3, 1))
                 p.subplot(121)
                 p.plot(dist, radprof, "kD")
                 points = np.linspace(np.min(dist), np.max(dist), 2*len(dist))
