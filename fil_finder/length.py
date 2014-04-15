@@ -345,8 +345,8 @@ def pre_graph(labelisofil, lengths, branch_intensity, interpts, ends):
   for n in range(num):
     inter_nodes_temp = []
     ## Create end_nodes, which contains lengths, and nodes, which we will later add in the intersections
-    # end_nodes.append([(labelisofil[n][i[0],i[1]],lengths[n][int(labelisofil[n][i[0],i[1]]-1)]) for i in ends[n]])
-    end_nodes.append([(labelisofil[n][i[0],i[1]], path_weighting(int(labelisofil[n][i[0],i[1]]-1), lengths[n], branch_intensity[n])) for i in ends[n]])
+    end_nodes.append([(labelisofil[n][i[0],i[1]], path_weighting(int(labelisofil[n][i[0],i[1]]-1), lengths[n], branch_intensity[n]),\
+                     lengths[n][int(labelisofil[n][i[0],i[1]]-1)], branch_intensity[n][int(labelisofil[n][i[0],i[1]]-1)]) for i in ends[n]])
     nodes.append([labelisofil[n][i[0],i[1]] for i in ends[n]])
 
   # Intersection nodes are given by the intersections points of the filament.
@@ -359,7 +359,7 @@ def pre_graph(labelisofil, lengths, branch_intensity, interpts, ends):
                               [labelisofil[n][i[0]-1,i[1]]  , 0, labelisofil[n][i[0]+1,i[1]]],\
                               [labelisofil[n][i[0]-1,i[1]-1], labelisofil[n][i[0],i[1]-1], labelisofil[n][i[0]+1,i[1]-1]]]).astype(int)
           for x in np.unique(int_arr[np.nonzero(int_arr)]):
-            uniqs.append((x,path_weighting(x-1, lengths[n], branch_intensity[n])))
+            uniqs.append((x,path_weighting(x-1, lengths[n], branch_intensity[n]), lengths[n][x-1], branch_intensity[n][x-1]))
         # Intersections with multiple pixels can give the same branches. Get rid of duplicates
         uniqs = list(set(uniqs))
         inter_nodes_temp.append(uniqs)
@@ -387,8 +387,7 @@ def pre_graph(labelisofil, lengths, branch_intensity, interpts, ends):
             edge_list_temp.append((inters[0],inters_2[0],match[keep]))
     edge_list.append(edge_list_temp)
 
-
-  return end_nodes, inter_nodes, edge_list, nodes
+  return edge_list, nodes
 
 
 
@@ -429,6 +428,7 @@ def longest_path(edge_list,nodes,lengths,verbose=False):
   # Initialize lists
   max_path = []
   extremum = []
+  graphs = []
 
   for n in range(num):
     G = nx.Graph()
@@ -444,6 +444,7 @@ def longest_path(edge_list,nodes,lengths,verbose=False):
     start,finish = node_extrema[values.index(max(values))]
     extremum.append([start,finish])
     max_path.append(nx.shortest_path(G,start,finish))
+    graphs.append(G)
     if verbose:
       import matplotlib.pyplot as p
       clean_graph = p.figure(1.,facecolor='1.0')
@@ -456,8 +457,40 @@ def longest_path(edge_list,nodes,lengths,verbose=False):
       p.axis('off')
       p.show()
 
+  return max_path, extremum, graphs
 
-  return max_path,extremum
+
+def prune_graph(G, nodes, edge_list, max_path, labelisofil, length_thresh, relintens_thresh=0.2):
+  '''
+  Function to remove unnecessary branches.
+
+  '''
+
+  num = len(labelisofil)
+
+  for n in range(num):
+    degree = G[n].degree()
+    single_connect = [key for key in degree.keys() if degree[key]==1]
+
+    delete_candidate = list((set(nodes[n]) - set(max_path[n])) & set(single_connect))
+
+    if not delete_candidate: # Nothing to delete!
+      return labelisofil, edge_list, nodes
+
+    else:
+      edge_candidates = [edge for edge in edge_list[n] if edge[0] in delete_candidate or edge[1] in delete_candidate]
+      intensities = [edge[2][3] for edge in edge_candidates]
+      print edge_candidates
+      for edge, intensity in zip(edge_candidates, intensities):
+        ## If its too short and relatively not as intense, delete it
+        if edge[2][2]<length_thresh and (edge[2][3]/np.sum(intensity))<relintens_thresh:
+          x,y = np.where(labelisofil==edge[2][0])
+          for i in range(len(x)):
+            labelisofil[x[i], y[i]] = 0
+          edge_list.remove(edge)
+          nodes.remove(edge[0])
+
+  return labelisofil, edge_list, nodes
 
 
 def final_lengths(img,max_path,edge_list,labelisofil,filpts,interpts,filbranches,lengths,img_scale,length_thresh):
