@@ -380,11 +380,17 @@ def pre_graph(labelisofil, lengths, branch_intensity, interpts, ends):
         if i != j:
           match = list(set(inters[1]) & set(inters_2[1]))
           if len(match)==1:
-            edge_list_temp.append((inters[0],inters_2[0],match[0]))
+            new_edge = (inters[0],inters_2[0],match[0])
           elif len(match)>1:
             multi = [match[l][1] for l in range(len(match))]
             keep = multi.index(min(multi))
-            edge_list_temp.append((inters[0],inters_2[0],match[keep]))
+            new_edge = (inters[0],inters_2[0],match[keep])
+          if not (new_edge[1], new_edge[0], new_edge[2]) in edge_list_temp \
+           and new_edge not in edge_list_temp:
+            edge_list_temp.append(new_edge)
+
+    # Remove duplicated edges between intersections
+
     edge_list.append(edge_list_temp)
 
   return edge_list, nodes
@@ -479,16 +485,15 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, length_thresh, relin
 
     else:
       edge_candidates = [edge for edge in edge_list[n] if edge[0] in delete_candidate or edge[1] in delete_candidate]
-      intensities = [edge[2][3] for edge in edge_candidates]
-      print edge_candidates
-      for edge, intensity in zip(edge_candidates, intensities):
+      intensities = [edge[2][3] for edge in edge_list[n]]
+      for edge in edge_candidates:
         ## If its too short and relatively not as intense, delete it
-        if edge[2][2]<length_thresh and (edge[2][3]/np.sum(intensity))<relintens_thresh:
-          x,y = np.where(labelisofil==edge[2][0])
+        if edge[2][2]<length_thresh and (edge[2][3]/np.sum(intensities))<relintens_thresh:
+          x,y = np.where(labelisofil[n]==edge[2][0])
           for i in range(len(x)):
-            labelisofil[x[i], y[i]] = 0
-          edge_list.remove(edge)
-          nodes.remove(edge[0])
+            labelisofil[n][x[i], y[i]] = 0
+          edge_list[n].remove(edge)
+          nodes[n].remove(edge[1])
 
   return labelisofil, edge_list, nodes
 
@@ -642,10 +647,10 @@ def final_lengths(img,max_path,edge_list,labelisofil,filpts,interpts,filbranches
           for x,y in filpts[n][i-1]:
             labelisofil[n][x,y]=i
             good_pts.insert(i,filpts[n][i-1])
-        else:
-          del_length.append(lengths[n][i-1])
-      lengths[n] = list(set(lengths[n]) - set(del_length))
-      filpts[n] = [];[filpts[n].append(i) for i in good_pts]
+      #   else:
+      #     del_length.append(lengths[n][i-1])
+      # lengths[n] = list(set(lengths[n]) - set(del_length))
+      # filpts[n] = [];[filpts[n].append(i) for i in good_pts]
 
   return main_lengths, lengths, labelisofil, curvature # Returns the main lengths, the updated branch lengths, the final skeleton arrays, and curvature
 
