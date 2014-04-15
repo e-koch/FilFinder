@@ -359,14 +359,15 @@ def pre_graph(labelisofil, lengths, branch_intensity, interpts, ends):
                               [labelisofil[n][i[0]-1,i[1]]  , 0, labelisofil[n][i[0]+1,i[1]]],\
                               [labelisofil[n][i[0]-1,i[1]-1], labelisofil[n][i[0],i[1]-1], labelisofil[n][i[0]+1,i[1]-1]]]).astype(int)
           for x in np.unique(int_arr[np.nonzero(int_arr)]):
-            uniqs.append((x,lengths[n][x-1]))
+            uniqs.append((x,path_weighting(x-1, lengths[n], branch_intensity[n])))
         # Intersections with multiple pixels can give the same branches. Get rid of duplicates
         uniqs = list(set(uniqs))
         inter_nodes_temp.append(uniqs)
 
     # Add the intersection labels. Also append those to nodes
     inter_nodes.append(zip(product_gen(string.ascii_uppercase),inter_nodes_temp))
-    nodes[n].append(zip(product_gen(string.ascii_uppercase),inter_nodes_temp)[0])
+    for alpha, node in zip(product_gen(string.ascii_uppercase),inter_nodes_temp):
+      nodes[n].append(alpha)
 
     #Edges are created from the information contained in the nodes.
     edge_list_temp = []
