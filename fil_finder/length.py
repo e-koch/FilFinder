@@ -582,7 +582,7 @@ def final_lengths(img,max_path,edge_list,labelisofil,filpts,interpts,filbranches
       keep_branches = list(set(keep_branches))
       fils = [filpts[n][int(i-1)] for i in keep_branches]
 
-      branches = range(1,filbranches[n]+1)
+      branches = np.unique(labelisofil[n][np.nonzero(labelisofil[n])])
       # Find the branches which are not in keep_branches, then delete them from labelisofil array
       delete_branches = list(set(branches) ^ set(keep_branches))
       for branch in delete_branches:
@@ -640,17 +640,11 @@ def final_lengths(img,max_path,edge_list,labelisofil,filpts,interpts,filbranches
 
       curvature.append(av_curvature(n,finalpix)[0]) ### SEE CURVE FOR EXPLANATION
 
-      # Re-adding long branches, "long" greater than the length threshold
-      del_length = []
+      # Re-adding all deleted branches
       for i in delete_branches:
-        if lengths[n][i-1]> length_thresh:
           for x,y in filpts[n][i-1]:
             labelisofil[n][x,y]=i
             good_pts.insert(i,filpts[n][i-1])
-      #   else:
-      #     del_length.append(lengths[n][i-1])
-      # lengths[n] = list(set(lengths[n]) - set(del_length))
-      # filpts[n] = [];[filpts[n].append(i) for i in good_pts]
 
   return main_lengths, lengths, labelisofil, curvature # Returns the main lengths, the updated branch lengths, the final skeleton arrays, and curvature
 

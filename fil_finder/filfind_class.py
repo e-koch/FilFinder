@@ -444,7 +444,7 @@ class fil_finder_2D(object):
 
         max_path, extremum, G = longest_path(edge_list, nodes, initial_lengths, verbose=verbose)
 
-        labelisofil, edge_list, nodes = prune_graph(G, nodes, edge_list, max_path, labeled_fil_arrays, self.branch_thresh)
+        labeled_fil_arrays, edge_list, nodes = prune_graph(G, nodes, edge_list, max_path, labeled_fil_arrays, self.branch_thresh)
 
         self.filament_extents = extremum_pts(labeled_fil_arrays, extremum, ends)
 
