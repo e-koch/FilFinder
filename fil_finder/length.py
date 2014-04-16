@@ -379,15 +379,17 @@ def pre_graph(labelisofil, lengths, branch_intensity, interpts, ends):
       for j, inters_2 in enumerate(inter_nodes[n]):
         if i != j:
           match = list(set(inters[1]) & set(inters_2[1]))
+          new_edge = None
           if len(match)==1:
             new_edge = (inters[0],inters_2[0],match[0])
           elif len(match)>1:
             multi = [match[l][1] for l in range(len(match))]
             keep = multi.index(min(multi))
             new_edge = (inters[0],inters_2[0],match[keep])
-          if not (new_edge[1], new_edge[0], new_edge[2]) in edge_list_temp \
-           and new_edge not in edge_list_temp:
-            edge_list_temp.append(new_edge)
+          if new_edge is not None:
+            if not (new_edge[1], new_edge[0], new_edge[2]) in edge_list_temp \
+            and new_edge not in edge_list_temp:
+              edge_list_temp.append(new_edge)
 
     # Remove duplicated edges between intersections
 
