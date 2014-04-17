@@ -575,7 +575,7 @@ class fil_finder_2D(object):
 
         for n in range(self.number_of_filaments):
             dist, radprof, weights = radial_profile(self.image, dist_transform_all,\
-                     dist_transform_separate[n], self.array_offsets[n], self.imgscale)
+                     dist_transform_separate[n], self.array_offsets[n], self.imgscale, weighting="number")
 
             if fit_model==cyl_model:
                 if self.freq is None:
@@ -597,7 +597,7 @@ class fil_finder_2D(object):
             if verbose:
                 print "Fit Parameters: %s \\ Fit Errors: %s" % (fit, fit_error)
                 print "Red. Chi-squared: %s" % (red_chisq(radprof, model(dist, *fit[:-1]), 3, 1))
-                p.subplot(121)
+                p.subplot(221)
                 p.plot(dist, radprof, "kD")
                 points = np.linspace(np.min(dist), np.max(dist), 2*len(dist))
                 try: # If FWHM is appended on, will get TypeError
@@ -607,7 +607,7 @@ class fil_finder_2D(object):
                 p.xlabel(r'Radial Distance (pc)')
                 p.ylabel(r'Intensity')
                 p.grid(True)
-                p.subplot(122)
+                p.subplot(222)
                 xlow, ylow = (self.array_offsets[n][0][0], self.array_offsets[n][0][1])
                 xhigh, yhigh = (self.array_offsets[n][1][0], self.array_offsets[n][1][1])
                 shape = (xhigh-xlow, yhigh-ylow)
@@ -618,6 +618,8 @@ class fil_finder_2D(object):
                 vmin = scoreatpercentile(img_slice[np.isfinite(img_slice)], 10)
                 p.imshow(img_slice, interpolation=None, vmin=vmin)
                 p.colorbar()
+                p.subplot(223)
+                p.plot(dist, weights, "kD")
                 p.show()
 
             if fail_flag:
