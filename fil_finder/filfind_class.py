@@ -666,13 +666,17 @@ class fil_finder_2D(object):
 
         return self
 
-    def save_table(self, path=None, save_name=None):
+    def save_table(self, table_type="csv", path=None, save_name=None):
         '''
 
         The results of the algorithm are saved as a csv after converting the data into a pandas dataframe.
 
         Parameters
         ----------
+
+        table_type : str, optional
+               Sets the output type of the table. "csv" uses the pandas package.
+               "fits" uses astropy to output a FITS table.
 
         path : str, optional
                The path where the file should be saved.
@@ -686,34 +690,60 @@ class fil_finder_2D(object):
                          The dataframe is returned for use with the Analysis class.
 
         '''
-        from pandas import DataFrame, Series
 
         if save_name is None:
             save_name = self.header["OBJECT"]
 
-        ## The info included in the dataframe and its form needs to be reviewed and finalized...
-        data = {"Lengths" : Series(self.lengths), \
-                "Menger Curvature" : Series(self.menger_curvature),\
-                "Plane Orientation (RHT)" : Series(self.rht_curvature["Mean"]),\
-                "RHT Curvature" : Series(self.rht_curvature["Std"]),\
-                "Estimated Width" : Series(self.widths["Estimated Width"]), \
-                "Branches" : Series(self.branch_info["filament_branches"]), \
-                "Branch Lengths" : Series(self.branch_info["branch_lengths"])}
-
-        for i, param in enumerate(self.width_fits["Names"]):
-            data[param] = self.width_fits["Parameters"][:,i]
-            data[param+" Error"] = self.width_fits["Errors"][:,i]
-
-        df = DataFrame(data)
 
         if not path:
-            filename = "".join([save_name,".csv"])
+          if table_type=="csv":
+            filename = "".join([save_name,"_table",".csv"])
+          elif table_type=="fits":
+            filename = "".join([save_name,"_table",".fits"])
+
         else:
             if path[-1] != "/":
                 path = "".join(path,"/")
-            filename = "".join([path,save_name,".csv"])
+            if table_type=="csv":
+              filename = "".join([save_name,"_table",".csv"])
+            elif table_type=="fits":
+              filename = "".join([save_name,"_table",".fits"])
 
-        df.to_csv(filename)
+        data = {"Lengths" : self.lengths, \
+                "Menger Curvature" : self.menger_curvature,\
+                "Plane Orientation (RHT)" : self.rht_curvature["Mean"],\
+                "RHT Curvature" : self.rht_curvature["Std"],\
+                # "Estimated Width" : self.widths["Estimated Width"], \
+                "Branches" : self.branch_info["filament_branches"], \
+                "Branch Lengths" : self.branch_info["branch_lengths"]}
+
+        for i, param in enumerate(self.width_fits["Names"]):
+          data[param] = self.width_fits["Parameters"][:,i]
+          data[param+" Error"] = self.width_fits["Errors"][:,i]
+
+        if table_type=="csv":
+          from pandas import DataFrame, Series
+
+          for key in data.keys():
+            data[key] = Series(data[key])
+
+          df = DataFrame(data)
+          df.to_csv(filename)
+
+        elif table_type=="fits":
+          from astropy.table import Table
+
+          # Branch Lengths contains a list for each entry, which aren't accepted for BIN tables.
+          if "Branch Lengths" in data.keys():
+            del data["Branch Lengths"]
+
+          df = Table(data)
+
+          df.write(filename)
+
+        else:
+          raise NameError("Only formats supported are 'csv' and 'fits'.")
+
 
         self.dataframe = df
 
@@ -830,7 +860,7 @@ class fil_finder_2D(object):
         self.exec_rht(verbose=verbose)
         self.find_widths(verbose = verbose)
         self.results()
-        self.save_table(save_name=save_name)
+        self.save_table(save_name=save_name, table_type="fits")
         self.save_fits(save_name=save_name)
 
         if verbose:
