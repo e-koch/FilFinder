@@ -17,6 +17,7 @@ from skimage.morphology import remove_small_objects, medial_axis
 from scipy.stats import scoreatpercentile
 from astropy.io import fits
 from copy import deepcopy
+import os
 
 class fil_finder_2D(object):
     """
@@ -817,6 +818,37 @@ class fil_finder_2D(object):
       hdr_skel.add_comment("Branch Size Threshold: "+str(self.branch_thresh))
 
       fits.writeto("".join([save_name,"_skeletons.fits"]), self.skeleton.astype("float"), hdr_skel)
+
+      # Save stamps of all images. Include portion of image and the skeleton for reference.
+
+      # Make a directory for the stamps
+      if not os.path.exists("stamps"):
+        os.makedirs("stamps")
+
+      for n, (offset, skel_arr) in enumerate(zip(self.array_offsets, self.filament_arrays)):
+        xlow, ylow = (offset[0][0], offset[0][1])
+        xhigh, yhigh = (offset[1][0], offset[1][1])
+        shape = (xhigh-xlow, yhigh-ylow)
+        skel_stamp = skel_arr[self.pad_size:shape[0]-self.pad_size, \
+                                            self.pad_size:shape[1]-self.pad_size]
+        img_stamp = self.image[xlow+self.pad_size:xhigh-self.pad_size, \
+                              ylow+self.pad_size:yhigh-self.pad_size]
+
+        ## ADD IN SOME HEADERS!
+        prim_hdr = deepcopy(self.header)
+        prim_hdr["COMMENT"] = "Outputted from fil_finder."
+        prim_hdr["COMMENT"] = "Extent in original array: ("+ \
+                              str(xlow+self.pad_size)+","+str(ylow+self.pad_size)+")->"+ \
+                              "("+str(xhigh-self.pad_size)+","+str(yhigh-self.pad_size)+")"
+
+        hdu = fits.HDUList()
+        # Image stamp
+        hdu.append(fits.PrimaryHDU(img_stamp, header=prim_hdr))
+        # Stamp of final skeleton
+        prim_hdr.update("BUNIT", value="bool", comment="")
+        hdu.append(fits.PrimaryHDU(skel_stamp, header=prim_hdr))
+
+        hdu.writeto("stamps/"+save_name+"_object_"+str(n+1)+".fits")
 
       return self
 
