@@ -498,10 +498,6 @@ class fil_finder_2D(object):
 
       '''
 
-      def find_nearest(array,value):
-        idx = (np.abs(array-value)).argmin()
-        return array[idx]
-
       for n in range(self.number_of_filaments):
         theta, R = rht(self.filament_arrays[n], radius, ntheta, background_percentile)
         ecdf = np.cumsum(R/np.sum(R))
@@ -589,6 +585,12 @@ class fil_finder_2D(object):
             fit, fit_error, model, parameter_names, fail_flag = \
                                     fit_model(dist, radprof, weights, self.beamwidth)
 
+            chisq = red_chisq(radprof, model(dist, *fit[:-1]), 3, 1)
+
+            # If the model isn't doing a good job, try it non-parametrically
+            if chisq>10.0:
+              fit, fail_flag = nonparam_width(dist, radprof, None, 5, 99)
+
             if n==0:
                 ## Prepare the storage
                 self.width_fits["Parameters"] = np.empty((self.number_of_filaments, len(parameter_names)))
@@ -597,6 +599,7 @@ class fil_finder_2D(object):
 
             if verbose:
                 print "Fit Parameters: %s \\ Fit Errors: %s" % (fit, fit_error)
+                print "Non-parametric values: " + str(nonparam_width(dist, radprof, None, 5, 99))
                 p.subplot(121)
                 p.plot(dist, radprof, "kD")
                 points = np.linspace(np.min(dist), np.max(dist), 2*len(dist))
