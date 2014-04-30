@@ -420,7 +420,8 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof, img_beam, bkg_
 	upper = scoreatpercentile(rad_profile, np.min((100, target_percentile+5)))
 	lower = scoreatpercentile(rad_profile, np.max((0, target_percentile-5)))
 
-	width_error = np.var(unbin_dist[(unbin_prof>lower)*(unbin_prof<upper)])
+	width_error = np.max(unbin_dist[(unbin_prof>lower)*(unbin_prof<upper)]) -\
+					np.min(unbin_dist[(unbin_prof>lower)*(unbin_prof<upper)])
 
 	## Deconvolve the width with the beam size.
 	deconv = (2.35*width)**2. - img_beam**2.
