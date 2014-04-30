@@ -322,7 +322,10 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,\
 	bin_centers = bin_centers[weights>0]
 	weights = weights[weights>0]
 
-	return bin_centers * img_scale, radial_prof, weights
+	# Put bins in the physical scale.
+	bin_centers *= img_scale
+
+	return bin_centers, radial_prof, weights
 
 def medial_axis_width(medial_axis_distance, mask, skeleton):
 	'''
