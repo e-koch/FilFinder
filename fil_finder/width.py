@@ -5,6 +5,7 @@ import numpy as np
 import scipy.ndimage as nd
 import scipy.optimize as op
 from scipy.integrate import quad
+from scipy.stats import scoreatpercentile
 import matplotlib.pyplot as p
 import copy
 '''
@@ -364,3 +365,36 @@ def medial_axis_width(medial_axis_distance, mask, skeleton):
 	av_widths = 2. * nd.sum(medial_axis_distance, labels, range(1, n+1)) / nd.sum(skeleton, labels, range(1, n+1))
 
 	return av_widths
+
+
+def nonparam_width(distance, rad_profile, img_beam, bkg_percent, peak_percent):
+	'''
+	Estimate the width and peak brightness of a filament non-parametrically.
+
+	'''
+
+	fail_flag = False
+
+	# Find the intensities at the given percentiles
+	bkg_intens = scoreatpercentile(rad_profile, bkg_percent)
+	peak_intens = scoreatpercentile(rad_profile, peak_percent)
+
+	# Interpolate over the bins in distance
+	interp_bins = np.linspace(0.0, np.max(distance), 10*len(distance))
+	interp_profile = np.interp(interp_bins, distance, rad_profile)
+
+	# Find the width by looking for where the intensity drops to 1/2 from the peak
+	target_intensity = (peak_intens - bkg_intens)/np.exp(1) + bkg_intens
+	width = interp_bins[np.where(interp_profile==find_nearest(interp_profile,target_intensity))][0]
+
+	fwhm_width = 2*width
+
+	# Check where the "background" and "peak" are. If the peak distance is greater,
+	# we are simply looking at a bad radial profile.
+	bkg_dist = np.median(interp_bins[np.where(interp_profile==find_nearest(interp_profile,bkg_intens))])
+	peak_dist = np.median(interp_bins[np.where(interp_profile==find_nearest(interp_profile,peak_intens))])
+	if peak_dist>bkg_dist:
+		fail_flag = True
+
+
+	return (peak_intens, width, bkg_intens, fwhm_width), fail_flag

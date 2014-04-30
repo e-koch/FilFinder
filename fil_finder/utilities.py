@@ -52,6 +52,9 @@ def raw_input_with_timeout(prompt, timeout=30.0):
     timer.cancel()
     return astring
 
+def find_nearest(array,value):
+  idx = (np.abs(array-value)).argmin()
+  return array[idx]
 
 ######################################################################################################################################
 ### 2D Gaussian Fit Code from http://www.scipy.org/Cookbook/FittingData (functions twodgaussian,moments,fit2dgaussian)

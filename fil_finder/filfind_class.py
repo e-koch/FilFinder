@@ -17,6 +17,7 @@ from skimage.morphology import remove_small_objects, medial_axis
 from scipy.stats import scoreatpercentile
 from astropy.io import fits
 from copy import deepcopy
+import os
 
 class fil_finder_2D(object):
     """
@@ -497,10 +498,6 @@ class fil_finder_2D(object):
 
       '''
 
-      def find_nearest(array,value):
-        idx = (np.abs(array-value)).argmin()
-        return array[idx]
-
       for n in range(self.number_of_filaments):
         theta, R = rht(self.filament_arrays[n], radius, ntheta, background_percentile)
         ecdf = np.cumsum(R/np.sum(R))
@@ -588,6 +585,12 @@ class fil_finder_2D(object):
             fit, fit_error, model, parameter_names, fail_flag = \
                                     fit_model(dist, radprof, weights, self.beamwidth)
 
+            chisq = red_chisq(radprof, model(dist, *fit[:-1]), 3, 1)
+
+            # If the model isn't doing a good job, try it non-parametrically
+            if chisq>10.0:
+              fit, fail_flag = nonparam_width(dist, radprof, None, 5, 99)
+
             if n==0:
                 ## Prepare the storage
                 self.width_fits["Parameters"] = np.empty((self.number_of_filaments, len(parameter_names)))
@@ -596,8 +599,8 @@ class fil_finder_2D(object):
 
             if verbose:
                 print "Fit Parameters: %s \\ Fit Errors: %s" % (fit, fit_error)
-                print "Red. Chi-squared: %s" % (red_chisq(radprof, model(dist, *fit[:-1]), 3, 1))
-                p.subplot(221)
+                print "Non-parametric values: " + str(nonparam_width(dist, radprof, None, 5, 99))
+                p.subplot(121)
                 p.plot(dist, radprof, "kD")
                 points = np.linspace(np.min(dist), np.max(dist), 2*len(dist))
                 try: # If FWHM is appended on, will get TypeError
@@ -671,13 +674,17 @@ class fil_finder_2D(object):
 
         return self
 
-    def save_table(self, path=None, save_name=None):
+    def save_table(self, table_type="csv", path=None, save_name=None):
         '''
 
         The results of the algorithm are saved as a csv after converting the data into a pandas dataframe.
 
         Parameters
         ----------
+
+        table_type : str, optional
+               Sets the output type of the table. "csv" uses the pandas package.
+               "fits" uses astropy to output a FITS table.
 
         path : str, optional
                The path where the file should be saved.
@@ -691,34 +698,60 @@ class fil_finder_2D(object):
                          The dataframe is returned for use with the Analysis class.
 
         '''
-        from pandas import DataFrame, Series
 
         if save_name is None:
             save_name = self.header["OBJECT"]
 
-        ## The info included in the dataframe and its form needs to be reviewed and finalized...
-        data = {"Lengths" : Series(self.lengths), \
-                "Menger Curvature" : Series(self.menger_curvature),\
-                "Plane Orientation (RHT)" : Series(self.rht_curvature["Mean"]),\
-                "RHT Curvature" : Series(self.rht_curvature["Std"]),\
-                "Estimated Width" : Series(self.widths["Estimated Width"]), \
-                "Branches" : Series(self.branch_info["filament_branches"]), \
-                "Branch Lengths" : Series(self.branch_info["branch_lengths"])}
-
-        for i, param in enumerate(self.width_fits["Names"]):
-            data[param] = self.width_fits["Parameters"][:,i]
-            data[param+" Error"] = self.width_fits["Errors"][:,i]
-
-        df = DataFrame(data)
 
         if not path:
-            filename = "".join([save_name,".csv"])
+          if table_type=="csv":
+            filename = "".join([save_name,"_table",".csv"])
+          elif table_type=="fits":
+            filename = "".join([save_name,"_table",".fits"])
+
         else:
             if path[-1] != "/":
                 path = "".join(path,"/")
-            filename = "".join([path,save_name,".csv"])
+            if table_type=="csv":
+              filename = "".join([save_name,"_table",".csv"])
+            elif table_type=="fits":
+              filename = "".join([save_name,"_table",".fits"])
 
-        df.to_csv(filename)
+        data = {"Lengths" : self.lengths, \
+                "Menger Curvature" : self.menger_curvature,\
+                "Plane Orientation (RHT)" : self.rht_curvature["Mean"],\
+                "RHT Curvature" : self.rht_curvature["Std"],\
+                # "Estimated Width" : self.widths["Estimated Width"], \
+                "Branches" : self.branch_info["filament_branches"], \
+                "Branch Lengths" : self.branch_info["branch_lengths"]}
+
+        for i, param in enumerate(self.width_fits["Names"]):
+          data[param] = self.width_fits["Parameters"][:,i]
+          data[param+" Error"] = self.width_fits["Errors"][:,i]
+
+        if table_type=="csv":
+          from pandas import DataFrame, Series
+
+          for key in data.keys():
+            data[key] = Series(data[key])
+
+          df = DataFrame(data)
+          df.to_csv(filename)
+
+        elif table_type=="fits":
+          from astropy.table import Table
+
+          # Branch Lengths contains a list for each entry, which aren't accepted for BIN tables.
+          if "Branch Lengths" in data.keys():
+            del data["Branch Lengths"]
+
+          df = Table(data)
+
+          df.write(filename)
+
+        else:
+          raise NameError("Only formats supported are 'csv' and 'fits'.")
+
 
         self.dataframe = df
 
@@ -793,6 +826,37 @@ class fil_finder_2D(object):
 
       fits.writeto("".join([save_name,"_skeletons.fits"]), self.skeleton.astype("float"), hdr_skel)
 
+      # Save stamps of all images. Include portion of image and the skeleton for reference.
+
+      # Make a directory for the stamps
+      if not os.path.exists("stamps"):
+        os.makedirs("stamps")
+
+      for n, (offset, skel_arr) in enumerate(zip(self.array_offsets, self.filament_arrays)):
+        xlow, ylow = (offset[0][0], offset[0][1])
+        xhigh, yhigh = (offset[1][0], offset[1][1])
+        shape = (xhigh-xlow, yhigh-ylow)
+        skel_stamp = skel_arr[self.pad_size:shape[0]-self.pad_size, \
+                                            self.pad_size:shape[1]-self.pad_size]
+        img_stamp = self.image[xlow+self.pad_size:xhigh-self.pad_size, \
+                              ylow+self.pad_size:yhigh-self.pad_size]
+
+        ## ADD IN SOME HEADERS!
+        prim_hdr = deepcopy(self.header)
+        prim_hdr["COMMENT"] = "Outputted from fil_finder."
+        prim_hdr["COMMENT"] = "Extent in original array: ("+ \
+                              str(xlow+self.pad_size)+","+str(ylow+self.pad_size)+")->"+ \
+                              "("+str(xhigh-self.pad_size)+","+str(yhigh-self.pad_size)+")"
+
+        hdu = fits.HDUList()
+        # Image stamp
+        hdu.append(fits.PrimaryHDU(img_stamp, header=prim_hdr))
+        # Stamp of final skeleton
+        prim_hdr.update("BUNIT", value="bool", comment="")
+        hdu.append(fits.PrimaryHDU(skel_stamp, header=prim_hdr))
+
+        hdu.writeto("stamps/"+save_name+"_object_"+str(n+1)+".fits")
+
       return self
 
     def __str__(self):
@@ -835,7 +899,7 @@ class fil_finder_2D(object):
         self.exec_rht(verbose=verbose)
         self.find_widths(verbose = verbose)
         self.results()
-        self.save_table(save_name=save_name)
+        self.save_table(save_name=save_name, table_type="fits")
         self.save_fits(save_name=save_name)
 
         if verbose:
