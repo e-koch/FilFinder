@@ -838,8 +838,8 @@ class fil_finder_2D(object):
       # Save stamps of all images. Include portion of image and the skeleton for reference.
 
       # Make a directory for the stamps
-      if not os.path.exists("stamps"):
-        os.makedirs("stamps")
+      if not os.path.exists("stamps"+save_name):
+        os.makedirs("stamps"+save_name)
 
       for n, (offset, skel_arr) in enumerate(zip(self.array_offsets, self.filament_arrays)):
         xlow, ylow = (offset[0][0], offset[0][1])
