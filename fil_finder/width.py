@@ -415,7 +415,7 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof, img_beam, bkg_
 	target_intensity = (peak_intens - bkg_intens)/np.exp(1) + bkg_intens
 	width = interp_bins[np.where(interp_profile==find_nearest(interp_profile,target_intensity))][0]
 
-	#Estimate the width error by lookinh +/-5 percentile around the target intensity
+	#Estimate the width error by looking +/-5 percentile around the target intensity
 	target_percentile = percentileofscore(rad_profile, target_intensity)
 	upper = scoreatpercentile(rad_profile, np.min((100, target_percentile+5)))
 	lower = scoreatpercentile(rad_profile, np.max((0, target_percentile-5)))

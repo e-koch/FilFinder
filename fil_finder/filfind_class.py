@@ -602,8 +602,6 @@ class fil_finder_2D(object):
             if chisq>10.0 and try_nonparam:
               fit, fit_error, fail_flag = nonparam_width(dist, radprof, unbin_dist, unbin_radprof,
                                                self.beamwidth, 5, 99)
-              print "Non-parametric values: " + str(fit)
-              print "Non-parametric errors: " + str(fit_error)
 
             if n==0:
                 ## Prepare the storage
