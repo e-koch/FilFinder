@@ -239,8 +239,9 @@ class fil_finder_2D(object):
         adapt = threshold_adaptive(self.smooth_img, self.adapt_thresh)
 
         if self.glob_thresh is not None:
-            glob = self.flat_img > scoreatpercentile(self.flat_img[~np.isnan(self.flat_img)], self.glob_thresh)
-            adapt = glob * adapt
+          thresh_value = np.max([0.0, scoreatpercentile(self.flat_img[~np.isnan(self.flat_img)], self.glob_thresh)])
+          glob = self.flat_img > thresh_value
+          adapt = glob * adapt
 
         opening = nd.binary_opening(adapt, structure=np.ones((3,3)))
         cleaned = remove_small_objects(opening, min_size=self.size_thresh)
@@ -836,8 +837,8 @@ class fil_finder_2D(object):
       # Save stamps of all images. Include portion of image and the skeleton for reference.
 
       # Make a directory for the stamps
-      if not os.path.exists("stamps"+save_name):
-        os.makedirs("stamps"+save_name)
+      if not os.path.exists("stamps_"+save_name):
+        os.makedirs("stamps_"+save_name)
 
       for n, (offset, skel_arr) in enumerate(zip(self.array_offsets, self.filament_arrays)):
         xlow, ylow = (offset[0][0], offset[0][1])
