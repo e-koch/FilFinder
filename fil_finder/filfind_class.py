@@ -117,10 +117,15 @@ class fil_finder_2D(object):
         self.pad_size = pad_size
         self.freq = freq
 
+        # If pre-made mask is provided, remove nans if any.
         self.mask = None
         if mask is not None:
             mask[np.isnan(mask)] = 0.0
             self.mask = mask
+
+        # Pad the image by the pad size. Avoids slicing difficulties
+        # later on.
+        self.image = np.pad(self.image, self.pad_size, padwithnans)
 
         if distance==None:
             print "No distance given. Results will be in pixel units."
@@ -245,8 +250,7 @@ class fil_finder_2D(object):
 
         opening = nd.binary_opening(adapt, structure=np.ones((3,3)))
         cleaned = remove_small_objects(opening, min_size=self.size_thresh)
-        self.mask = nd.binary_closing(cleaned, structure=np.ones((3,3)))
-        self.mask = nd.median_filter(self.mask, size=self.smooth_size)
+        self.mask = nd.median_filter(cleaned, size=self.smooth_size)
 
         if test_mode:
           # p.subplot(3,3,1)
