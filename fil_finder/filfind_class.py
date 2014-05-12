@@ -627,7 +627,7 @@ class fil_finder_2D(object):
                 p.xlabel(r'Radial Distance (pc)')
                 p.ylabel(r'Intensity')
                 p.grid(True)
-                p.subplot(222)
+                p.subplot(122)
                 xlow, ylow = (self.array_offsets[n][0][0], self.array_offsets[n][0][1])
                 xhigh, yhigh = (self.array_offsets[n][1][0], self.array_offsets[n][1][1])
                 shape = (xhigh-xlow, yhigh-ylow)
@@ -638,8 +638,6 @@ class fil_finder_2D(object):
                 vmin = scoreatpercentile(img_slice[np.isfinite(img_slice)], 10)
                 p.imshow(img_slice, interpolation=None, vmin=vmin)
                 p.colorbar()
-                p.subplot(223)
-                p.plot(dist, weights, "kD")
                 p.show()
 
             if fail_flag:
