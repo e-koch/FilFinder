@@ -107,6 +107,11 @@ def padwithzeros(vector,pad_width,iaxis,kwargs):
   vector[-pad_width[1]:] = 0
   return vector
 
+def padwithnans(vector,pad_width,iaxis,kwargs):
+  vector[:pad_width[0]] = np.NaN
+  vector[-pad_width[1]:] = np.NaN
+  return vector
+
 def round_figs(x,n):
   return round(x,int(n-np.ceil(np.log10(abs(x)))))
 
@@ -124,12 +129,3 @@ def planck(T,freq):
 def dens_func(B,kappa,I):
   kappa = 100*kappa
   return (I/(B*10**20)) * (1/(kappa))*4787 # into sol.mass/pc
-
-
-
-if __name__ == "__main__":
-    import sys
-    fib(int(sys.argv[1]))
-
-
-
