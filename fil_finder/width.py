@@ -386,36 +386,6 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
 	else:
 		return bin_centers, radial_prof, weights
 
-def medial_axis_width(medial_axis_distance, mask, skeleton):
-	'''
-	Estimate the filament width using the distance transform from the
-	medial axis transform.
-
-	Parameters
-	**********
-
-	medial_axis_distance : numpy.ndarray
-						   Distance Transform
-
-	mask : numpy.ndarray
-		   Mask of filaments
-
-	skeleton : numpy.ndarray
-			   Skeletonized mask.
-
-	Returns
-	*******
-
-	av_widths : numpy.array
-				1D array of the average widths
-
-	'''
-
-	labels, n = nd.label(skeleton, eight_con())
-	av_widths = 2. * nd.sum(medial_axis_distance, labels, range(1, n+1)) / nd.sum(skeleton, labels, range(1, n+1))
-
-	return av_widths
-
 
 def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof, img_beam, bkg_percent, peak_percent):
 	'''

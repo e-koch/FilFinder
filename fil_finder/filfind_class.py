@@ -147,7 +147,7 @@ class fil_finder_2D(object):
         self.smooth_image = None
         self.flat_image = None
         self.lengths = None
-        self.widths = {"Fitted Width": [], "Estimated Width": []}
+        self.widths = []
         self.width_fits = {"Parameters": [], "Errors": [], "Names": None}
         self.menger_curvature = None
         self.rht_curvature = {"Mean": [], "Std": []}
@@ -653,16 +653,11 @@ class fil_finder_2D(object):
                 fit = [np.NaN] * len(fit)
                 fit_error = [np.NaN] * len(fit)
 
-            self.widths["Fitted Width"].append(fit[-1])
+            self.widths.append(fit[-1])
             self.width_fits["Parameters"][n,:] = fit
             self.width_fits["Errors"][n,:] = fit_error
             self.width_fits["Type"][n,:] = fit_type
         self.width_fits["Names"] =  parameter_names
-
-        ## Implement check for failed fits and replace with average width from medial_axis_distance
-        if self.medial_axis_distance != None:
-            self.widths["Estimated Width"] = medial_axis_width(self.medial_axis_distance, \
-                                                               self.mask, self.skeleton) * self.imgscale
 
         return self
 
@@ -682,7 +677,7 @@ class fil_finder_2D(object):
         '''
         overall_lengths = []
         overall_widths = []
-        for i, width in enumerate(self.widths["Fitted Width"]):
+        for i, width in enumerate(self.widths):
             if np.isfinite(width):
                 if self.lengths[i]>width:
                     overall_lengths.append(self.lengths[i] + width) # Adaptive Threshold shortens ends, so add the width on
@@ -695,7 +690,7 @@ class fil_finder_2D(object):
                 overall_widths.append(width)
 
         self.lengths = np.asarray(overall_lengths)
-        self.widths["Fitted Width"] = np.asarray(overall_widths)
+        self.widths = np.asarray(overall_widths)
 
         return self
 
@@ -889,7 +884,7 @@ class fil_finder_2D(object):
             print("%s filaments found.") % (self.number_of_filaments)
             for fil in range(self.number_of_filaments):
                 print "Filament: %s, Width: %s, Length: %s, Curvature: %s" % \
-                        (fil,self.widths["Fitted Width"][fil],self.lengths[fil], self.rht_curvature["Std"][fil])
+                        (fil,self.widths[fil],self.lengths[fil], self.rht_curvature["Std"][fil])
 
     def run(self, verbose=False, save_plots=False, save_name=None):
         '''
