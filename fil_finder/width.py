@@ -87,19 +87,25 @@ def dist_transform(labelisofil, offsets, orig_size, pad_size, length_threshold, 
 
 	  pad_labelisofil = copy.copy(labelisofil[n]) # Increase size of arrays for better radial fits
 
+	  size_change_flag = False
+
 	  if excess_x_top > 0:
 	  	pad_labelisofil = pad_labelisofil[:-excess_x_top,:]
+	  	size_change_flag = True
 
 	  if excess_y_top > 0:
 	  	pad_labelisofil = pad_labelisofil[:,:-excess_y_top]
+	  	size_change_flag = True
 
 	  if x_off<0:
 	  	pad_labelisofil = pad_labelisofil[-x_off:,:]
 	  	x_off = 0
+	  	size_change_flag = True
 
 	  if y_off<0:
 	  	pad_labelisofil = pad_labelisofil[:,-y_off:]
 	  	y_off = 0
+	  	size_change_flag = True
 
 	  if verbose & size_change_flag:
 	  	print "REDUCED FILAMENT %s/%s TO FIT IN ORIGINAL ARRAY" %(n, num)
@@ -262,7 +268,7 @@ def lorentzian_model(distance, rad_profile, img_beam):
 
 def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
 				   img_scale, bins=None, bintype="linear", weighting="number",
-				   return_unbinned=True):
+				   return_unbinned=True, pad_to_distance=0.15):
 	'''
 	Parameters
 	----------
@@ -301,6 +307,10 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
 	return_unbinned : bool
 				  If True, returns the unbinned data as well as the binned.
 
+	pad_to_distance : float
+					  Pad the profile out to the specified distance (physical units).
+					  If set to 0.0, the profile will not be padded.
+
 	Returns
 	-------
 
@@ -331,7 +341,7 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
 			else:
 				nonlocalpix.append([x[i], y[i], x_full[i], y_full[i]])
 
-	if np.max(width_distance)*img_scale < 0.15:
+	if pad_to_distance>0.0 and np.max(width_distance)*img_scale < pad_to_distance:
 		pad = int((0.15 - np.max(width_distance)*img_scale) * img_scale**-1)
 		for pix in nonlocalpix:
 			if dist_transform_sep[pix[0],pix[1]]<=dist_transform_all[pix[2],pix[3]]+pad:
