@@ -149,7 +149,6 @@ class fil_finder_2D(object):
         self.lengths = None
         self.widths = []
         self.width_fits = {"Parameters": [], "Errors": [], "Names": None}
-        self.menger_curvature = None
         self.rht_curvature = {"Mean": [], "Std": []}
         self.filament_arrays = None
         self.labelled_filament_arrays = None
@@ -386,12 +385,7 @@ class fil_finder_2D(object):
               performance can be evaluated.
             * final_lengths takes the path returned from longest_path and calculates
               the overall length of the filament. This step also acts as to prune the
-              skeletons. Any branch shorter than self.branch_thresh is deleted. The
-              function also returns an experimental method for determining the curvature
-              of the filament(see routines in curvature.py for explanation of the Menger
-              Curvature).
-              *Note:* The results of the Menger Curvature are not in a current form that
-              they may be reliably used.
+              skeletons. Any branch shorter than self.branch_thresh is deleted.
             * final_analysis combines the outputs and returns the results for further
               analysis.
 
@@ -424,8 +418,6 @@ class fil_finder_2D(object):
                            The significant branches of the skeletons have their length
                            and number of branches in each skeleton stored here.
                            The keys are: *filament_branches*, *branch_lengths*
-        self.menger_curvature : list
-                         The results of the Menger Curvature algorithm.
 
         '''
 
@@ -454,7 +446,7 @@ class fil_finder_2D(object):
 
         self.filament_extents = extremum_pts(labeled_fil_arrays, extremum, ends)
 
-        main_lengths, branch_lengths, labeled_fil_arrays, curvature = \
+        main_lengths, branch_lengths, labeled_fil_arrays = \
             final_lengths(self.image, max_path, edge_list, labeled_fil_arrays, filament_pixels, interpts, filbranches, \
                             initial_lengths, self.imgscale, self.branch_thresh)
 
@@ -464,7 +456,6 @@ class fil_finder_2D(object):
         self.labelled_filament_arrays = labeled_fil_arrays
         self.filament_arrays = filament_arrays
         self.branch_info = {"filament_branches":filbranches, "branch_lengths":branch_lengths}
-        self.menger_curvature = curvature
 
         return self
 
@@ -474,8 +465,6 @@ class fil_finder_2D(object):
       Implements the Rolling Hough Transform (Clark et al., 2013). The orientation
       of each filament is denoted by the mean value of the RHT. "Curvature"
       is represented by the standard deviation of the transform.
-
-      **NOTE** We recommend using this curvature value rather than the Menger Curvature.
 
       Parameters
       **********
@@ -738,10 +727,8 @@ class fil_finder_2D(object):
               filename = "".join([save_name,"_table",".fits"])
 
         data = {"Lengths" : self.lengths, \
-                "Menger Curvature" : self.menger_curvature,\
                 "Plane Orientation (RHT)" : self.rht_curvature["Mean"],\
                 "RHT Curvature" : self.rht_curvature["Std"],\
-                # "Estimated Width" : self.widths["Estimated Width"], \
                 "Branches" : self.branch_info["filament_branches"], \
                 "Branch Lengths" : self.branch_info["branch_lengths"], \
                 "Fit Type": self.width_fits["Type"]}
@@ -876,7 +863,7 @@ class fil_finder_2D(object):
         prim_hdr.update("BUNIT", value="bool", comment="")
         hdu.append(fits.PrimaryHDU(skel_stamp, header=prim_hdr))
 
-        hdu.writeto("stamps/"+save_name+"_object_"+str(n+1)+".fits")
+        hdu.writeto("stamps_"+save_name+"/"+save_name+"_object_"+str(n+1)+".fits")
 
       return self
 

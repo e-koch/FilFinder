@@ -46,16 +46,16 @@ def raw_input_with_timeout(prompt, timeout=30.0):
   Manual input with a timeout. Code from
   http://stackoverflow.com/questions/2933399/how-to-set-time-limit-on-input.
   '''
-    print prompt
-    timer = threading.Timer(timeout, thread.interrupt_main)
-    astring = None
-    try:
-        timer.start()
-        astring = raw_input(prompt)
-    except KeyboardInterrupt:
-        pass
-    timer.cancel()
-    return astring
+  print prompt
+  timer = threading.Timer(timeout, thread.interrupt_main)
+  astring = None
+  try:
+      timer.start()
+      astring = raw_input(prompt)
+  except KeyboardInterrupt:
+      pass
+  timer.cancel()
+  return astring
 
 
 def find_nearest(array,value):
@@ -69,16 +69,16 @@ def timeit(method):
   https://www.andreas-jung.com/contents/a-python-decorator-for-measuring-the-execution-time-of-methods.
   '''
 
-    def timed(*args, **kw):
-        ts = time.time()
-        result = method(*args, **kw)
-        te = time.time()
+  def timed(*args, **kw):
+    ts = time.time()
+    result = method(*args, **kw)
+    te = time.time()
 
-        print '%r (%r, %r) %2.2f sec' % \
-              (method.__name__, args, kw, te-ts)
-        return result
+    print '%r (%r, %r) %2.2f sec' % \
+            (method.__name__, args, kw, te-ts)
+    return result
 
-    return timed
+  return timed
 
 ######################################################################################################################################
 ### 2D Gaussian Fit Code from http://www.scipy.org/Cookbook/FittingData (functions twodgaussian,moments,fit2dgaussian)
