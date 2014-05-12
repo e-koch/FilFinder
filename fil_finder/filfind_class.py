@@ -602,21 +602,30 @@ class fil_finder_2D(object):
             fit, fit_error, model, parameter_names, fail_flag = \
                                     fit_model(dist, radprof, weights, self.beamwidth)
 
+            # Get the function's name to track where fit values come from
+            fit_type = str(model.__name__)
+
             chisq = red_chisq(radprof, model(dist, *fit[:-1]), 3, 1)
 
             # If the model isn't doing a good job, try it non-parametrically
             if chisq>10.0 and try_nonparam:
               fit, fit_error, fail_flag = nonparam_width(dist, radprof, unbin_dist, unbin_radprof,
                                                self.beamwidth, 5, 99)
+              # Change the fit type.
+              fit_type = "nonparam"
 
             if n==0:
                 ## Prepare the storage
                 self.width_fits["Parameters"] = np.empty((self.number_of_filaments, len(parameter_names)))
                 self.width_fits["Errors"] = np.empty((self.number_of_filaments, len(parameter_names)))
+                self.width_fits["Type"] = np.chararray((self.number_of_filaments, 1))
 
 
             if verbose:
-                print "Fit Parameters: %s \\ Fit Errors: %s" % (fit, fit_error)
+                print "%s in %s" % (n, self.number_of_filaments)
+                print "Fit Parameters: %s " % (fit)
+                print "Fit Errors: %s" % (fit_error)
+                print "Fit Type: %s" % (fit_type)
                 p.subplot(121)
                 p.plot(dist, radprof, "kD")
                 points = np.linspace(np.min(dist), np.max(dist), 2*len(dist))
@@ -647,6 +656,7 @@ class fil_finder_2D(object):
             self.widths["Fitted Width"].append(fit[-1])
             self.width_fits["Parameters"][n,:] = fit
             self.width_fits["Errors"][n,:] = fit_error
+            self.width_fits["Type"][n,:] = fit_type
         self.width_fits["Names"] =  parameter_names
 
         ## Implement check for failed fits and replace with average width from medial_axis_distance
@@ -738,7 +748,8 @@ class fil_finder_2D(object):
                 "RHT Curvature" : self.rht_curvature["Std"],\
                 # "Estimated Width" : self.widths["Estimated Width"], \
                 "Branches" : self.branch_info["filament_branches"], \
-                "Branch Lengths" : self.branch_info["branch_lengths"]}
+                "Branch Lengths" : self.branch_info["branch_lengths"], \
+                "Fit Type": self.width_fits["Type"]}
 
         for i, param in enumerate(self.width_fits["Names"]):
           data[param] = self.width_fits["Parameters"][:,i]
