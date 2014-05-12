@@ -26,7 +26,7 @@ Requires:
 
 
 
-def dist_transform(labelisofil, offsets, orig_size, pad_size, length_threshold):
+def dist_transform(labelisofil, offsets, orig_size, pad_size, length_threshold, verbose=False):
 	'''
 
 	Recombines the cleaned skeletons from final analysis and takes the
@@ -77,7 +77,7 @@ def dist_transform(labelisofil, offsets, orig_size, pad_size, length_threshold):
 
 	filclean_all = np.ones(orig_size)
 	for n in range(num):
-	  x_off,y_off = offsets[n][0] ## This is the coords of the bottom left in the master array
+	  x_off,y_off = offsets[n][0] ## These is the coordinates of the bottom left in the master array
 	  x_top,y_top = offsets[n][1]
 
 	  ## Now check if padding will put the array outside of the original array size
@@ -89,20 +89,20 @@ def dist_transform(labelisofil, offsets, orig_size, pad_size, length_threshold):
 
 	  if excess_x_top > 0:
 	  	pad_labelisofil = pad_labelisofil[:-excess_x_top,:]
-	  	print "REDUCED FILAMENT %s TO FIT IN ORIGINAL ARRAY" %(n)
+
 	  if excess_y_top > 0:
 	  	pad_labelisofil = pad_labelisofil[:,:-excess_y_top]
-	  	print "REDUCED FILAMENT %s TO FIT IN ORIGINAL ARRAY" %(n)
 
 	  if x_off<0:
 	  	pad_labelisofil = pad_labelisofil[-x_off:,:]
 	  	x_off = 0
-	  	print "REDUCED FILAMENT %s TO FIT IN ORIGINAL ARRAY" %(n)
 
 	  if y_off<0:
 	  	pad_labelisofil = pad_labelisofil[:,-y_off:]
 	  	y_off = 0
-	  	print "REDUCED FILAMENT %s TO FIT IN ORIGINAL ARRAY" %(n)
+
+	  if verbose & size_change_flag:
+	  	print "REDUCED FILAMENT %s/%s TO FIT IN ORIGINAL ARRAY" %(n, num)
 
 	  x,y = np.where(pad_labelisofil>=1)
 	  for i in range(len(x)):
