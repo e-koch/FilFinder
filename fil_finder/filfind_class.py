@@ -239,8 +239,9 @@ class fil_finder_2D(object):
         adapt = threshold_adaptive(self.smooth_img, self.adapt_thresh)
 
         if self.glob_thresh is not None:
-            glob = self.flat_img > scoreatpercentile(self.flat_img[~np.isnan(self.flat_img)], self.glob_thresh)
-            adapt = glob * adapt
+          thresh_value = np.max([0.0, scoreatpercentile(self.flat_img[~np.isnan(self.flat_img)], self.glob_thresh)])
+          glob = self.flat_img > thresh_value
+          adapt = glob * adapt
 
         opening = nd.binary_opening(adapt, structure=np.ones((3,3)))
         cleaned = remove_small_objects(opening, min_size=self.size_thresh)
@@ -525,7 +526,7 @@ class fil_finder_2D(object):
 
       return self
 
-    def find_widths(self, fit_model=gauss_model, verbose=False):
+    def find_widths(self, fit_model=gauss_model, try_nonparam=True, verbose=False):
         '''
 
         The final step of the algorithm is to find the widths of each of the skeletons. We do this
@@ -544,10 +545,14 @@ class fil_finder_2D(object):
         Parameters
         ----------
 
-        model : function
+        fit_model : function
                 Function to fit to the radial profile. "cyl_model" and "gauss_model" are available in widths.py.
 
-        verbose : bool
+        try_nonparam : bool, optional
+                       If True, uses a non-parametric method to find the properties of the radial profile in
+                       cases where the model fails.
+
+        verbose : bool, optional
                   If True, each of the resultant gaussian fits is plotted on the radial profile. The average
                   widths based on the medial axis distance transform are also plotted.
 
@@ -556,9 +561,11 @@ class fil_finder_2D(object):
 
         self.widths : list
                       List of the FWHM widths returned from the fits.
+
         self.width_fits : dict
                           Contains the fit parameters and estimations of the errors from each fit.
         self.skeleton : numpy.ndarray
+
                         Updated versions of the array of skeletons.
 
         '''
@@ -571,8 +578,14 @@ class fil_finder_2D(object):
           return np.sum(((fit-data)/sd)**2.) / float(N-nparam-1)
 
         for n in range(self.number_of_filaments):
-            dist, radprof, weights = radial_profile(self.image, dist_transform_all,\
-                     dist_transform_separate[n], self.array_offsets[n], self.imgscale, weighting="number")
+
+            if try_nonparam: # Need the unbinned data for the non-parametric fit.
+              dist, radprof, weights, unbin_dist, unbin_radprof = \
+                radial_profile(self.image, dist_transform_all, dist_transform_separate[n],
+                                self.array_offsets[n], self.imgscale)
+            else:
+              dist, radprof, weights = radial_profile(self.image, dist_transform_all,\
+                     dist_transform_separate[n], self.array_offsets[n], self.imgscale)
 
             if fit_model==cyl_model:
                 if self.freq is None:
@@ -588,8 +601,9 @@ class fil_finder_2D(object):
             chisq = red_chisq(radprof, model(dist, *fit[:-1]), 3, 1)
 
             # If the model isn't doing a good job, try it non-parametrically
-            if chisq>10.0:
-              fit, fail_flag = nonparam_width(dist, radprof, None, 5, 99)
+            if chisq>10.0 and try_nonparam:
+              fit, fit_error, fail_flag = nonparam_width(dist, radprof, unbin_dist, unbin_radprof,
+                                               self.beamwidth, 5, 99)
 
             if n==0:
                 ## Prepare the storage
@@ -599,7 +613,6 @@ class fil_finder_2D(object):
 
             if verbose:
                 print "Fit Parameters: %s \\ Fit Errors: %s" % (fit, fit_error)
-                print "Non-parametric values: " + str(nonparam_width(dist, radprof, None, 5, 99))
                 p.subplot(121)
                 p.plot(dist, radprof, "kD")
                 points = np.linspace(np.min(dist), np.max(dist), 2*len(dist))
@@ -829,8 +842,8 @@ class fil_finder_2D(object):
       # Save stamps of all images. Include portion of image and the skeleton for reference.
 
       # Make a directory for the stamps
-      if not os.path.exists("stamps"):
-        os.makedirs("stamps")
+      if not os.path.exists("stamps_"+save_name):
+        os.makedirs("stamps_"+save_name)
 
       for n, (offset, skel_arr) in enumerate(zip(self.array_offsets, self.filament_arrays)):
         xlow, ylow = (offset[0][0], offset[0][1])
