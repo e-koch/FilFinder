@@ -337,7 +337,7 @@ def pre_graph(labelisofil, lengths, branch_intensity, interpts, ends):
     lengths and the average intensity along the branch.
 
     '''
-    if w>1.0:
+    if w>1.0 or w<0.0:
       raise ValueError("Relative weighting w must be between 0.0 and 1.0.")
     return  (1-w) * (length[idx]/ np.sum(length)) + w * (intensity[idx]/np.sum(intensity))
 
