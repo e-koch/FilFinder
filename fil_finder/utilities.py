@@ -11,9 +11,15 @@ import numpy as np
 from scipy import optimize as op
 from skimage import morphology as mo
 import operator
+import thread
+import threading
+import time
 
-# from http://stackoverflow.com/questions/3157374/how-do-you-remove-a-numpy-array-from-a-list-of-numpy-arrays
 def removearray(l,arr):
+  '''
+  Removes an array from a list. Code from
+  http://stackoverflow.com/questions/3157374/how-do-you-remove-a-numpy-array-from-a-list-of-numpy-arrays
+  '''
   ind = 0
   size = len(l)
   while ind!=size and not array_equal(l[ind],arr):
@@ -34,13 +40,12 @@ def weighted_av(items,weight):
     denom = sum(weight[i] for i in range(len(items)))
     return (num/denom) if denom != 0 else None
 
-## Raw Input with a timer
-## from http://stackoverflow.com/questions/2933399/how-to-set-time-limit-on-input
-
-import thread
-import threading
 
 def raw_input_with_timeout(prompt, timeout=30.0):
+  '''
+  Manual input with a timeout. Code from
+  http://stackoverflow.com/questions/2933399/how-to-set-time-limit-on-input.
+  '''
     print prompt
     timer = threading.Timer(timeout, thread.interrupt_main)
     astring = None
@@ -52,9 +57,28 @@ def raw_input_with_timeout(prompt, timeout=30.0):
     timer.cancel()
     return astring
 
+
 def find_nearest(array,value):
   idx = (np.abs(array-value)).argmin()
   return array[idx]
+
+
+def timeit(method):
+  '''
+  Timing decorator from
+  https://www.andreas-jung.com/contents/a-python-decorator-for-measuring-the-execution-time-of-methods.
+  '''
+
+    def timed(*args, **kw):
+        ts = time.time()
+        result = method(*args, **kw)
+        te = time.time()
+
+        print '%r (%r, %r) %2.2f sec' % \
+              (method.__name__, args, kw, te-ts)
+        return result
+
+    return timed
 
 ######################################################################################################################################
 ### 2D Gaussian Fit Code from http://www.scipy.org/Cookbook/FittingData (functions twodgaussian,moments,fit2dgaussian)
