@@ -76,7 +76,9 @@ def fil_length(n,pixels,initial=True):
   '''
   dists = [];distances = [];orders = [];order = []
   for i in range(len(pixels)):
-    if pixels[i]==[[]]: pass
+    if len(pixels[i])==1:
+      dists = [0.0]
+      order = [0]
     else:
         eucarr = np.zeros((len(pixels[i]),len(pixels[i])))
         for j in range(len(pixels[i])):
@@ -111,7 +113,7 @@ def fil_length(n,pixels,initial=True):
               last = x[z]
               eucarr[:,j]=0
               eucarr[j,:]=0
-    distances.append(sum(dists))
+    distances.append(np.sum(dists))
     orders.append(order)
     dists = [];order = []
 
