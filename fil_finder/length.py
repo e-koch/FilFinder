@@ -308,7 +308,7 @@ def pre_graph(labelisofil, lengths, branch_intensity, interpts, ends):
 
 
 
-def longest_path(edge_list,nodes,lengths,verbose=False):
+def longest_path(edge_list,nodes,lengths,verbose=False, skeleton_arrays=None):
   '''
   Takes the output of pre_graph and runs the shortest path algorithm.
 
@@ -326,8 +326,11 @@ def longest_path(edge_list,nodes,lengths,verbose=False):
             Contains the lengths of each branch.
 
   verbose : bool, optional
-            If True, enables the plotting of the graph. *Requires pygraphviz
-            be installed.*
+            If True, enables the plotting of the graph. *Recommend pygraphviz
+            be installed for best results.*
+
+  skeleton_arrays : list, optional
+                    List of the skeleton arrays. Required when verbose=True.
 
   Returns
   -------
@@ -363,16 +366,28 @@ def longest_path(edge_list,nodes,lengths,verbose=False):
     max_path.append(nx.shortest_path(G,start,finish))
     graphs.append(G)
     if verbose:
-      import matplotlib.pyplot as p
-      clean_graph = p.figure(1.,facecolor='1.0')
-      graph = clean_graph.add_subplot(1,2,2)
-      elist = [(u,v) for (u,v,d) in G.edges(data=True)]
-      pos = nx.graphviz_layout(G)#,arg=str(lengths[n])) # The argument throws an error. I have yet to understand why...
-      nx.draw_networkx_nodes(G,pos,node_size=200)
-      nx.draw_networkx_edges(G,pos,edgelist=elist,width=2)
-      nx.draw_networkx_labels(G,pos,font_size=10,font_family='sans-serif')
-      p.axis('off')
-      p.show()
+      if not skeleton_arrays:
+        print "Must input skeleton arrays if verbose=True."
+      else:
+        # Check if skeleton_arrays is a list
+        assert isinstance(skeleton_arrays, list)
+        import matplotlib.pyplot as p
+
+        p.subplot(1,2,1)
+        p.imshow(skeleton_arrays[n], origin="lower", interpolation=None)
+
+        p.subplot(1,2,2)
+        elist = [(u,v) for (u,v,d) in G.edges(data=True)]
+        try:
+          import pygraphviz
+          pos = nx.graphviz_layout(G, arg=str(lengths[n]))
+        except ImportError:
+          pos = nx.spring_layout(G)
+        nx.draw_networkx_nodes(G, pos, node_size=200)
+        nx.draw_networkx_edges(G, pos, edgelist=elist, width=2)
+        nx.draw_networkx_labels(G, pos, font_size=10, font_family='sans-serif')
+        p.axis('off')
+        p.show()
 
   return max_path, extremum, graphs
 

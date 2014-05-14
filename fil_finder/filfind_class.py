@@ -421,13 +421,6 @@ class fil_finder_2D(object):
 
         '''
 
-        try: ## Check if graphviz is available
-            import pygraphviz
-
-        except ImportError:
-            verbose = False
-            print "pygraphviz is not installed. Verbose output for graphs is disabled."
-
         isolated_filaments, num, offsets = \
                 isolatefilaments(self.skeleton, self.skel_thresh, pad_size=self.pad_size)
         self.number_of_filaments = num
@@ -440,7 +433,9 @@ class fil_finder_2D(object):
 
         edge_list, nodes = pre_graph(labeled_fil_arrays, initial_lengths, branch_intensity, interpts, ends)
 
-        max_path, extremum, G = longest_path(edge_list, nodes, initial_lengths, verbose=verbose)
+        max_path, extremum, G = longest_path(edge_list, nodes, initial_lengths,
+                                             verbose=verbose,
+                                             skeleton_arrays=labeled_fil_arrays)
 
         labeled_fil_arrays, edge_list, nodes = prune_graph(G, nodes, edge_list, max_path, labeled_fil_arrays, self.branch_thresh)
 
