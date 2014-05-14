@@ -90,7 +90,7 @@ def fil_length(n,pixels,initial=True):
             last=0
           else:
             j=last
-            last = []
+            last = None
           try:
             min_dist = np.min(eucarr[:,j][np.nonzero(eucarr[:,j])])
           except ValueError:

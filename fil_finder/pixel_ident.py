@@ -246,12 +246,17 @@ def find_filpix(branches,labelfil,final=True):
         match = set(intertemps) & set(proximity)
         if len(match)==1:
           intertemps.append(l)
+          fila_pts.append(endpts+bodypts)
         else:
-          fila_pts.append(endpts+bodypts+[l]);endpts = [];bodypts = []
+          fila_pts.append(endpts+bodypts+[l])
           cornerpts.remove(l)
     else:
-      fila_pts.append(endpts+bodypts);endpts = [];bodypts = []
+      fila_pts.append(endpts+bodypts)
+
+    # Reset lists
     cornerpts = []
+    endpts = []
+    bodypts = []
 
     if len(pairs)>0:
         for i in range(len(pairs)):
