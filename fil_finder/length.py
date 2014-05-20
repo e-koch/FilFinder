@@ -35,89 +35,87 @@ import operator,string, copy
 
 
 
-def fil_length(n,pixels,initial=True):
-  '''
-  This function calculates either the length of the branches, or the entire
-  filament. It does this by creating an array of the distances between each
-  pixel. It then searches each column and identifies the minimum of that
-  row. The column containing the minimum is the next row to be searched.
-  After a row is searched, the corresponding row and column are set to
-  zero and ignored. When initial is True, the maximum distance between
-  connected pixels is sqrt(2). When initial is False, the function accounts
-  for the average position of intersections when finding the overall length
-  of the filament. Due to the somewhat unpredictable size of the larger
-  intersections, the minimum distances are allowed to be much larger than
-  sqrt(2). The threshold is set at 5 as an approximation for the largest
-  gap that should be created. At this point, the intersections are the
-  only places where a distance of sqrt(2) can be returned.
+def lengths(skeleton, verbose=False):
+    '''
+    Length finding via morphological operators.
+    '''
 
-  Parameters
-  ----------
+    # 4-connected labels
+    four_labels = label(skeleton, 4, background=0)
 
-  n : int
-      The number of the skeleton being analyzed.
+    four_sizes = nd.sum(skeleton, four_labels, range(np.max(four_labels)+1))
 
-  pixels : list
-           Contains the positions of the pixels in the skeleton or branch.
+    # Lengths is the number of pixels minus number of objects with more
+    # than 1 pixel.
+    four_length = np.sum(four_sizes[four_sizes>1]) - len(four_sizes[four_sizes>1])
 
-  initial : bool, optional
-            If True, the initial branches are inputted. If False, the
-            entire cleaned skeleton is inputted.
+    # Find pixels which a 4-connected and subtract them off the skeleton
 
-  Returns
-  -------
+    four_objects = np.where(four_sizes>1)[0]
 
-  distances : list
-              Contains the length of the inputted structure.
+    skel_copy = copy(skeleton)
+    for val in four_objects:
+        skel_copy[np.where(four_labels==val)] = 0
 
-  orders : list
-           Contains the order of the pixels.
+    # Remaining pixels are only 8-connected
+    # Lengths is same as before, multiplied by sqrt(2)
 
-  '''
-  dists = [];distances = [];orders = [];order = []
-  for i in range(len(pixels)):
-    if len(pixels[i])==1:
-      dists = [0.0]
-      order = [0]
+    eight_labels = label(skel_copy, 8, background=0)
+
+    eight_sizes = nd.sum(skel_copy, eight_labels, range(np.max(eight_labels)+1))
+
+    eight_length = ((np.sum(eight_sizes)-1) - np.max(eight_labels)) * np.sqrt(2)
+
+    # If there are no 4-connected pixels, we don't need the hit-miss portion.
+    if four_length==0.0:
+        conn_length = 0.0
+
     else:
-        eucarr = np.zeros((len(pixels[i]),len(pixels[i])))
-        for j in range(len(pixels[i])):
-          for k in range(len(pixels[i])):
-            eucarr[j,k]=np.linalg.norm(map(operator.sub,pixels[i][k],pixels[i][j]))
-        for _ in range(len(pixels[i])-1):
-          if _== 0:
-            j=0
-            last=0
-          else:
-            j=last
-            last = None
-          try:
-            min_dist = np.min(eucarr[:,j][np.nonzero(eucarr[:,j])])
-          except ValueError:
-            min_dist = 0 # In some cases, a duplicate of the first pixel
-                         # is added to the end, causing issues. This takes
-                         # corrects the length while I try to find the
-                         # issue.
-          if initial:
-            if min_dist>np.sqrt(2.0):
-              print "PROBLEM : Dist %s, Obj# %s,Branch# %s, # In List %s" % (min_dist,n,i,pixels[i][j])
-          else:
-            if min_dist>5.0:
-              if j==1:
-                min_dist = 0
-          dists.append(min_dist)
-          x,y = np.where(eucarr==min_dist)
-          order.append(j)
-          for z in range(len(y)):
-            if y[z]==j:
-              last = x[z]
-              eucarr[:,j]=0
-              eucarr[j,:]=0
-    distances.append(np.sum(dists))
-    orders.append(order)
-    dists = [];order = []
 
-  return distances, orders
+        # Check 4 to 8-connected elements
+        struct1 = np.array([[1, 0, 0],
+                            [0, 1 ,1],
+                            [0, 0, 0]])
+
+        struct2 = np.array([[0, 0, 1],
+                            [1, 1 ,0],
+                            [0, 0, 0]])
+
+        # Next check the three elements which will be double counted
+        check1 = np.array([[1, 1, 0, 0],
+                           [0, 0, 1, 1]])
+
+        check2 = np.array([[0, 0, 1, 1],
+                           [1, 1, 0, 0]])
+
+        check3 = np.array([[1, 1, 0],
+                           [0, 0, 1],
+                           [0, 0, 1]])
+
+        store = np.zeros(skeleton.shape)
+
+        # Loop through the 4 rotations of the structuring elements
+        for k in range(0,4):
+            hm1 = nd.binary_hit_or_miss(skeleton, structure1=np.rot90(struct1, k=k))
+            store += hm1
+
+            hm2 = nd.binary_hit_or_miss(skeleton, structure1=np.rot90(struct2, k=k))
+            store += hm2
+
+            hm_check3 = nd.binary_hit_or_miss(skeleton, structure1=np.rot90(check3, k=k))
+            store -=hm_check3
+
+            if k <= 1:
+                hm_check1 = nd.binary_hit_or_miss(skeleton, structure1=np.rot90(check1, k=k))
+                store -= hm_check1
+
+                hm_check2 = nd.binary_hit_or_miss(skeleton, structure1=np.rot90(check2, k=k))
+                store -= hm_check2
+
+        conn_length = np.sqrt(2) * np.sum(np.sum(store, axis=1), axis=0)#hits
+
+
+    return conn_length + eight_length + four_length
 
 ########################################################
 ###       Composite Functions
