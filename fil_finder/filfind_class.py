@@ -429,8 +429,8 @@ class fil_finder_2D(object):
         interpts, hubs, ends, filbranches, labeled_fil_arrays =  \
                 pix_identify(isolated_filaments, num)
 
-        initial_lengths, filament_pixels, branch_intensity = init_lengths(labeled_fil_arrays, filbranches, self.array_offsets, self.image)
-
+        initial_lengths, branch_intensity = init_lengths(labeled_fil_arrays, filbranches, self.array_offsets, self.image)
+        print "List lengths: %s. %s" % (len(initial_lengths), len(branch_intensity))
         edge_list, nodes = pre_graph(labeled_fil_arrays, initial_lengths, branch_intensity, interpts, ends)
 
         max_path, extremum, G = longest_path(edge_list, nodes, initial_lengths,

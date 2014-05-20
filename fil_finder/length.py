@@ -35,7 +35,7 @@ import operator,string, copy
 
 
 
-def lengths(skeleton, verbose=False):
+def skeleton_length(skeleton):
     '''
     Length finding via morphological operators.
     '''
@@ -53,7 +53,7 @@ def lengths(skeleton, verbose=False):
 
     four_objects = np.where(four_sizes>1)[0]
 
-    skel_copy = copy(skeleton)
+    skel_copy = copy.copy(skeleton)
     for val in four_objects:
         skel_copy[np.where(four_labels==val)] = 0
 
@@ -147,10 +147,7 @@ def init_lengths(labelisofil,filbranches, array_offsets, img):
   -------
 
   lengths : list
-            Contains the lengths of eahc branch on each skeleton.
-
-  filpts : list
-           Contains the pixels in each branch.
+            Contains the lengths of each branch on each skeleton.
 
   av_branch_intensity : list
                         Average Intensity along each branch.
@@ -164,22 +161,26 @@ def init_lengths(labelisofil,filbranches, array_offsets, img):
   av_branch_intensity = []
 
   for n in range(num):
-    funcreturn = find_filpix(filbranches[n],labelisofil[n],final=False)
-    leng = fil_length(n,funcreturn[0],initial=True)[0]
-    for i in range(len(leng)):
-      if leng[i]==0.0:
-        leng.pop(i)
-        leng.insert(i,0.5) # For use in longest path algorithm, will be set to zero for final analysis
+    leng = []
+    for branch in range(1, filbranches[n]+1):
+      branch_array = np.zeros(labelisofil[n].shape)
+      branch_pts = np.where(labelisofil[n]==branch)
+      branch_array[branch_pts] = 1
+      branch_length = skeleton_length(branch_array)
+      if branch_length==0.0:
+        leng.append(0.5) # For use in longest path algorithm, will be set to zero for final analysis
+      else:
+        leng.append(branch_length)
+
+      # Now let's find the average intensity along each branch
+      av_intensity = []
+      x_offset, y_offset = array_offsets[n][0]
+      av_intensity.append(nanmean([img[x+x_offset,y+y_offset] for x,y in zip(*branch_pts)]))
+
     lengths.append(leng)
-    filpts.append(funcreturn[0])
-    # Now let's find the average intensity along each branch
-    av_intensity = []
-    x_offset, y_offset = array_offsets[n][0]
-    for pts in funcreturn[0]:
-      av_intensity.append(nanmean([img[pt[0]+x_offset,pt[1]+y_offset] for pt in pts]))
     av_branch_intensity.append(av_intensity)
 
-  return lengths, filpts, av_branch_intensity
+  return lengths, av_branch_intensity
 
 
 
