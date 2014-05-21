@@ -431,7 +431,7 @@ class fil_finder_2D(object):
 
         initial_lengths, branch_intensity = init_lengths(labeled_fil_arrays, filbranches, self.array_offsets, self.image)
 
-        edge_list, nodes = pre_graph(labeled_fil_arrays, initial_lengths, branch_intensity, interpts, filbranches)
+        edge_list, nodes = pre_graph(labeled_fil_arrays, initial_lengths, branch_intensity, interpts, ends)
 
         max_path, extremum, G = longest_path(edge_list, nodes, initial_lengths,
                                              verbose=verbose,

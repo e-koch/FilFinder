@@ -162,6 +162,8 @@ def init_lengths(labelisofil,filbranches, array_offsets, img):
 
   for n in range(num):
     leng = []
+    av_intensity = []
+
     for branch in range(1, filbranches[n]+1):
       branch_array = np.zeros(labelisofil[n].shape)
       branch_pts = np.where(labelisofil[n]==branch)
@@ -173,7 +175,6 @@ def init_lengths(labelisofil,filbranches, array_offsets, img):
         leng.append(branch_length)
 
       # Now let's find the average intensity along each branch
-      av_intensity = []
       x_offset, y_offset = array_offsets[n][0]
       av_intensity.append(nanmean([img[x+x_offset,y+y_offset] for x,y in zip(*branch_pts)]))
 
