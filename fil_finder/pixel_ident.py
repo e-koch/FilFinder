@@ -489,10 +489,12 @@ def make_final_skeletons(labelisofil, inters, verbose=False):
     copy_array[np.where(skel_array >= 1)] = 1
 
     cleaned_array = find_extran(1, copy_array)
-    p.imshow(cleaned_array)
-    p.show()
 
     filament_arrays.append(cleaned_array)
+
+    if verbose:
+      p.imshow(cleaned_array)
+      p.show()
 
   return filament_arrays
 
