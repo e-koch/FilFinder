@@ -450,7 +450,7 @@ class fil_finder_2D(object):
                                    interpts, self.branch_properties["length"], self.imgscale,
                                    verbose=verbose)
 
-        self.filament_arrays = make_final_skeletons(labeled_fil_arrays, interpts)
+        self.filament_arrays = make_final_skeletons(labeled_fil_arrays, interpts, verbose=verbose)
 
         self.lengths = main_lengths
         self.labelled_filament_arrays = labeled_fil_arrays
@@ -727,8 +727,9 @@ class fil_finder_2D(object):
         data = {"Lengths" : self.lengths, \
                 "Plane Orientation (RHT)" : self.rht_curvature["Mean"],\
                 "RHT Curvature" : self.rht_curvature["Std"],\
-                "Branches" : self.branch_properties["filament_branches"], \
-                "Branch Lengths" : self.branch_properties["branch_lengths"], \
+                "Branches" : self.branch_properties["number"], \
+                "Branch Length" : self.branch_properties["length"], \
+                "Branch Intensity" : self.branch_properties["intensity"], \
                 "Fit Type": self.width_fits["Type"]}
 
         for i, param in enumerate(self.width_fits["Names"]):
@@ -747,9 +748,12 @@ class fil_finder_2D(object):
         elif table_type=="fits":
           from astropy.table import Table
 
-          # Branch Lengths contains a list for each entry, which aren't accepted for BIN tables.
-          if "Branch Lengths" in data.keys():
-            del data["Branch Lengths"]
+          # Branch Lengths and Intensity contains a list for each entry,
+          # which aren't accepted for BIN tables.
+          if "Branch Length" in data.keys():
+            del data["Branch Length"]
+          if "Branch Intensity" in data.keys():
+            del data["Branch Intensity"]
 
           df = Table(data)
 
