@@ -392,9 +392,11 @@ def longest_path(edge_list,nodes,lengths,verbose=False, skeleton_arrays=None):
   return max_path, extremum, graphs
 
 
-def prune_graph(G, nodes, edge_list, max_path, labelisofil, length_thresh, relintens_thresh=0.2):
+def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_lengths, \
+                filbranches, length_thresh, relintens_thresh=0.2):
   '''
-  Function to remove unnecessary branches.
+  Function to remove unnecessary branches, while maintaining connecvtivity
+  in the graph. Also updates edge_list, nodes, branch_lengths and filbranches.
 
   '''
 
@@ -414,14 +416,18 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, length_thresh, relin
       intensities = [edge[2][3] for edge in edge_list[n]]
       for edge in edge_candidates:
         ## If its too short and relatively not as intense, delete it
-        if edge[2][2]<length_thresh and (edge[2][3]/np.sum(intensities))<relintens_thresh:
+        length = edge[2][2]
+        av_intensity = edge[2][3]
+        if length<length_thresh and (av_intensity/np.sum(intensities))<relintens_thresh:
           x,y = np.where(labelisofil[n]==edge[2][0])
           for i in range(len(x)):
             labelisofil[n][x[i], y[i]] = 0
           edge_list[n].remove(edge)
           nodes[n].remove(edge[1])
+          branch_lengths[n].remove(length)
+          filbranches[n] -= 1
 
-  return labelisofil, edge_list, nodes
+  return labelisofil, edge_list, nodes, branch_lengths, filbranches
 
 
 def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths, \
@@ -469,63 +475,3 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths, \
       p.imshow(skeleton)
       p.show()
 
-
-def final_analysis(labelisofil):
-  '''
-
-  In the case that a skeleton has been split into parts during the pruning
-  process in final_lengths, this function re-analyzes and corrects any such
-  problems.
-
-  Parameters
-  ----------
-
-  labelisofil : list
-                The versions of the skeleton arrays outputted from final_lengths.
-
-  Returns
-  -------
-
-  labelisofil : list
-                The updated version of the skeleton arrays.
-
-  filbranches : list
-                The updated version of the number of branches in each skeleton.
-
-  hubs : list
-         The updated version of the number of intersections in each skeleton.
-
-  lengths : list
-            Updated version of the lengths of the branches.
-
-
-  '''
-  num = len(labelisofil)
-
-  # Initialize lists
-  filbranches = []
-  hubs = []
-  lengths = []
-  filament_arrays = []
-
-  for n in range(num):
-    x,y = np.where(labelisofil[n]>0)
-    for i in range(len(x)):
-      labelisofil[n][x[i],y[i]]=1
-    deletion = find_extran(1,labelisofil[n])
-    filament_arrays.append(copy.copy(deletion)) # A cleaned, final skeleton is returned here.
-    funcreturn = find_filpix(1,deletion,final=False)
-    relabel,num_branches = nd.label(funcreturn[2],eight_con())
-    for i in range(num_branches):
-      x,y = np.where(relabel==num_branches+1)
-      if len(x)==1:
-        labelisofil[x[0],y[0]]=0
-    labelisofil.pop(n)
-    labelisofil.insert(n,relabel)
-    filbranches.insert(n,num_branches)
-    hubs.append(len(funcreturn[1]))
-    funcsreturn = find_filpix(num_branches,relabel,final=True)
-    lenn,ordd = fil_length(n,funcsreturn[0],initial=True)
-    lengths.append(lenn)
-
-  return labelisofil, filbranches, hubs, lengths, filament_arrays
