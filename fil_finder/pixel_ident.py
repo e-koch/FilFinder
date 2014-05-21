@@ -207,7 +207,7 @@ def find_filpix(branches,labelfil,final=True):
 
       if len(x)<=1:
           endpts.append(filpix[k][l])
-	  endpts_return.append(filpix[k][l])
+          endpts_return.append(filpix[k][l])
       elif len(x)==2:
         if final:
           bodypts.append(filpix[k][l])
