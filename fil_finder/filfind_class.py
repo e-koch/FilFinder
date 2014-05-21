@@ -450,9 +450,10 @@ class fil_finder_2D(object):
                                    interpts, self.branch_properties["length"], self.imgscale,
                                    verbose=verbose)
 
+        self.filament_arrays = make_final_skeletons(labeled_fil_arrays, interpts)
+
         self.lengths = main_lengths
         self.labelled_filament_arrays = labeled_fil_arrays
-        self.filament_arrays = filament_arrays
 
         return self
 

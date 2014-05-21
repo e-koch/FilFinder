@@ -469,36 +469,32 @@ def extremum_pts(labelisofil,extremum,ends):
   return extrem_pts
 
 
+def make_final_skeletons(labelisofil, inters, verbose=False):
+  '''
+  Creates the final skeletons outputted by the algorithm.
+  '''
 
+  num = len(labelisofil)
 
-if __name__ == "__main__":
-    import sys
-    fib(int(sys.argv[1]))
+  filament_arrays = []
 
+  for n, (skel_array, intersec) in enumerate(zip(labelisofil, inters)):
+    copy_array = np.zeros(skel_array.shape, dtype=bool)
 
+    for inter in intersec:
+      for pts in inter:
+        x, y = pts
+        copy_array[x,y] = 1
 
+    copy_array[np.where(skel_array >= 1)] = 1
 
+    cleaned_array = find_extran(1, copy_array)
+    p.imshow(cleaned_array)
+    p.show()
 
+    filament_arrays.append(cleaned_array)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  return filament_arrays
 
 
 
