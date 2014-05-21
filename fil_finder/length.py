@@ -443,7 +443,7 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths, \
                                            labelisofil, branch_lengths):
     if len(path) == 1:
       lengths[0] *= img_scale
-      main_lengths.append(lengths[0])
+      main_lengths.append(lengths[0] * img_scale)
       skeleton = skel_arr  # for viewing purposes when verbose
     else:
       skeleton = np.zeros(skel_arr.shape, dtype=bool)
@@ -470,9 +470,10 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths, \
       # Remove unnecessary pixels
       skeleton = medial_axis(skeleton)
 
-      main_lengths.append(skeleton_length(skeleton))
+      main_lengths.append(skeleton_length(skeleton) * img_scale)
 
     if verbose:
       p.imshow(skeleton)
       p.show()
 
+  return main_lengths
