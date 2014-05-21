@@ -162,8 +162,6 @@ def init_lengths(labelisofil,filbranches, array_offsets, img):
 
   for n in range(num):
     leng = []
-    av_intensity = []
-
     for branch in range(1, filbranches[n]+1):
       branch_array = np.zeros(labelisofil[n].shape)
       branch_pts = np.where(labelisofil[n]==branch)
@@ -175,6 +173,7 @@ def init_lengths(labelisofil,filbranches, array_offsets, img):
         leng.append(branch_length)
 
       # Now let's find the average intensity along each branch
+      av_intensity = []
       x_offset, y_offset = array_offsets[n][0]
       av_intensity.append(nanmean([img[x+x_offset,y+y_offset] for x,y in zip(*branch_pts)]))
 
@@ -186,7 +185,7 @@ def init_lengths(labelisofil,filbranches, array_offsets, img):
 
 
 
-def pre_graph(labelisofil, lengths, branch_intensity, interpts, num_branches):
+def pre_graph(labelisofil, lengths, branch_intensity, interpts, ends):
   '''
 
   This function converts the skeletons into a graph object compatible with
@@ -211,8 +210,8 @@ def pre_graph(labelisofil, lengths, branch_intensity, interpts, num_branches):
   interpts : list
              Contains the pixels which belong to each intersection.
 
-  num_branches : list
-         Contains the number of branches in each skeleton.
+  ends : list
+         Contains the end pixels for each skeleton.
 
   Returns
   -------
@@ -254,9 +253,9 @@ def pre_graph(labelisofil, lengths, branch_intensity, interpts, num_branches):
   for n in range(num):
     inter_nodes_temp = []
     ## Create end_nodes, which contains lengths, and nodes, which we will later add in the intersections
-    end_nodes.append([(i, path_weighting(i-1, lengths[n], branch_intensity[n]),\
-                              lengths[n][i-1], branch_intensity[n][i-1]) for i in range(1, num_branches[n] + 1)])
-    nodes.append([i for i in range(1, num_branches[n] + 1)])
+    end_nodes.append([(labelisofil[n][i[0],i[1]], path_weighting(int(labelisofil[n][i[0],i[1]]-1), lengths[n], branch_intensity[n]),\
+                     lengths[n][int(labelisofil[n][i[0],i[1]]-1)], branch_intensity[n][int(labelisofil[n][i[0],i[1]]-1)]) for i in ends[n]])
+    nodes.append([labelisofil[n][i[0],i[1]] for i in ends[n]])
 
   # Intersection nodes are given by the intersections points of the filament.
   # They are labeled alphabetically (if len(interpts[n])>26, subsequent labels are AA,AB,...).
