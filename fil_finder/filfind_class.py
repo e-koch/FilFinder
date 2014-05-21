@@ -156,7 +156,7 @@ class fil_finder_2D(object):
         self.array_offsets = None
         self.skeleton = None
         self.filament_extents = None
-        self.branch_info = None
+        self.branch_properties = None
         self.masked_image = None
         self.medial_axis_distance = None
 
@@ -414,7 +414,7 @@ class fil_finder_2D(object):
                        Contains the overall lengths of the skeletons
         self.labeled_fil_arrays : list of numpy.ndarray
                                   Contains the final labeled versions of the skeletons.
-        self.branch_info : dict
+        self.branch_properties : dict
                            The significant branches of the skeletons have their length
                            and number of branches in each skeleton stored here.
                            The keys are: *filament_branches*, *branch_lengths*
@@ -429,31 +429,30 @@ class fil_finder_2D(object):
         interpts, hubs, ends, filbranches, labeled_fil_arrays =  \
                 pix_identify(isolated_filaments, num)
 
-        branch_lengths, branch_intensity = init_lengths(labeled_fil_arrays, filbranches, self.array_offsets, self.image)
+        self.branch_properties = init_lengths(labeled_fil_arrays, filbranches, self.array_offsets, self.image)
+        self.branch_properties["number"] = filbranches  # Add the number of branches onto the dictionary
 
-        edge_list, nodes = pre_graph(labeled_fil_arrays, branch_lengths, branch_intensity, interpts, ends)
+        edge_list, nodes = pre_graph(labeled_fil_arrays, self.branch_properties, interpts, ends)
 
-        max_path, extremum, G = longest_path(edge_list, nodes, branch_lengths,
+        max_path, extremum, G = longest_path(edge_list, nodes,
                                              verbose=verbose,
-                                             skeleton_arrays=labeled_fil_arrays)
+                                             skeleton_arrays=labeled_fil_arrays,
+                                             lengths=self.branch_properties["length"])
 
         updated_lists = prune_graph(G, nodes, edge_list, max_path, labeled_fil_arrays, \
-                                    branch_lengths, filbranches, self.branch_thresh)
+                                    self.branch_properties, self.branch_thresh)
 
-        labeled_fil_arrays, edge_list, nodes, branch_lengths, filbranches = updated_lists
+        labeled_fil_arrays, edge_list, nodes, self.branch_properties = updated_lists
 
         self.filament_extents = extremum_pts(labeled_fil_arrays, extremum, ends)
 
-        main_lengths = main_length(max_path, edge_list, labeled_fil_arrays, \
-                                   interpts, branch_lengths, self.imgscale, \
+        main_lengths = main_length(max_path, edge_list, labeled_fil_arrays,
+                                   interpts, self.branch_properties["length"], self.imgscale,
                                    verbose=verbose)
-
-        # labeled_fil_arrays, filbranches, final_hubs, branch_lengths, filament_arrays = final_analysis(labeled_fil_arrays)
 
         self.lengths = main_lengths
         self.labelled_filament_arrays = labeled_fil_arrays
         self.filament_arrays = filament_arrays
-        self.branch_info = {"filament_branches":filbranches, "branch_lengths":branch_lengths}
 
         return self
 
@@ -727,8 +726,8 @@ class fil_finder_2D(object):
         data = {"Lengths" : self.lengths, \
                 "Plane Orientation (RHT)" : self.rht_curvature["Mean"],\
                 "RHT Curvature" : self.rht_curvature["Std"],\
-                "Branches" : self.branch_info["filament_branches"], \
-                "Branch Lengths" : self.branch_info["branch_lengths"], \
+                "Branches" : self.branch_properties["filament_branches"], \
+                "Branch Lengths" : self.branch_properties["branch_lengths"], \
                 "Fit Type": self.width_fits["Type"]}
 
         for i, param in enumerate(self.width_fits["Names"]):

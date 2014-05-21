@@ -146,11 +146,9 @@ def init_lengths(labelisofil,filbranches, array_offsets, img):
   Returns
   -------
 
-  lengths : list
-            Contains the lengths of each branch on each skeleton.
-
-  av_branch_intensity : list
-                        Average Intensity along each branch.
+  branch_properties: dict
+                     Contains the lengths and intensities of the branches.
+                     Keys are *length* and *intensity*.
 
   '''
   num = len(labelisofil)
@@ -181,12 +179,14 @@ def init_lengths(labelisofil,filbranches, array_offsets, img):
     lengths.append(leng)
     av_branch_intensity.append(av_intensity)
 
-  return lengths, av_branch_intensity
+    branch_properties = {"length": lengths, "intensity": av_branch_intensity}
+
+  return branch_properties
 
 
 
 
-def pre_graph(labelisofil, lengths, branch_intensity, interpts, ends):
+def pre_graph(labelisofil, branch_properties, interpts, ends):
   '''
 
   This function converts the skeletons into a graph object compatible with
@@ -201,12 +201,8 @@ def pre_graph(labelisofil, lengths, branch_intensity, interpts, ends):
                 Contains individual arrays for each skeleton where the
                 branches are labeled and the intersections have been removed.
 
-  lengths : list
-            Contains the lengths of all of the branches.
-
-  branch_intensity : list
-                     The mean intensities along each branch. Used along
-                     with length as a weight.
+  branch_properties : dict
+                      Contains the lengths and intensities of all branches.
 
   interpts : list
              Contains the pixels which belong to each intersection.
@@ -250,6 +246,9 @@ def pre_graph(labelisofil, lengths, branch_intensity, interpts, ends):
       raise ValueError("Relative weighting w must be between 0.0 and 1.0.")
     return  (1-w) * (length[idx]/ np.sum(length)) + w * (intensity[idx]/np.sum(intensity))
 
+
+  lengths = branch_properties["length"]
+  branch_intensity = branch_properties["intensity"]
 
   for n in range(num):
     inter_nodes_temp = []
@@ -308,7 +307,7 @@ def pre_graph(labelisofil, lengths, branch_intensity, interpts, ends):
 
 
 
-def longest_path(edge_list,nodes,lengths,verbose=False, skeleton_arrays=None):
+def longest_path(edge_list,nodes,verbose=False, lengths=None, skeleton_arrays=None):
   '''
   Takes the output of pre_graph and runs the shortest path algorithm.
 
@@ -322,12 +321,13 @@ def longest_path(edge_list,nodes,lengths,verbose=False, skeleton_arrays=None):
           A complete list of all of the nodes. The other nodes lists have
           been separated as they are labeled differently.
 
-  lengths : list
-            Contains the lengths of each branch.
-
   verbose : bool, optional
             If True, enables the plotting of the graph. *Recommend pygraphviz
             be installed for best results.*
+
+  lengths : list, optional
+            Contains the lengths of each branch. Required only for graphviz
+            plotting of the graphs.
 
   skeleton_arrays : list, optional
                     List of the skeleton arrays. Required when verbose=True.
@@ -392,8 +392,8 @@ def longest_path(edge_list,nodes,lengths,verbose=False, skeleton_arrays=None):
   return max_path, extremum, graphs
 
 
-def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_lengths, \
-                filbranches, length_thresh, relintens_thresh=0.2):
+def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties, \
+                length_thresh, relintens_thresh=0.2):
   '''
   Function to remove unnecessary branches, while maintaining connecvtivity
   in the graph. Also updates edge_list, nodes, branch_lengths and filbranches.
@@ -424,10 +424,11 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_lengths, \
             labelisofil[n][x[i], y[i]] = 0
           edge_list[n].remove(edge)
           nodes[n].remove(edge[1])
-          branch_lengths[n].remove(length)
-          filbranches[n] -= 1
+          branch_properties["length"][n].remove(length)
+          branch_properties["intensity"][n].remove(av_intensity)
+          branch_properties["number"][n] -= 1
 
-  return labelisofil, edge_list, nodes, branch_lengths, filbranches
+  return labelisofil, edge_list, nodes, branch_properties
 
 
 def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths, \
