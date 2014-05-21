@@ -31,7 +31,6 @@ import numpy as np
 import scipy.ndimage as nd
 from length import *
 import matplotlib.pyplot as p
-from skimage.morphology import medial_axis, label
 import skimage.filter as skfilter
 
 
