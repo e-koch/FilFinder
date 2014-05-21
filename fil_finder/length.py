@@ -31,7 +31,7 @@ from utilities import *
 from pixel_ident import *
 #from curvature import *
 import operator,string, copy
-
+from skimage.morphology import medial_axis, label
 
 
 
@@ -424,148 +424,50 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, length_thresh, relin
   return labelisofil, edge_list, nodes
 
 
-def final_lengths(img,max_path,edge_list,labelisofil,filpts,interpts,filbranches,lengths,img_scale,length_thresh):
+def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths, \
+                img_scale, verbose=False):
   '''
-  The function finds the overall length of the filament from the longest_path
-  and pre_graph outputs. For intersections of more than one pixel, it calculates
-  a weighted average (based on intensity) and uses that position for calculating
-  the length. The curvature routines are also wrapped in this function.
-
-  This function also performs the "pruning". Branches that are less than
-  length_thresh are deleted.
-
-  Parameters
-  ----------
-
-  img : numpy.ndarray
-        The image being analyzed.
-
-  max_path : list
-             Contains the longest paths through the skeleton.
-
-  edge_list : list
-              Contains the connectivity of the graphs
-
-  labelisofil : list
-                Contains individual arrays for each skeleton where the
-                branches are labeled and the intersections have been removed.
-
-  filpts : list
-           Contains the pixels belonging to each skeleton.
-
-  interpts : list
-             Contains the pixels which belong to the intersections.
-
-  filbranches : list
-                Contains the number of branches in each filament.
-
-  lengths : list
-            Contains the lengths of the branches.
-
-  img_scale : float
-              The conversion to physical units (pc).
-
-  length_thresh : float
-                  The minimum length a branch must be.
-
-  Returns
-  -------
-
-  main_lengths : list
-                 Contains the overall skeleton lengths.
-
-  lengths : list
-            The updated list of the lengths of the skeleton branches.
-
-  labelisofil : list
-                The updated versions of the skeleton arrays. The intersection
-                points have been re-added and the short branches pruned off.
-
   '''
-  num = len(max_path)
 
-  # Initialize lists
+  num = len(labelisofil)
   main_lengths = []
 
-  for n in range(num):
-
-    if len(max_path[n])==1: #Catch filaments with no intersections
-      main_lengths.append(lengths[n][0] * img_scale)
+  for path, edges, inters, skel_arr, lengths in zip(max_path, edge_list, interpts, \
+                                           labelisofil, branch_lengths):
+    if len(path) == 1:
+      lengths[0] *= img_scale
+      main_lengths.append(lengths[0])
+      skeleton = skel_arr  # for viewing purposes when verbose
     else:
-      good_edge_list = [(max_path[n][i],max_path[n][i+1]) for i in range(len(max_path[n])-1)]
+      skeleton = np.zeros(skel_arr.shape, dtype=bool)
+
+      # Add edges along longest path
+      good_edge_list = [(path[i],path[i+1]) for i in range(len(path)-1)]
       # Find the branches along the longest path.
-      keep_branches = []
       for i in good_edge_list:
-        for j in edge_list[n]:
+        for j in edges:
           if (i[0]==j[0] and i[1]==j[1]) or (i[0]==j[1] and i[1]==j[0]):
-            keep_branches.append(j[2][0])
-      # Each branch label is duplicated, get rid of extras
-      keep_branches = list(set(keep_branches))
-      fils = [filpts[n][int(i-1)] for i in keep_branches]
+            label = j[2][0]
+            skeleton[np.where(skel_arr==label)] = 1
 
-      branches = np.unique(labelisofil[n][np.nonzero(labelisofil[n])])
-      # Find the branches which are not in keep_branches, then delete them from labelisofil array
-      delete_branches = list(set(branches) ^ set(keep_branches))
-      for branch in delete_branches:
-        x,y = np.where(labelisofil[n]==branch)
-        for i in range(len(x)):
-          labelisofil[n][x[i],y[i]]=0
-      # A "big_inter" is any intersection which contains multiple pixels
-      big_inters = []
-      for intersec in interpts[n]:
-        if len(intersec)>1:
-          big_inters.append(intersec)
-        for pix in intersec:
-          labelisofil[n][pix]=filbranches[n]+1
-      # find_pilpix is used again to find the end-points of the remaining branches. The
-      # branch labels are used to check which intersections are included in the longest
-      #path. For intersections containing multiple points, an average of the
-      #positions, weighted by their value in the image, is used in the length
-      #calculation.
-      relabel, numero = nd.label(labelisofil[n],eight_con())
-      endpts = find_filpix(numero,relabel,final=False)[3]
-      for intersec in interpts[n]:
-        match = list(set(endpts) & set(intersec)) # Remove duplicates in endpts
-        if len(match)>0:
-          for h in match:
-            endpts.remove(h)
-      for i in big_inters:
-        weight = [];xs = [];ys = []
-        for x,y in i:
-          weight.append(img[x,y])
-          xs.append(x);ys.append(y)
-        av_x = weighted_av(xs,weight)
-        av_y = weighted_av(ys,weight)
-        interpts[n].insert(interpts[n].index(i),[(av_x,av_y)])
-        interpts[n].remove(i)
-      # The pixels of the longest path are combined with the intersection pixels. This gives overall length of the filament.
-      good_pts = [];[[good_pts.append(i[j]) for j in range(len(i))]for i in fils]
-      match = list(set(endpts) & set(good_pts))
-      if len(match)>0:
-        for i in match:
-          good_pts.remove(i)
-      for i in endpts:
-        good_pts.insert(0,i)
+      # Add intersections along longest path
+      for label in path:
+        if not isinstance(label, int):
+          k = 1
+          while zip(product_gen(string.ascii_uppercase),[1]*k)[-1][0] != label:
+            k += 1
+          for pts in inters[k-1]:
+            x, y = pts
+            skeleton[x, y] = 1
 
-      intersec_labels = [zip(product_gen(string.ascii_uppercase),range(len(interpts[n])))[0]]
-      inter_find = list(set(max_path[n]) & set(intersec_labels))
+      # Remove unnecessary pixels
+      skeleton = medial_axis(skeleton)
 
-      good_inter = []
-      if len(inter_find) != 0:
-        for i in inter_find:
-          good_inter.append(interpts[n][intersec_labels.index(i)])
-      interpts[n] = [];[[interpts[n].append(i[j]) for j in range(len(i))] for i in good_inter]
-      finalpix = [good_pts + interpts[n]]
-      lengthh,order = fil_length(n,finalpix,initial=False)
-      main_lengths.append(lengthh[0] * img_scale)
+      main_lengths.append(skeleton_length(skeleton))
 
-      # Re-adding all deleted branches
-      for i in delete_branches:
-          for x,y in filpts[n][i-1]:
-            labelisofil[n][x,y]=i
-            good_pts.insert(i,filpts[n][i-1])
-
-  return main_lengths, lengths, labelisofil
+    if verbose:
+      p.imshow(skeleton)
+      p.show()
 
 
 def final_analysis(labelisofil):
