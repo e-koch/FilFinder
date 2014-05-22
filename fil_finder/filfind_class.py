@@ -16,6 +16,7 @@ from skimage.filter import threshold_adaptive
 from skimage.morphology import remove_small_objects, medial_axis
 from scipy.stats import scoreatpercentile
 from astropy.io import fits
+from astropy.table import Table
 from copy import deepcopy
 import os
 
@@ -699,14 +700,15 @@ class fil_finder_2D(object):
     def save_table(self, table_type="csv", path=None, save_name=None):
         '''
 
-        The results of the algorithm are saved as a csv after converting the data into a pandas dataframe.
+        The results of the algorithm are saved as an Astropy table in a 'csv',
+        'fits' or latex format.
 
         Parameters
         ----------
 
         table_type : str, optional
-               Sets the output type of the table. "csv" uses the pandas package.
-               "fits" uses astropy to output a FITS table.
+               Sets the output type of the table. Supported options are
+               "csv", "fits" and "latex".
 
         path : str, optional
                The path where the file should be saved.
@@ -724,20 +726,23 @@ class fil_finder_2D(object):
         if save_name is None:
             save_name = self.header["OBJECT"]
 
+        save_name = save_name+"_table"
 
-        if not path:
-          if table_type=="csv":
-            filename = "".join([save_name,"_table",".csv"])
-          elif table_type=="fits":
-            filename = "".join([save_name,"_table",".fits"])
-
+        if table_type=="csv":
+          filename = save_name+".csv"
+        elif table_type=="fits":
+          filename = save_name+".fits"
+        elif table_type=="latex":
+          filename = save_name+".tex"
         else:
-            if path[-1] != "/":
-                path = "".join(path,"/")
-            if table_type=="csv":
-              filename = "".join([save_name,"_table",".csv"])
-            elif table_type=="fits":
-              filename = "".join([save_name,"_table",".fits"])
+          raise NameError("Only formats supported are 'csv', 'fits' \
+                           and 'latex'.")
+
+        # If path is specified, append onto filename.
+        if path is not None:
+          if path[-1] != "/":
+            path = "".join(path,"/")
+          filename = path+filename
 
         data = {"Lengths" : self.lengths, \
                 "Plane Orientation (RHT)" : self.rht_curvature["Mean"],\
@@ -752,17 +757,10 @@ class fil_finder_2D(object):
           data[param+" Error"] = self.width_fits["Errors"][:,i]
 
         if table_type=="csv":
-          from pandas import DataFrame, Series
-
-          for key in data.keys():
-            data[key] = Series(data[key])
-
-          df = DataFrame(data)
-          df.to_csv(filename)
+          df = Table(data)
+          df.write(filename, format="ascii.csv")
 
         elif table_type=="fits":
-          from astropy.table import Table
-
           # Branch Lengths and Intensity contains a list for each entry,
           # which aren't accepted for BIN tables.
           if "Branch Length" in data.keys():
@@ -771,12 +769,11 @@ class fil_finder_2D(object):
             del data["Branch Intensity"]
 
           df = Table(data)
-
           df.write(filename)
 
-        else:
-          raise NameError("Only formats supported are 'csv' and 'fits'.")
-
+        elif table_type=="latex":
+          df = Table(data)
+          df.write(filename, format="ascii.latex")
 
         self.dataframe = df
 
