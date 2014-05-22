@@ -479,7 +479,7 @@ def make_final_skeletons(labelisofil, inters, verbose=False):
   filament_arrays = []
 
   for n, (skel_array, intersec) in enumerate(zip(labelisofil, inters)):
-    copy_array = np.zeros(skel_array.shape, dtype=bool)
+    copy_array = np.zeros(skel_array.shape, dtype=int)
 
     for inter in intersec:
       for pts in inter:
