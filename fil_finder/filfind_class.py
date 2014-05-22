@@ -851,9 +851,7 @@ class fil_finder_2D(object):
         xhigh, yhigh = (offset[1][0], offset[1][1])
         shape = (xhigh-xlow, yhigh-ylow)
 
-        # Create stamps
-        skel_stamp = skel_arr
-        lp_stamp = lp_arr
+        # Create stamp
         img_stamp = self.image[xlow:xhigh,
                               ylow:yhigh]
 
@@ -869,9 +867,9 @@ class fil_finder_2D(object):
         hdu.append(fits.PrimaryHDU(img_stamp, header=prim_hdr))
         # Stamp of final skeleton
         prim_hdr.update("BUNIT", value="bool", comment="")
-        hdu.append(fits.PrimaryHDU(skel_stamp, header=prim_hdr))
+        hdu.append(fits.PrimaryHDU(skel_arr, header=prim_hdr))
         # Stamp of longest path
-        hdu.append(fits.PrimaryHDU(lp_stamp, header=prim_hdr))
+        hdu.append(fits.PrimaryHDU(lp_arr, header=prim_hdr))
 
 
         hdu.writeto("stamps_"+save_name+"/"+save_name+"_object_"+str(n+1)+".fits")
