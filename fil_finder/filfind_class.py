@@ -355,7 +355,7 @@ class fil_finder_2D(object):
 
         return self
 
-    def analyze_skeletons(self,verbose=False):
+    def analyze_skeletons(self, relintens_thresh = 0.2, verbose=False):
         '''
 
         This function wraps most of the skeleton analysis. Several steps are
@@ -392,10 +392,15 @@ class fil_finder_2D(object):
         Parameters
         ----------
 
-        verbose : bool
+        verbose : bool, optional
                   This enables visualizations of the graph created from each of the
                   skeletons.
                   *Note:* pygraphviz is required to view the graphs.
+
+        relintens_thresh : float, optional
+                           Relative intensity threshold for pruning. Sets the importance
+                           a branch must have in intensity relative to all other branches
+                           in the skeleton. Must be between (0.0, 1.0].
 
         Returns
         -------
@@ -421,6 +426,9 @@ class fil_finder_2D(object):
 
         '''
 
+        if relintens_thresh>1.0 or relintens_thresh<=0.0:
+          raise ValueError("relintens_thresh must be set between (0.0, 1.0].")
+
         isolated_filaments, num, offsets = \
                 isolatefilaments(self.skeleton, self.skel_thresh, pad_size=self.pad_size)
         self.number_of_filaments = num
@@ -439,8 +447,9 @@ class fil_finder_2D(object):
                                              skeleton_arrays=labeled_fil_arrays,
                                              lengths=self.branch_properties["length"])
 
-        updated_lists = prune_graph(G, nodes, edge_list, max_path, labeled_fil_arrays, \
-                                    self.branch_properties, self.branch_thresh)
+        updated_lists = prune_graph(G, nodes, edge_list, max_path, labeled_fil_arrays,
+                                    self.branch_properties, self.branch_thresh,
+                                    relintens_thresh=relintens_thresh)
 
         labeled_fil_arrays, edge_list, nodes, self.branch_properties = updated_lists
 
