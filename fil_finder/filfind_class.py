@@ -850,13 +850,12 @@ class fil_finder_2D(object):
         xlow, ylow = (offset[0][0], offset[0][1])
         xhigh, yhigh = (offset[1][0], offset[1][1])
         shape = (xhigh-xlow, yhigh-ylow)
-        skel_stamp = skel_arr[self.pad_size:shape[0]-self.pad_size,
-                              self.pad_size:shape[1]-self.pad_size]
-        lp_stamp = lp_arr[self.pad_size:shape[0]-self.pad_size,
-                              self.pad_size:shape[1]-self.pad_size]
 
-        img_stamp = self.image[xlow+self.pad_size:xhigh-self.pad_size,
-                              ylow+self.pad_size:yhigh-self.pad_size]
+        # Create stamps
+        skel_stamp = skel_arr
+        lp_stamp = lp_arr
+        img_stamp = self.image[xlow:xhigh,
+                              ylow:yhigh]
 
         ## ADD IN SOME HEADERS!
         prim_hdr = deepcopy(self.header)
