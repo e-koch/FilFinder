@@ -19,6 +19,7 @@ from astropy.io import fits
 from astropy.table import Table
 from copy import deepcopy
 import os
+import time
 
 class fil_finder_2D(object):
     """
@@ -816,7 +817,7 @@ class fil_finder_2D(object):
 
       return self
 
-    def save_fits(self, save_name=None):
+    def save_fits(self, save_name=None, stamps=False, filename=None):
       '''
 
       This function saves the mask and the skeleton array as FITS files.
@@ -828,71 +829,92 @@ class fil_finder_2D(object):
       save_name : str, optional
                   The prefix for the saved file. If None, the name from the header is used.
 
+      stamps : bool, optional
+               Enables saving of individual stamps
+
+      filename : str, optional
+                 File name of the image used. If None, assumse save_name is the
+                 file name.
 
       '''
 
+      if not filename:  # Assume save_name is filename if not specified.
+        filename = save_name
+
+      # Create header based off of image header.
+      new_hdr = deepcopy(self.header)
+
+      try:  # delete the original history
+        del new_hdr["HISTORY"]
+      except KeyError:
+        pass
+
+      new_hdr.update("BUNIT", value="bool", comment="")
+      new_hdr["COMMENT"] = "Mask created by fil_finder on "+time.strftime("%c")
+      new_hdr["COMMENT"] = "See fil_finder documentation for more info on parameter meanings."
+      new_hdr["COMMENT"] = "Smoothing Filter Size: "+str(self.smooth_size)+" pixels"
+      new_hdr["COMMENT"] = "Area Threshold: "+str(self.size_thresh)+" pixels^2"
+      new_hdr["COMMENT"] = "Global Intensity Threshold: "+str(self.glob_thresh)+" %"
+      new_hdr["COMMENT"] = "Size of Adaptive Threshold Patch: "+str(self.adapt_thresh)+" pixels"
+      new_hdr["COMMENT"] = "Original file name: "+filename
+
       ## Save mask
-      hdr_mask = deepcopy(self.header)
-      hdr_mask.update("BUNIT", value="bool", comment="")
-      hdr_mask.add_comment("Mask created by fil_finder. See fil_finder \
-                            documentation for more info on parameter meanings.")
-      hdr_mask.add_comment("Smoothing Filter Size: "+str(self.smooth_size))
-      hdr_mask.add_comment("Area Threshold: "+str(self.size_thresh))
-      hdr_mask.add_comment("Global Intensity Threshold: "+str(self.glob_thresh))
-      hdr_mask.add_comment("Size of Adaptive Threshold Patch: "+str(self.adapt_thresh))
+      fits.writeto("".join([save_name,"_mask.fits"]), self.mask.astype("float"), new_hdr)
 
-      fits.writeto("".join([save_name,"_mask.fits"]), self.mask.astype("float"), hdr_mask)
+      ## Save skeletons. Includes final skeletons and the longest paths.
+      new_hdr.update("BUNIT", value="int", comment="")
+      new_hdr["COMMENT"] = "Skeleton Size Threshold: "+str(self.skel_thresh)
+      new_hdr["COMMENT"] = "Branch Size Threshold: "+str(self.branch_thresh)
 
-      ## Save skeletons
-      hdr_skel = deepcopy(self.header)
-      hdr_skel.update("BUNIT", value="bool", comment="")
-      hdr_skel.add_comment("Mask created by fil_finder. See fil_finder \
-                            documentation for more info on parameter meanings.")
-      hdr_skel.add_comment("Smoothing Filter Size: "+str(self.smooth_size))
-      hdr_skel.add_comment("Area Threshold: "+str(self.size_thresh))
-      hdr_skel.add_comment("Global Intensity Threshold: "+str(self.glob_thresh))
-      hdr_skel.add_comment("Size of Adaptive Threshold Patch: "+str(self.adapt_thresh))
-      hdr_skel.add_comment("Skeleton Size Threshold: "+str(self.skel_thresh))
-      hdr_skel.add_comment("Branch Size Threshold: "+str(self.branch_thresh))
+      hdu_skel = fits.HDUList()
 
-      fits.writeto("".join([save_name,"_skeletons.fits"]), self.skeleton.astype("float"), hdr_skel)
+      # Final Skeletons - create labels which match up with table output
+      labels = nd.label(self.skeleton, eight_con())[0]
+      hdu_skel.append(fits.PrimaryHDU(labels, header=new_hdr))
 
-      # Save stamps of all images. Include portion of image and the skeleton for reference.
+      # Longest Paths
+      labels_lp = nd.label(self.skeleton_longpath, eight_con())[0]
+      hdu_skel.append(fits.PrimaryHDU(labels_lp, header=new_hdr))
 
-      # Make a directory for the stamps
-      if not os.path.exists("stamps_"+save_name):
-        os.makedirs("stamps_"+save_name)
+      hdu_skel.writeto("".join([save_name,"_skeletons.fits"]))
 
-      final_arrays = self.filament_arrays["final"]
-      longpath_arrays = self.filament_arrays["long path"]
+      if stamps:
+        # Save stamps of all images. Include portion of image and the skeleton for reference.
 
-      for n, (offset, skel_arr, lp_arr) in enumerate(zip(self.array_offsets, final_arrays, longpath_arrays)):
-        xlow, ylow = (offset[0][0], offset[0][1])
-        xhigh, yhigh = (offset[1][0], offset[1][1])
-        shape = (xhigh-xlow, yhigh-ylow)
+        # Make a directory for the stamps
+        if not os.path.exists("stamps_"+save_name):
+          os.makedirs("stamps_"+save_name)
 
-        # Create stamp
-        img_stamp = self.image[xlow:xhigh,
-                              ylow:yhigh]
+        final_arrays = self.filament_arrays["final"]
+        longpath_arrays = self.filament_arrays["long path"]
 
-        ## ADD IN SOME HEADERS!
-        prim_hdr = deepcopy(self.header)
-        prim_hdr["COMMENT"] = "Outputted from fil_finder."
-        prim_hdr["COMMENT"] = "Extent in original array: ("+ \
-                              str(xlow+self.pad_size)+","+str(ylow+self.pad_size)+")->"+ \
-                              "("+str(xhigh-self.pad_size)+","+str(yhigh-self.pad_size)+")"
+        for n, (offset, skel_arr, lp_arr) in enumerate(zip(self.array_offsets, final_arrays, longpath_arrays)):
+          xlow, ylow = (offset[0][0], offset[0][1])
+          xhigh, yhigh = (offset[1][0], offset[1][1])
+          shape = (xhigh-xlow, yhigh-ylow)
 
-        hdu = fits.HDUList()
-        # Image stamp
-        hdu.append(fits.PrimaryHDU(img_stamp, header=prim_hdr))
-        # Stamp of final skeleton
-        prim_hdr.update("BUNIT", value="bool", comment="")
-        hdu.append(fits.PrimaryHDU(skel_arr, header=prim_hdr))
-        # Stamp of longest path
-        hdu.append(fits.PrimaryHDU(lp_arr, header=prim_hdr))
+          # Create stamp
+          img_stamp = self.image[xlow:xhigh,
+                                ylow:yhigh]
+
+          ## ADD IN SOME HEADERS!
+          prim_hdr = deepcopy(self.header)
+          prim_hdr["COMMENT"] = "Outputted from fil_finder."
+          prim_hdr["COMMENT"] = "Extent in original array: ("+ \
+                                str(xlow+self.pad_size)+","+str(ylow+self.pad_size)+")->"+ \
+                                "("+str(xhigh-self.pad_size)+","+str(yhigh-self.pad_size)+")"
+
+          hdu = fits.HDUList()
+          # Image stamp
+          hdu.append(fits.PrimaryHDU(img_stamp, header=prim_hdr))
+          # Stamp of final skeleton
+          prim_hdr.update("BUNIT", value="bool", comment="")
+          hdu.append(fits.PrimaryHDU(skel_arr, header=prim_hdr))
+          # Stamp of longest path
+          hdu.append(fits.PrimaryHDU(lp_arr, header=prim_hdr))
 
 
-        hdu.writeto("stamps_"+save_name+"/"+save_name+"_object_"+str(n+1)+".fits")
+          hdu.writeto("stamps_"+save_name+"/"+save_name+"_object_"+str(n+1)+".fits")
 
       return self
 
@@ -937,7 +959,7 @@ class fil_finder_2D(object):
         self.find_widths(verbose = verbose)
         self.results()
         self.save_table(save_name=save_name, table_type="fits")
-        self.save_fits(save_name=save_name)
+        self.save_fits(save_name=save_name, stamps=False)
 
         if verbose:
             self.__str__()
