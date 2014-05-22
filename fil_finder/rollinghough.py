@@ -13,10 +13,30 @@ import matplotlib.pyplot as p
 def rht(mask, radius, ntheta=180, background_percentile=25):
     '''
 
-    INPUTS
-    ------
+    Parameters
+    **********
 
-    mask - bool array
+    mask : numpy.ndarray
+           Boolean or integer array. Transform performed at all non-zero points.
+
+    radius : int
+             Radius of circle used around each pixel.
+
+    ntheta : int, optional
+             Number of angles to use in transform.
+
+    background_percentile : float, optional
+                            Percentile of data to subtract off. Background is
+                            due to limits on pixel resolution.
+
+    Returns
+    *******
+
+    theta : numpy.ndarray
+            Angles transform was performed at.
+
+    R : numpy.ndarray
+        Transform output.
 
     '''
 
@@ -42,6 +62,12 @@ def rht(mask, radius, ntheta=180, background_percentile=25):
             pass ## If all nans, ignore
         else:
             R = R + np.nansum(np.nansum(line, axis=2), axis=1)
+
+    # For some reason, the theta=0 case never gets done properly.
+    # theta=pi does though, so set it to that and clip.
+    R[0] = R[-1]
+    R = R[:-1]
+    theta = theta[:-1]
 
     ## You're likely to get a somewhat constant background, so subtract that out
     R = R - np.median(R[R<=scoreatpercentile(R,background_percentile)])
