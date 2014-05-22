@@ -1,29 +1,19 @@
-#!/usr/bin/python
+
+'''
+
+Routines for calculating the widths of filaments.
+
+'''
+
 
 from utilities import *
+from pixel_ident import recombine_skeletons
 import numpy as np
 import scipy.ndimage as nd
 import scipy.optimize as op
 from scipy.integrate import quad
 from scipy.stats import scoreatpercentile, percentileofscore
 import matplotlib.pyplot as p
-import copy
-'''
-Routines for calculating the widths of filaments.
-
-Contains:
-
-
-Requires:
-		numpy
-		ndimage
-		scipy.optimize
-'''
-
-
-
-
-
 
 
 def dist_transform(labelisofil, offsets, orig_size, pad_size, verbose=False):
@@ -66,53 +56,16 @@ def dist_transform(labelisofil, offsets, orig_size, pad_size, verbose=False):
 	'''
 	num  = len(labelisofil)
 
-
-	# Initializing lists
 	dist_transform_sep = []
 
+	for skel_arr in labelisofil:
+		if np.max(skel_arr) > 1:
+			skel_arr[np.where(skel_arr > 1)] = 1
+	  	dist_transform_sep.append(nd.distance_transform_edt(np.logical_not(skel_arr)))
 
-	filclean_all = np.ones(orig_size)
-	for n in range(num):
-	  x_off,y_off = offsets[n][0] ## These is the coordinates of the bottom left in the master array
-	  x_top,y_top = offsets[n][1]
+	filclean_all = recombine_skeletons(labelisofil, offsets, orig_size, pad_size)
 
-	  ## Now check if padding will put the array outside of the original array size
-	  excess_x_top =  x_top - orig_size[0]
-
-	  excess_y_top =  y_top - orig_size[1]
-
-	  pad_labelisofil = copy.copy(labelisofil[n]) # Increase size of arrays for better radial fits
-
-	  size_change_flag = False
-
-	  if excess_x_top > 0:
-	  	pad_labelisofil = pad_labelisofil[:-excess_x_top,:]
-	  	size_change_flag = True
-
-	  if excess_y_top > 0:
-	  	pad_labelisofil = pad_labelisofil[:,:-excess_y_top]
-	  	size_change_flag = True
-
-	  if x_off<0:
-	  	pad_labelisofil = pad_labelisofil[-x_off:,:]
-	  	x_off = 0
-	  	size_change_flag = True
-
-	  if y_off<0:
-	  	pad_labelisofil = pad_labelisofil[:,-y_off:]
-	  	y_off = 0
-	  	size_change_flag = True
-
-	  if verbose & size_change_flag:
-	  	print "REDUCED FILAMENT %s/%s TO FIT IN ORIGINAL ARRAY" %(n, num)
-
-	  x,y = np.where(pad_labelisofil>=1)
-	  for i in range(len(x)):
-	    pad_labelisofil[x[i],y[i]]=1
-	    filclean_all[x[i]+ x_off,y[i]+ y_off]=0
-	  dist_transform_sep.append(nd.distance_transform_edt(np.logical_not(pad_labelisofil)))
-
-	dist_transform_all = nd.distance_transform_edt(filclean_all) # Distance Transform of all cleaned filaments
+	dist_transform_all = nd.distance_transform_edt(np.logical_not(filclean_all)) # Distance Transform of all cleaned filaments
 
 	return dist_transform_all, dist_transform_sep, filclean_all
 

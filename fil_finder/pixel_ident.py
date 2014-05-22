@@ -32,6 +32,7 @@ import scipy.ndimage as nd
 from length import *
 import matplotlib.pyplot as p
 import skimage.filter as skfilter
+import copy
 
 
 def isolatefilaments(skel_img, size_threshold, pad_size=5):
@@ -499,4 +500,52 @@ def make_final_skeletons(labelisofil, inters, verbose=False):
   return filament_arrays
 
 
+def recombine_skeletons(skeletons, offsets, orig_size, pad_size, verbose=False):
+  '''
+  Takes a list of skeleton arrays and combines them back into
+  the original array.
+  '''
 
+  num  = len(skeletons)
+
+  master_array = np.zeros(orig_size)
+  for n in range(num):
+    x_off,y_off = offsets[n][0]  # These are the coordinates of the bottom
+                                 # left in the master array.
+    x_top,y_top = offsets[n][1]
+
+    ## Now check if padding will put the array outside of the original array size
+    excess_x_top =  x_top - orig_size[0]
+
+    excess_y_top =  y_top - orig_size[1]
+
+    copy_skeleton = copy.copy(skeletons[n])
+
+    size_change_flag = False
+
+    if excess_x_top > 0:
+      copy_skeleton = copy_skeleton[:-excess_x_top,:]
+      size_change_flag = True
+
+    if excess_y_top > 0:
+      copy_skeleton = copy_skeleton[:,:-excess_y_top]
+      size_change_flag = True
+
+    if x_off<0:
+      copy_skeleton = copy_skeleton[-x_off:,:]
+      x_off = 0
+      size_change_flag = True
+
+    if y_off<0:
+      copy_skeleton = copy_skeleton[:,-y_off:]
+      y_off = 0
+      size_change_flag = True
+
+    if verbose & size_change_flag:
+      print "REDUCED FILAMENT %s/%s TO FIT IN ORIGINAL ARRAY" %(n, num)
+
+    x,y = np.where(copy_skeleton>=1)
+    for i in range(len(x)):
+      master_array[x[i]+ x_off,y[i]+ y_off] = 1
+
+  return master_array
