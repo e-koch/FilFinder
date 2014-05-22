@@ -465,6 +465,11 @@ class fil_finder_2D(object):
 
         self.labelled_filament_arrays = labeled_fil_arrays
 
+        # Convert branch lengths physical units
+        for n in range(self.number_of_filaments):
+          lengths = self.branch_properties["length"][n]
+          self.branch_properties["length"][n] = [self.imgscale * length for length in lengths]
+
         return self
 
     def exec_rht(self, radius=10, ntheta=180, background_percentile=25, verbose=False):
