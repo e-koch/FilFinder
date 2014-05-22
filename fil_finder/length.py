@@ -438,6 +438,7 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths, \
 
   num = len(labelisofil)
   main_lengths = []
+  longpath_arrays = []
 
   for path, edges, inters, skel_arr, lengths in zip(max_path, edge_list, interpts, \
                                            labelisofil, branch_lengths):
@@ -446,7 +447,7 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths, \
       main_lengths.append(lengths[0] * img_scale)
       skeleton = skel_arr  # for viewing purposes when verbose
     else:
-      skeleton = np.zeros(skel_arr.shape, dtype=bool)
+      skeleton = np.zeros(skel_arr.shape)
 
       # Add edges along longest path
       good_edge_list = [(path[i],path[i+1]) for i in range(len(path)-1)]
@@ -471,9 +472,10 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths, \
       skeleton = medial_axis(skeleton)
 
       main_lengths.append(skeleton_length(skeleton) * img_scale)
+      longpath_arrays.append(skeleton.astype(int))
 
     if verbose:
       p.imshow(skeleton)
       p.show()
 
-  return main_lengths
+  return main_lengths, longpath_arrays

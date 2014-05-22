@@ -150,7 +150,7 @@ class fil_finder_2D(object):
         self.widths = []
         self.width_fits = {"Parameters": [], "Errors": [], "Names": None}
         self.rht_curvature = {"Mean": [], "Std": []}
-        self.filament_arrays = None
+        self.filament_arrays = {}
         self.labelled_filament_arrays = None
         self.number_of_filaments = None
         self.array_offsets = None
@@ -446,13 +446,14 @@ class fil_finder_2D(object):
 
         self.filament_extents = extremum_pts(labeled_fil_arrays, extremum, ends)
 
-        main_lengths = main_length(max_path, edge_list, labeled_fil_arrays,
+        length_output = main_length(max_path, edge_list, labeled_fil_arrays,
                                    interpts, self.branch_properties["length"], self.imgscale,
                                    verbose=verbose)
 
-        self.filament_arrays = make_final_skeletons(labeled_fil_arrays, interpts, verbose=verbose)
+        self.lengths, self.filament_arrays["long path"] = length_output
 
-        self.lengths = main_lengths
+        self.filament_arrays["final"] = make_final_skeletons(labeled_fil_arrays, interpts, verbose=verbose)
+
         self.labelled_filament_arrays = labeled_fil_arrays
 
         return self
@@ -491,7 +492,7 @@ class fil_finder_2D(object):
       '''
 
       for n in range(self.number_of_filaments):
-        theta, R = rht(self.filament_arrays[n], radius, ntheta, background_percentile)
+        theta, R = rht(self.filament_arrays["final"][n], radius, ntheta, background_percentile)
         ecdf = np.cumsum(R/np.sum(R))
 
         median = theta[np.where(ecdf==find_nearest(ecdf,0.5))].mean() ## 50th percentile
@@ -561,7 +562,7 @@ class fil_finder_2D(object):
 
         '''
 
-        dist_transform_all, dist_transform_separate, self.skeleton = dist_transform(self.filament_arrays, \
+        dist_transform_all, dist_transform_separate, self.skeleton = dist_transform(self.filament_arrays["final"], \
                     self.array_offsets, self.image.shape, self.pad_size, self.branch_thresh, verbose=verbose)
 
         def red_chisq(data, fit, nparam, sd):
@@ -627,7 +628,7 @@ class fil_finder_2D(object):
                 xlow, ylow = (self.array_offsets[n][0][0], self.array_offsets[n][0][1])
                 xhigh, yhigh = (self.array_offsets[n][1][0], self.array_offsets[n][1][1])
                 shape = (xhigh-xlow, yhigh-ylow)
-                p.contour(self.filament_arrays[n][self.pad_size:shape[0]-self.pad_size, \
+                p.contour(self.filament_arrays["final"][n][self.pad_size:shape[0]-self.pad_size, \
                                 self.pad_size:shape[1]-self.pad_size], colors="k")
                 img_slice = self.image[xlow+self.pad_size:xhigh-self.pad_size, \
                                 ylow+self.pad_size:yhigh-self.pad_size]
@@ -842,13 +843,19 @@ class fil_finder_2D(object):
       if not os.path.exists("stamps_"+save_name):
         os.makedirs("stamps_"+save_name)
 
-      for n, (offset, skel_arr) in enumerate(zip(self.array_offsets, self.filament_arrays)):
+      final_arrays = self.filament_arrays["final"]
+      longpath_arrays = self.filament_arrays["long path"]
+
+      for n, (offset, skel_arr, lp_arr) in enumerate(zip(self.array_offsets, final_arrays, longpath_arrays)):
         xlow, ylow = (offset[0][0], offset[0][1])
         xhigh, yhigh = (offset[1][0], offset[1][1])
         shape = (xhigh-xlow, yhigh-ylow)
-        skel_stamp = skel_arr[self.pad_size:shape[0]-self.pad_size, \
-                                            self.pad_size:shape[1]-self.pad_size]
-        img_stamp = self.image[xlow+self.pad_size:xhigh-self.pad_size, \
+        skel_stamp = skel_arr[self.pad_size:shape[0]-self.pad_size,
+                              self.pad_size:shape[1]-self.pad_size]
+        lp_stamp = lp_arr[self.pad_size:shape[0]-self.pad_size,
+                              self.pad_size:shape[1]-self.pad_size]
+
+        img_stamp = self.image[xlow+self.pad_size:xhigh-self.pad_size,
                               ylow+self.pad_size:yhigh-self.pad_size]
 
         ## ADD IN SOME HEADERS!
@@ -864,6 +871,9 @@ class fil_finder_2D(object):
         # Stamp of final skeleton
         prim_hdr.update("BUNIT", value="bool", comment="")
         hdu.append(fits.PrimaryHDU(skel_stamp, header=prim_hdr))
+        # Stamp of longest path
+        hdu.append(fits.PrimaryHDU(lp_stamp, header=prim_hdr))
+
 
         hdu.writeto("stamps_"+save_name+"/"+save_name+"_object_"+str(n+1)+".fits")
 
