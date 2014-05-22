@@ -621,7 +621,7 @@ class fil_finder_2D(object):
                 ## Prepare the storage
                 self.width_fits["Parameters"] = np.empty((self.number_of_filaments, len(parameter_names)))
                 self.width_fits["Errors"] = np.empty((self.number_of_filaments, len(parameter_names)))
-                self.width_fits["Type"] = np.chararray((self.number_of_filaments, 1))
+                self.width_fits["Type"] = np.empty((self.number_of_filaments), dtype="S")
 
 
             if verbose:
@@ -659,7 +659,7 @@ class fil_finder_2D(object):
             self.widths.append(fit[-1])
             self.width_fits["Parameters"][n,:] = fit
             self.width_fits["Errors"][n,:] = fit_error
-            self.width_fits["Type"][n,:] = fit_type
+            self.width_fits["Type"][n] = fit_type
         self.width_fits["Names"] =  parameter_names
 
         return self
