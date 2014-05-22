@@ -7,7 +7,6 @@ Routines for calculating the widths of filaments.
 
 
 from utilities import *
-from pixel_ident import recombine_skeletons
 import numpy as np
 import scipy.ndimage as nd
 import scipy.optimize as op
@@ -16,7 +15,7 @@ from scipy.stats import scoreatpercentile, percentileofscore
 import matplotlib.pyplot as p
 
 
-def dist_transform(labelisofil, offsets, orig_size, pad_size, verbose=False):
+def dist_transform(labelisofil, filclean_all, verbose=False):
 	'''
 
 	Recombines the cleaned skeletons from final analysis and takes the
@@ -30,17 +29,8 @@ def dist_transform(labelisofil, offsets, orig_size, pad_size, verbose=False):
 	labelisofil : list
 				  Contains arrays of the cleaned individual skeletons
 
-	offsets : list
-			  The output from isolatefilaments during the segmentation
-			  process. Contains the indices where each skeleton was cut
-			  out of the original array.
-
-	orig_size : tuple
-				The shape of the original image.
-
-	pad_size : int
-			   The size to pad each skeleton array with. If the edges go
-			   beyond the original image's size, they are trimmed to size.
+	filclean_all : numpy.ndarray
+				   Master array with all final skeletons.
 
 	Returns
 	-------
@@ -63,11 +53,9 @@ def dist_transform(labelisofil, offsets, orig_size, pad_size, verbose=False):
 			skel_arr[np.where(skel_arr > 1)] = 1
 	  	dist_transform_sep.append(nd.distance_transform_edt(np.logical_not(skel_arr)))
 
-	filclean_all = recombine_skeletons(labelisofil, offsets, orig_size, pad_size)
-
 	dist_transform_all = nd.distance_transform_edt(np.logical_not(filclean_all)) # Distance Transform of all cleaned filaments
 
-	return dist_transform_all, dist_transform_sep, filclean_all
+	return dist_transform_all, dist_transform_sep
 
 
 def cyl_model(distance, rad_profile, img_beam):

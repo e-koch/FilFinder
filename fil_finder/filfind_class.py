@@ -156,6 +156,7 @@ class fil_finder_2D(object):
         self.number_of_filaments = None
         self.array_offsets = None
         self.skeleton = None
+        self.skeleton_longpath = None
         self.filament_extents = None
         self.branch_properties = None
         self.masked_image = None
@@ -471,6 +472,14 @@ class fil_finder_2D(object):
           lengths = self.branch_properties["length"][n]
           self.branch_properties["length"][n] = [self.imgscale * length for length in lengths]
 
+        self.skeletons = recombine_skeletons(self.filament_arrays["final"],
+                                             self.array_offsets, self.image.shape,
+                                             self.pad_size, verbose=True)
+
+        self.skeleton_longpath = recombine_skeletons(self.filament_arrays["long path"],
+                                             self.array_offsets, self.image.shape,
+                                             self.pad_size, verbose=True)
+
         return self
 
     def exec_rht(self, radius=10, ntheta=180, background_percentile=25, verbose=False):
@@ -577,8 +586,8 @@ class fil_finder_2D(object):
 
         '''
 
-        dist_transform_all, dist_transform_separate, self.skeleton = dist_transform(self.filament_arrays["final"], \
-                    self.array_offsets, self.image.shape, self.pad_size, verbose=verbose)
+        dist_transform_all, dist_transform_separate = dist_transform(self.filament_arrays["final"], \
+                    self.skeleton, verbose=verbose)
 
         def red_chisq(data, fit, nparam, sd):
           N = data.shape[0]
