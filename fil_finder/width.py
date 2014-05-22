@@ -26,7 +26,7 @@ Requires:
 
 
 
-def dist_transform(labelisofil, offsets, orig_size, pad_size, length_threshold, verbose=False):
+def dist_transform(labelisofil, offsets, orig_size, pad_size, verbose=False):
 	'''
 
 	Recombines the cleaned skeletons from final analysis and takes the
@@ -51,10 +51,6 @@ def dist_transform(labelisofil, offsets, orig_size, pad_size, length_threshold, 
 	pad_size : int
 			   The size to pad each skeleton array with. If the edges go
 			   beyond the original image's size, they are trimmed to size.
-
-	length_threshold : int
-					   Threshold length for filaments. Used as a check
-					   in making the final filament map.
 
 	Returns
 	-------

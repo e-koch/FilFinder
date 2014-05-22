@@ -578,7 +578,7 @@ class fil_finder_2D(object):
         '''
 
         dist_transform_all, dist_transform_separate, self.skeleton = dist_transform(self.filament_arrays["final"], \
-                    self.array_offsets, self.image.shape, self.pad_size, self.branch_thresh, verbose=verbose)
+                    self.array_offsets, self.image.shape, self.pad_size, verbose=verbose)
 
         def red_chisq(data, fit, nparam, sd):
           N = data.shape[0]
