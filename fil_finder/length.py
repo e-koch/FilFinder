@@ -409,7 +409,7 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties, \
     delete_candidate = list((set(nodes[n]) - set(max_path[n])) & set(single_connect))
 
     if not delete_candidate: # Nothing to delete!
-      return labelisofil, edge_list, nodes
+      pass
 
     else:
       edge_candidates = [edge for edge in edge_list[n] if edge[0] in delete_candidate or edge[1] in delete_candidate]
