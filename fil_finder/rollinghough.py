@@ -62,9 +62,7 @@ def rht(mask, radius, ntheta=180, background_percentile=25):
         region = np.tile(circle * pad_mask[i:i+2*radius+1,j:j+2*radius+1], (ntheta, 1, 1))
         line = region * np.isclose(circles_cube, 0.0)
 
-        if np.isnan(line).all():
-            pass ## If all nans, ignore
-        else:
+        if not np.isnan(line).all():
             R = R + np.nansum(np.nansum(line, axis=2), axis=1)
 
     # Check that the ends are close.
