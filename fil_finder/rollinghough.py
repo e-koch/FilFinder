@@ -9,6 +9,9 @@ import numpy as np
 import scipy.ndimage as nd
 from scipy.stats import scoreatpercentile
 import matplotlib.pyplot as p
+from operator import itemgetter
+from itertools import groupby
+
 
 def rht(mask, radius, ntheta=180, background_percentile=25):
     '''
@@ -41,8 +44,9 @@ def rht(mask, radius, ntheta=180, background_percentile=25):
     '''
 
     pad_mask = np.pad(mask.astype(float), radius, padwithnans)
-    theta = np.linspace(0,np.pi, ntheta)
 
+    # The theta=0 case isn't handled properly
+    theta = np.linspace(np.pi/2.,1.5*np.pi, ntheta)
 
     ## Create a cube of all angle positions
     circle, mesh = circular_region(radius)
@@ -63,21 +67,41 @@ def rht(mask, radius, ntheta=180, background_percentile=25):
         else:
             R = R + np.nansum(np.nansum(line, axis=2), axis=1)
 
-    # For some reason, the theta=0 case never gets done properly.
-    # theta=pi does though, so set it to that and clip.
-    R[0] = R[-1]
-    R = R[:-1]
-    theta = theta[:-1]
+    # Check that the ends are close.
+    if np.isclose(R[0], R[-1], rtol=1.0):
+        R = R[:-1]
+        theta = theta[:-1]
+    else:
+        raise ValueError("R(pi/2) should equal R(3/2*pi). Check input.")
 
     ## You're likely to get a somewhat constant background, so subtract that out
     R = R - np.median(R[R<=scoreatpercentile(R,background_percentile)])
     if (R<0.0).any():
         R[R<0.0] = 0.0 ## Ignore negative values after subtraction
-    max_posn = np.where(R>=scoreatpercentile(R, 90))[0]
-    if max_posn.shape[0]>1:
-        max_posn = int(np.mean(max_posn))
-    theta = np.roll(theta, max_posn)
-    R = np.roll(R, max_posn)
+
+    # Now we want to set the position to "start" the distribution at
+    # We look for minima (or near minima) in the distribution, then see if any are sequentially in line
+    # The position used is the median of the longest sequence
+    zero_posn = np.where(R<=scoreatpercentile(R, 5))[0]
+    mins = np.where(R==R.min())[0]
+    if mins.shape[0]>zero_posn.shape[0]: # If there are more minima, use that for a better estimate.
+        zero_posn = mins
+
+    if zero_posn.shape[0]>1:
+        continuous_sections = []
+        for _, g in groupby(enumerate(zero_posn), lambda (i,x): i-x):
+            continuous_sections.append(map(itemgetter(1), g))
+        try:
+            section = max(continuous_sections, key=len)
+            zero_posn = int(np.median(section))
+        except ValueError:
+            # If there are no groups, just choose the first point.
+            zero_posn = zero_posn[0]
+
+    # Return to [0, pi] interval and position to the correct zero point.
+    theta -= np.pi/2.
+    theta = np.roll(theta, zero_posn)
+    R = np.roll(R, zero_posn+(ntheta/2))
 
     return theta, R
 
