@@ -792,34 +792,6 @@ class fil_finder_2D(object):
 
         return self
 
-    def save_plots(self, save_name=None, percentile=80.):
-      '''
-
-      Creates saved PDF plots of several quantities/images.
-
-      '''
-
-      threshold = scoreatpercentile(self.image[~np.isnan(self.image)], percentile)
-      p.imshow(self.image, vmax=threshold, origin="lower", interpolation="nearest")
-      p.contour(self.mask)
-      p.title("".join([save_name," Contours at ", str(round(threshold))]))
-      p.savefig("".join([save_name,"_filaments.pdf"]))
-      p.close()
-
-      ## Skeletons
-      masked_image = self.image * self.mask
-      skel_points = np.where(self.skeleton==1)
-      for i in range(len(skel_points[0])):
-          masked_image[skel_points[0][i],skel_points[1][i]] = np.NaN
-      p.imshow(masked_image, vmax=threshold, interpolation=None, origin="lower")
-      p.savefig("".join([save_name,"_skeletons.pdf"]))
-      p.close()
-
-      # Return histograms of the population statistics
-      Analysis(self.dataframe, save=True, save_name=save_name).make_plots()
-
-      return self
-
     def save_fits(self, save_name=None, stamps=False, filename=None):
       '''
 
@@ -969,7 +941,8 @@ class fil_finder_2D(object):
             self.__str__()
 
         if save_plots:
-          self.save_plots(save_name=save_name)
+          Analysis(self.dataframe, save_name=save_name).make_hists()
+          # ImageAnalysis(self.image, self.mask, skeleton=self.skeleton, save_name=save_name)
 
 
 
