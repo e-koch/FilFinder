@@ -43,4 +43,5 @@ Requires:
 
 Optional:
 
- * pygraphviz -- to make connectivity graphs (set verbose = True)
+ *  pygraphviz -- to make connectivity graphs (set verbose = True)
+ *  prettyplotlib (https://github.com/olgabot/prettyplotlib)
