@@ -618,7 +618,10 @@ class fil_finder_2D(object):
             # Get the function's name to track where fit values come from
             fit_type = str(model.__name__)
 
-            chisq = red_chisq(radprof, model(dist, *fit[:-1]), 3, 1)
+            if not fail_flag:
+              chisq = red_chisq(radprof, model(dist, *fit[:-1]), 3, 1)
+            else:
+              chisq = 11.0  # Give a value above threshold to try non-parametric fit
 
             # If the model isn't doing a good job, try it non-parametrically
             if chisq>10.0 and try_nonparam:
@@ -959,6 +962,7 @@ class fil_finder_2D(object):
         self.find_widths(verbose = verbose)
         self.results()
         self.save_table(save_name=save_name, table_type="fits")
+        self.save_table(save_name=save_name, table_type="csv")
         self.save_fits(save_name=save_name, stamps=False)
 
         if verbose:

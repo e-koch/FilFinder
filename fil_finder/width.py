@@ -131,7 +131,7 @@ def gauss_model(distance, rad_profile, weights, img_beam):
 		fit, cov = op.curve_fit(gaussian, distance, rad_profile, p0=p0, \
 							maxfev=100*(len(distance)+1), sigma=weights)
 		fit_errors = np.sqrt(np.diag(cov))
-	except RuntimeError:
+	except:
 		print "curve_fit failed."
 		fit, fit_errors = p0, None
 		return fit, fit_errors, gaussian, parameters, True
