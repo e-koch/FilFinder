@@ -15,7 +15,7 @@ class Analysis(object):
     *The complete functionality is not yet in place.*
 
     """
-    def __init__(self, dataframe, save=False ,save_name=None, verbose=False):
+    def __init__(self, dataframe, save_name=None, verbose=False):
         '''
         Parameters
         ----------
@@ -43,7 +43,6 @@ class Analysis(object):
 
         self.save_name = save_name
         self.verbose = verbose
-        self.save = save
 
 
 
@@ -99,7 +98,7 @@ class Analysis(object):
             axes[1, 1].set_xlabel("Orientation Angle")
             p.show()
 
-        if self.save:
+        else:
             p.hist(widths, num_bins)
             p.xlabel("Widths (pc)")
             p.savefig("".join([self.save_name,"_widths.pdf"]))
@@ -116,3 +115,44 @@ class Analysis(object):
             p.close()
 
         return self
+
+
+class ImageAnalysis(object):
+    """docstring for ImageAnalysis"""
+    def __init__(self, image, mask, skeleton=None, save_name=None, verbose=True):
+        super(ImageAnalysis, self).__init__()
+        self.image = image
+        self.mask = mask
+        self.skeleton = skeleton
+
+        self.save_name = save_name
+        self.verbose = verbose
+
+
+    def save_plots(self, save_name=None, percentile=80.):
+      '''
+
+      Creates saved PDF plots of several quantities/images.
+
+      '''
+
+      if self.verbose:
+        pass
+      else:
+          threshold = scoreatpercentile(self.image[~np.isnan(self.image)], percentile)
+          p.imshow(self.image, vmax=threshold, origin="lower", interpolation="nearest")
+          p.contour(self.mask)
+          p.title("".join([save_name," Contours at ", str(round(threshold))]))
+          p.savefig("".join([save_name,"_filaments.pdf"]))
+          p.close()
+
+          ## Skeletons
+          masked_image = self.image * self.mask
+          skel_points = np.where(self.skeleton==1)
+          for i in range(len(skel_points[0])):
+              masked_image[skel_points[0][i],skel_points[1][i]] = np.NaN
+          p.imshow(masked_image, vmax=threshold, interpolation=None, origin="lower")
+          p.savefig("".join([save_name,"_skeletons.pdf"]))
+          p.close()
+
+      return self
