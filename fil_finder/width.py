@@ -136,9 +136,13 @@ def gauss_model(distance, rad_profile, weights, img_beam):
 		fit, fit_errors = p0, None
 		return fit, fit_errors, gaussian, parameters, True
 
+	# Because of how function is defined, fit function can get stuck at negative widths
+	# This doesn't change the output though.
+	fit[1] = np.abs(fit[1])
 
-	## Deconvolve the width with the beam size.
-	deconv = (2.35*fit[1])**2. - img_beam**2.
+	# Deconvolve the width with the beam size.
+	factor = 2*np.sqrt(2*np.log(2))  # FWHM factor
+	deconv = (factor*fit[1])**2. - img_beam**2.
 	if deconv>0:
 		fit_errors = np.append(fit_errors, (2.35*fit[1]*fit_errors[1])/np.sqrt(deconv))
 		fit = np.append(fit, np.sqrt(deconv))
