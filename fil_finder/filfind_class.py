@@ -252,7 +252,7 @@ class fil_finder_2D(object):
         opening = nd.binary_opening(adapt, structure=np.ones((3,3)))
         cleaned = remove_small_objects(opening, min_size=self.size_thresh)
         self.mask = nd.median_filter(cleaned, size=self.smooth_size)
-        self.mask[np.where((self.mask * self.image)<0.0)] = 0.0
+        self.mask[np.where((self.mask * self.image)<0.0)] = 0
 
         if test_mode:
           # p.subplot(3,3,1)
