@@ -370,8 +370,8 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof, img_beam, bkg_
 	# we are simply looking at a bad radial profile.
 	bkg_dist = np.median(interp_bins[np.where(interp_profile==find_nearest(interp_profile,bkg_intens))])
 	peak_dist = np.median(interp_bins[np.where(interp_profile==find_nearest(interp_profile,peak_intens))])
-	bkg_error = np.var(unbin_prof[unbin_dist>=find_nearest(unbin_dist, bkg_dist)])
-	peak_error = np.var(unbin_prof[unbin_dist<=find_nearest(unbin_dist, peak_dist)])
+	bkg_error = np.std(unbin_prof[unbin_dist>=find_nearest(unbin_dist, bkg_dist)])
+	peak_error = np.std(unbin_prof[unbin_dist<=find_nearest(unbin_dist, peak_dist)])
 	if peak_dist>bkg_dist:
 		fail_flag = True
 
