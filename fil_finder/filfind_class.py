@@ -149,7 +149,6 @@ class fil_finder_2D(object):
         self.smooth_image = None
         self.flat_image = None
         self.lengths = None
-        self.widths = []
         self.width_fits = {"Parameters": [], "Errors": [], "Names": None}
         self.rht_curvature = {"Mean": [], "Std": []}
         self.filament_arrays = {}
@@ -464,6 +463,8 @@ class fil_finder_2D(object):
                                    verbose=verbose)
 
         self.lengths, self.filament_arrays["long path"] = length_output
+        # Convert lengths to numpy array
+        self.lengths = np.asarray(self.lengths)
 
         self.filament_arrays["final"] = make_final_skeletons(labeled_fil_arrays, interpts, verbose=verbose)
 
@@ -666,48 +667,24 @@ class fil_finder_2D(object):
                 p.colorbar()
                 p.show()
 
+            # Final width check -- make sure length is longer than the width.
+            # If it is, add the width onto the length since the adaptive
+            # thresholding shortens each edge by the about the same.
+            if self.lengths[n] > fit[-1]:
+              self.lengths[n] += fit[-1]
+            else:
+              fail_flag = True
+
+            # If fail_flag has been set to true in any of the fitting steps,
+            # set results to nans
             if fail_flag:
                 fit = [np.NaN] * len(fit)
                 fit_error = [np.NaN] * len(fit)
 
-            self.widths.append(fit[-1])
             self.width_fits["Parameters"][n,:] = fit
             self.width_fits["Errors"][n,:] = fit_error
             self.width_fits["Type"][n] = fit_type
         self.width_fits["Names"] =  parameter_names
-
-        return self
-
-    def results(self):
-        '''
-        Since failed fits a denoted by a string, this function separates out the failed fits.
-        The widths which are unrealistic (width>length), are also labeled as a fit fail. The
-        realistic widths are added to the overall lengths. This is done because of the slight
-        shortening of each skeleton by the skeletonization process.
-
-        Returns
-        -------
-        self.lengths : list
-                       Updated lengths
-        self.widths : list
-                      Updated widths
-        '''
-        overall_lengths = []
-        overall_widths = []
-        for i, width in enumerate(self.widths):
-            if np.isfinite(width):
-                if self.lengths[i]>width:
-                    overall_lengths.append(self.lengths[i] + width) # Adaptive Threshold shortens ends, so add the width on
-                    overall_widths.append(width)
-                else:
-                    overall_lengths.append(self.lengths[i])
-                    overall_widths.append(np.NaN)
-            else:
-                overall_lengths.append(self.lengths[i])
-                overall_widths.append(width)
-
-        self.lengths = np.asarray(overall_lengths)
-        self.widths = np.asarray(overall_widths)
 
         return self
 
@@ -898,7 +875,8 @@ class fil_finder_2D(object):
             print("%s filaments found.") % (self.number_of_filaments)
             for fil in range(self.number_of_filaments):
                 print "Filament: %s, Width: %s, Length: %s, Curvature: %s" % \
-                        (fil,self.widths[fil],self.lengths[fil], self.rht_curvature["Std"][fil])
+                        (fil, self.width_fits["Parameters"][fil, -1][fil],
+                         self.lengths[fil], self.rht_curvature["Std"][fil])
 
     def run(self, verbose=False, save_plots=False, save_name=None):
         '''
@@ -933,7 +911,6 @@ class fil_finder_2D(object):
         self.analyze_skeletons(verbose = verbose)
         self.exec_rht(verbose=verbose)
         self.find_widths(verbose = verbose)
-        self.results()
         self.save_table(save_name=save_name, table_type="fits")
         self.save_table(save_name=save_name, table_type="csv")
         self.save_fits(save_name=save_name, stamps=False)
