@@ -150,7 +150,7 @@ class fil_finder_2D(object):
         self.flat_image = None
         self.lengths = None
         self.width_fits = {"Parameters": [], "Errors": [], "Names": None}
-        self.rht_curvature = {"Mean": [], "Std": []}
+        self.rht_curvature = {"Median": [], "Std": []}
         self.filament_arrays = {}
         self.labelled_filament_arrays = None
         self.number_of_filaments = None
@@ -880,7 +880,7 @@ class fil_finder_2D(object):
                          self.lengths[fil], self.rht_curvature["Std"][fil],
                          self.rht_curvature["Std"][fil])
 
-    def run(self, verbose=False, save_name=None):
+    def run(self, verbose=False, save_name=None, save_plots=False):
         '''
         The whole algorithm in one easy step. Individual parameters have not been included in this
         batch run. If fine-tuning is needed, it is recommended to run each step individually.
