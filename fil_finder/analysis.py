@@ -7,6 +7,8 @@ Analysis routines for the output of the filament finder. These can be run from t
 import numpy as np
 from scipy.stats import nanmean, nanmedian, nanstd
 from astropy.table import Table
+import aplpy
+import matplotlib # Need access to objects
 
 class Analysis(object):
     """
@@ -15,7 +17,8 @@ class Analysis(object):
     *The complete functionality is not yet in place.*
 
     """
-    def __init__(self, dataframe, save_name=None, verbose=False):
+    def __init__(self, dataframe, save_name=None, verbose=False, columns=None, save_type="pdf",
+                 subplot=True):
         '''
         Parameters
         ----------
@@ -41,12 +44,20 @@ class Analysis(object):
         else:
             self.dataframe = dataframe
 
+        if columns is None:
+          self.columns = self.dataframe.colnames
+          # Remove Fit Type column. Contains strings.
+          self.columns.remove("Fit Type")
+        else:
+          if isinstance(columns, list):
+            self.columns = columns
+
+        self.save_type = save_type
         self.save_name = save_name
         self.verbose = verbose
+        self.subplot = subplot
 
-
-
-    def make_hists(self, num_bins=50, use_prettyplotlib=True):
+    def make_hists(self, num_bins=None, use_prettyplotlib=True):
 
         ## Need this since ppl has no show function.
         import matplotlib.pyplot as p
@@ -60,59 +71,65 @@ class Analysis(object):
         else:
             import matplotlib.pyplot as plt
 
-        ## Histogram of Widths
-        widths = self.dataframe["Width"]
-        widths = widths[np.isfinite(widths)]
-        widths_stats = [nanmean(widths), nanstd(widths), nanmedian(widths)]
+        # Setup subplots if plotting together
+        if self.subplot:
+          num = len(self.columns)
+          if num <= 3:
+            ncols = 1
+            nrows = num
+          elif num <= 8:
+            ncols = 2
+            nrows = num / 2
+          else:  # Max columns right now is 12
+            ncols = 3
+            nrows = num / 3
+          # Check if we need an extra row.
+          if num % ncols != 0:
+            nrows += 1
 
-        ## Histogram of Lengths
-        lengths = self.dataframe["Lengths"]
-        lengths_stats = [nanmean(lengths), nanstd(lengths), nanmedian(lengths)]
+          # Make the objects
+          fig, axes = plt.subplots(nrows=nrows, ncols=ncols)
 
-        ## Histogram of Curvature
-        rht_curvature = self.dataframe["RHT Curvature"]
-        rht_curvature_stats = [nanmean(rht_curvature), nanstd(rht_curvature), nanmedian(rht_curvature)]
+          # This is a bit awkward to get the indices, but my matplotlib version
+          # doesn't use the same object type as prettyplotlib creates.
+          posns = np.indices(axes.shape)
+          x, y = posns[0].ravel(), posns[1].ravel()
 
-        # Histogram of Orientation
-        rht_orientation = self.dataframe["Plane Orientation (RHT)"]
-        rht_orientation_stats = [nanmean(rht_orientation), nanstd(rht_orientation), nanmedian(rht_orientation)]
+        # Keep the mean, median, std.
+        data_stats = {}
+        for i, column in enumerate(self.columns):
+          data = self.dataframe[column]
+          data = data[np.isfinite(data)]
+          if num_bins is None:
+            num_bins = np.sqrt(len(data))
 
+          data_stats[column] = [nanmean(data), nanstd(data), nanmedian(data)]
 
-        if self.verbose:
-            print "Widths Stats: %s" % (widths_stats)
-            print "Lengths Stats: %s" % (lengths_stats)
-            print "Curvature Stats: %s" % (rht_curvature_stats)
+          if self.subplot:
+            axes[x[i], y[i]].hist(data, num_bins)
+            axes[x[i], y[i]].set_xlabel(column)  # ADD UNITS!
+          else:
+            fig, axes = plt.subplots(1)
+            axes.hist(data, num_bins)
+            axes.set_xlabel(column)  # ADD UNITS!
 
-            fig, axes = plt.subplots(nrows=2, ncols=2)
-            # Widths
-            axes[0, 0].hist(widths, num_bins)
-            axes[0, 0].set_xlabel("Widths (pc)")
-            # Lengths
-            axes[0, 1].hist(lengths, num_bins)
-            axes[0, 1].set_xlabel("Lengths (pc)")
-            # Curvature
-            axes[1, 0].hist(rht_curvature, num_bins)
-            axes[1, 0].set_xlabel("Curvature")
-            # Orientation
-            axes[1, 1].hist(rht_orientation, num_bins)
-            axes[1, 1].set_xlabel("Orientation Angle")
+          if self.verbose and not self.subplot:
+            print column+" Stats: %s" % (data_stats)
             p.show()
 
-        else:
-            p.hist(widths, num_bins)
-            p.xlabel("Widths (pc)")
-            p.savefig("".join([self.save_name,"_widths.pdf"]))
+          elif not self.subplot:
+            fig.savefig(self.save_name+"_"+column+"."+self.save_type)
             p.close()
 
-            p.hist(lengths, num_bins)
-            p.xlabel("Lengths (pc)")
-            p.savefig("".join([self.save_name,"_lengths.pdf"]))
-            p.close()
+        if self.subplot:
+          p.tight_layout()
+          if self.verbose:
+            for column in self.columns:
+              print column+" Stats: %s" % (data_stats[column])
+            p.show()
+          else:
+            fig.savefig(self.save_name+"_"+hists+"."+self.save_type)
 
-            p.hist(rht_curvature, num_bins)
-            p.xlabel("RHT Curvature")
-            p.savefig("".join([self.save_name,"_rht_curvature.pdf"]))
-            p.close()
 
         return self
 
@@ -129,7 +146,7 @@ class ImageAnalysis(object):
         self.verbose = verbose
 
 
-    def save_plots(self, save_name=None, percentile=80.):
+    def region_images(self, save_name=None, percentile=80.):
       '''
 
       Creates saved PDF plots of several quantities/images.
@@ -156,3 +173,6 @@ class ImageAnalysis(object):
           p.close()
 
       return self
+
+    def stamp_images(self):
+      pass
