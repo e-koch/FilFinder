@@ -48,6 +48,9 @@ class Analysis(object):
           self.columns = self.dataframe.colnames
           # Remove Fit Type column. Contains strings.
           self.columns.remove("Fit Type")
+          if dataframe[-3:] == "csv": #  If using the csv table, remove branch lists
+            self.columns.remove("Branch Length")
+            self.columns.remove("Branch Intensity")
         else:
           if isinstance(columns, list):
             self.columns = columns
@@ -114,7 +117,7 @@ class Analysis(object):
             axes.set_xlabel(column)  # ADD UNITS!
 
           if self.verbose and not self.subplot:
-            print column+" Stats: %s" % (data_stats)
+            print column+" Stats: %s" % (data_stats[column])
             p.show()
 
           elif not self.subplot:
