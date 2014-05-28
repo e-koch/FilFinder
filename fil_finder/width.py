@@ -356,8 +356,9 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof, img_beam, bkg_
 	width_error = np.max(unbin_dist[(unbin_prof>lower)*(unbin_prof<upper)]) -\
 					np.min(unbin_dist[(unbin_prof>lower)*(unbin_prof<upper)])
 
-	## Deconvolve the width with the beam size.
-	deconv = (2.35*width)**2. - img_beam**2.
+	# Deconvolve the width with the beam size.
+	factor = 2*np.sqrt(2*np.log(2))  # FWHM factor
+	deconv = (factor*fit[1])**2. - img_beam**2.
 	if deconv>0:
 		fwhm_width = np.sqrt(deconv)
 		fwhm_error = (2.*width*width_error)/fwhm_width
