@@ -380,7 +380,7 @@ def longest_path(edge_list,nodes,verbose=False, lengths=None, skeleton_arrays=No
         elist = [(u,v) for (u,v,d) in G.edges(data=True)]
         try:
           import pygraphviz
-          pos = nx.graphviz_layout(G, arg=str(lengths[n]))
+          pos = nx.graphviz_layout(G)#, arg=str(lengths[n]))
         except ImportError:
           pos = nx.spring_layout(G)
         nx.draw_networkx_nodes(G, pos, node_size=200)
