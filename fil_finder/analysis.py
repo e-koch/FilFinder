@@ -133,7 +133,7 @@ class Analysis(object):
           else:
             fig.savefig(self.save_name+"_"+hists+"."+self.save_type)
 
-    def make_scatter(self, use_prettyplotlib=True):
+    def make_scatter(self, use_prettyplotlib=True, hists=True, num_bins=None):
         '''
         Plot two columns against each other. If self.subplot is enabled,
         all comparisons returned in a triangle collection. Inspiration for
@@ -181,9 +181,20 @@ class Analysis(object):
 
             if self.subplot:
               ax = axes[i, j]
-              if j >= i: # Don't bother plotting duplicates
+              if j > i: # Don't bother plotting duplicates
                 ax.set_visible(False)
                 ax.set_frame_on(False)
+              elif j == i and hists == True: # Plot histograms
+                # Set number of bins
+                if num_bins is None:
+                    num_bins = np.sqrt(len(data1))
+
+                ax.hist(data1, num_bins)
+                ax.grid(True)
+                ax.set_xticklabels([])
+                ax.set_yticklabels([])
+
+
               else:
                 if use_prettyplotlib:
                   plt.scatter(ax, data2, data1)
@@ -218,12 +229,11 @@ class Analysis(object):
                 axes.set_xlabel(column2)  # ADD UNITS!
                 axes.set_ylabel(column1)  # ADD UNITS!
 
-            if self.verbose and not self.subplot:
-              p.show()
-
-            elif not self.subplot:
-              fig.savefig(self.save_name+"_"+column1+"_"+column2+"."+self.save_type)
-              p.close()
+                if self.verbose:
+                  p.show()
+                else:
+                  fig.savefig(self.save_name+"_"+column1+"_"+column2+"."+self.save_type)
+                  p.close()
 
         if self.subplot:
           # p.tight_layout()
