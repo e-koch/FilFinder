@@ -9,6 +9,7 @@ from scipy.stats import nanmean, nanmedian, nanstd
 from astropy.table import Table
 import aplpy
 from matplotlib.ticker import MaxNLocator
+import matplotlib.pyplot as p
 
 class Analysis(object):
     """
@@ -63,9 +64,6 @@ class Analysis(object):
 
 
     def make_hists(self, num_bins=None, use_prettyplotlib=True):
-
-        ## Need this since ppl has no show function.
-        import matplotlib.pyplot as p
 
         if use_prettyplotlib:
             try:
@@ -135,7 +133,7 @@ class Analysis(object):
           else:
             fig.savefig(self.save_name+"_"+hists+"."+self.save_type)
 
-    def make_scatter(self, num_bins=None, use_prettyplotlib=True):
+    def make_scatter(self, use_prettyplotlib=True):
         '''
         Plot two columns against each other. If self.subplot is enabled,
         all comparisons returned in a triangle collection. Inspiration for
@@ -143,14 +141,12 @@ class Analysis(object):
         Small snippets to set the labels and figure size came from triangle.py.
         '''
 
-        ## Need this since ppl has no show function.
-        import matplotlib.pyplot as p
-
         if use_prettyplotlib:
             try:
                 import prettyplotlib as plt
             except ImportError:
                 import matplotlib.pyplot as plt
+                use_prettyplotlib = False
                 print "prettyplotlib not installed. Using matplotlib..."
         else:
             import matplotlib.pyplot as plt
@@ -189,7 +185,10 @@ class Analysis(object):
                 ax.set_visible(False)
                 ax.set_frame_on(False)
               else:
-                ax.scatter(data2, data1)
+                if use_prettyplotlib:
+                  plt.scatter(ax, data2, data1)
+                else:
+                  ax.scatter(data2, data1)
                 ax.grid(True)
                 ax.xaxis.set_major_locator(MaxNLocator(5))
                 ax.yaxis.set_major_locator(MaxNLocator(5))
@@ -211,7 +210,10 @@ class Analysis(object):
             else:
               if j < i:
                 fig, axes = plt.subplots(1)
-                axes.scatter(data2, data1)
+                if use_prettyplotlib:
+                  plt.scatter(axes, data2, data1)
+                else:
+                  axes.scatter(data2, data1)
                 axes.grid(True)
                 axes.set_xlabel(column2)  # ADD UNITS!
                 axes.set_ylabel(column1)  # ADD UNITS!
