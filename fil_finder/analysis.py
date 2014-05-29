@@ -8,7 +8,7 @@ import numpy as np
 from scipy.stats import nanmean, nanmedian, nanstd
 from astropy.table import Table
 import aplpy
-import matplotlib # Need access to objects
+from matplotlib.ticker import MaxNLocator
 
 class Analysis(object):
     """
@@ -59,6 +59,8 @@ class Analysis(object):
         self.save_name = save_name
         self.verbose = verbose
         self.subplot = subplot
+
+
 
     def make_hists(self, num_bins=None, use_prettyplotlib=True):
 
@@ -133,8 +135,100 @@ class Analysis(object):
           else:
             fig.savefig(self.save_name+"_"+hists+"."+self.save_type)
 
+    def make_scatter(self, num_bins=None, use_prettyplotlib=True):
+        '''
+        Plot two columns against each other. If self.subplot is enabled,
+        all comparisons returned in a triangle collection. Inspiration for
+        this form came from the package ![triangle.py](https://github.com/dfm/triangle.py).
+        Small snippets to set the labels and figure size came from triangle.py.
+        '''
 
-        return self
+        ## Need this since ppl has no show function.
+        import matplotlib.pyplot as p
+
+        if use_prettyplotlib:
+            try:
+                import prettyplotlib as plt
+            except ImportError:
+                import matplotlib.pyplot as plt
+                print "prettyplotlib not installed. Using matplotlib..."
+        else:
+            import matplotlib.pyplot as plt
+
+        # Setup subplots if plotting together
+        if self.subplot:
+          # Make the objects
+          num = len(self.columns)
+          factor = 2.0 # size of one side of one panel
+          lbdim = 0.5 * factor # size of left/bottom margin
+          trdim = 0.3 * factor # size of top/right margin
+          whspace = 0.05 # w/hspace size
+          plotdim = factor * num + factor * (num - 1.) * whspace
+          dim = lbdim + plotdim + trdim
+          fig, axes = plt.subplots(nrows=num, ncols=num, figsize=(dim, dim))
+
+          lb = lbdim / dim
+          tr = (lbdim + plotdim) / dim
+          fig.subplots_adjust(left=lb, bottom=lb, right=tr, top=tr,
+                              wspace=whspace, hspace=whspace)
+
+        for i, column1 in enumerate(self.columns):
+          for j, column2 in enumerate(self.columns):
+
+            data1 = self.dataframe[column1]
+            data2 = self.dataframe[column2]
+
+            # Get rid of nans
+            nans = np.isnan(data1) + np.isnan(data2)
+            data1 = data1[~nans]
+            data2 = data2[~nans]
+
+            if self.subplot:
+              ax = axes[i, j]
+              if j >= i: # Don't bother plotting duplicates
+                ax.set_visible(False)
+                ax.set_frame_on(False)
+              else:
+                ax.scatter(data2, data1)
+                ax.grid(True)
+                ax.xaxis.set_major_locator(MaxNLocator(5))
+                ax.yaxis.set_major_locator(MaxNLocator(5))
+
+                if i < num - 1:
+                    ax.set_xticklabels([])
+                else:
+                    [l.set_rotation(45) for l in ax.get_xticklabels()]
+                    ax.set_xlabel(column2)
+                    ax.xaxis.set_label_coords(0.5, -0.3)
+
+                if j > 0:
+                    ax.set_yticklabels([])
+                else:
+                    [l.set_rotation(45) for l in ax.get_yticklabels()]
+                    ax.set_ylabel(column1)
+                    ax.yaxis.set_label_coords(-0.3, 0.5)
+
+            else:
+              if j < i:
+                fig, axes = plt.subplots(1)
+                axes.scatter(data2, data1)
+                axes.grid(True)
+                axes.set_xlabel(column2)  # ADD UNITS!
+                axes.set_ylabel(column1)  # ADD UNITS!
+
+            if self.verbose and not self.subplot:
+              p.show()
+
+            elif not self.subplot:
+              fig.savefig(self.save_name+"_"+column1+"_"+column2+"."+self.save_type)
+              p.close()
+
+        if self.subplot:
+          # p.tight_layout()
+          if self.verbose:
+            p.show()
+          else:
+            fig.savefig(self.save_name+"_"+"scatter"+"."+self.save_type)
 
 
 class ImageAnalysis(object):
