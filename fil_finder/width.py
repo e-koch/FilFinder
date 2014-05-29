@@ -146,8 +146,8 @@ def gauss_model(distance, rad_profile, weights, img_beam):
 	if deconv>0:
 		fit_errors = np.append(fit_errors, (2.35*fit[1]*fit_errors[1])/np.sqrt(deconv))
 		fit = np.append(fit, np.sqrt(deconv))
-	else:
-		fit = np.append(fit, img_beam) ## If you can't devolve it, set it to minimum, which is the beam-size.
+	else:  # Set to zero, can't be deconvolved
+		fit = np.append(fit, 0.0)
 		fit_errors = np.append(fit_errors, 0.0)
 
 	fail_flag = False
@@ -196,8 +196,8 @@ def lorentzian_model(distance, rad_profile, img_beam):
 	deconv = fit[1]**2. - img_beam**2.
 	if deconv>0:
 		fit[1] = np.sqrt(deconv)
-	else:
-		fit[1] = img_beam ## If you can't devolve it, set it to minimum, which is the beam-size.
+	else:  # Set to zero, can't be deconvolved
+		fit[1] = 0.0
 
 	fail_flag = False
 	if fit_errors==None or (fit_errors>fit).any():
@@ -362,8 +362,8 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof, img_beam, bkg_
 	if deconv>0:
 		fwhm_width = np.sqrt(deconv)
 		fwhm_error = (2.*width*width_error)/fwhm_width
-	else:
-		fwhm_width = img_beam ## If you can't devolve it, set it to minimum, which is the beam-size.
+	else:  # Set to zero, can't be deconvolved
+		fwhm_width = 0.0 ## If you can't devolve it, set it to minimum, which is the beam-size.
 		fwhm_error =  0.0
 
 	# Check where the "background" and "peak" are. If the peak distance is greater,
