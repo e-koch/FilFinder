@@ -11,3 +11,4 @@ build/
 .DS_store
 fil_finder.egg-info/
 bulk_analysis.py
+examples/.*
