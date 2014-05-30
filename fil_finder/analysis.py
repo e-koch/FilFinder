@@ -70,6 +70,7 @@ class Analysis(object):
                 import prettyplotlib as plt
             except ImportError:
                 import matplotlib.pyplot as plt
+                use_prettyplotlib = False
                 print "prettyplotlib not installed. Using matplotlib..."
         else:
             import matplotlib.pyplot as plt
@@ -109,7 +110,10 @@ class Analysis(object):
           data_stats[column] = [nanmean(data), nanstd(data), nanmedian(data)]
 
           if self.subplot:
-            axes[x[i], y[i]].hist(data, num_bins)
+            if use_prettyplotlib:
+              plt.hist(axes[x[i], y[i]],data, num_bins, grid="y")
+            else:
+              axes[x[i], y[i]].hist(data, num_bins)
             axes[x[i], y[i]].set_xlabel(column)  # ADD UNITS!
           else:
             fig, axes = plt.subplots(1)
@@ -131,7 +135,7 @@ class Analysis(object):
               print column+" Stats: %s" % (data_stats[column])
             p.show()
           else:
-            fig.savefig(self.save_name+"_"+hists+"."+self.save_type)
+            fig.savefig(self.save_name+"_hists."+self.save_type)
 
     def make_scatter(self, use_prettyplotlib=True, hists=True, num_bins=None):
         '''
@@ -184,25 +188,33 @@ class Analysis(object):
               if j > i: # Don't bother plotting duplicates
                 ax.set_visible(False)
                 ax.set_frame_on(False)
-              elif j == i and hists == True: # Plot histograms
-                # Set number of bins
-                if num_bins is None:
-                    num_bins = np.sqrt(len(data1))
-
-                ax.hist(data1, num_bins)
-                ax.grid(True)
-                ax.set_xticklabels([])
-                ax.set_yticklabels([])
-
-
               else:
-                if use_prettyplotlib:
-                  plt.scatter(ax, data2, data1)
-                else:
-                  ax.scatter(data2, data1)
-                ax.grid(True)
-                ax.xaxis.set_major_locator(MaxNLocator(5))
-                ax.yaxis.set_major_locator(MaxNLocator(5))
+
+                if j == i: # Plot histograms
+                  # Set number of bins
+                  if num_bins is None:
+                      num_bins = np.sqrt(len(data1))
+                  if hists == True:
+                    if use_prettyplotlib:
+                      plt.hist(ax, data1, num_bins, grid="y")
+                    else:
+                      ax.hist(data1, num_bins)
+                      ax.grid(True)
+                  else:
+                    ax.set_visible(False)
+                    ax.set_frame_on(False)
+
+                  ax.set_xticklabels([])
+                  ax.set_yticklabels([])
+
+                if j != i:
+                  if use_prettyplotlib:
+                    plt.scatter(ax, data2, data1)
+                  else:
+                    ax.scatter(data2, data1)
+                  ax.grid(True)
+                  ax.xaxis.set_major_locator(MaxNLocator(5))
+                  ax.yaxis.set_major_locator(MaxNLocator(5))
 
                 if i < num - 1:
                     ax.set_xticklabels([])
@@ -222,10 +234,10 @@ class Analysis(object):
               if j < i:
                 fig, axes = plt.subplots(1)
                 if use_prettyplotlib:
-                  plt.scatter(axes, data2, data1)
+                  plt.scatter(axes, data2, data1, grid="y")
                 else:
                   axes.scatter(data2, data1)
-                axes.grid(True)
+                  axes.grid(True)
                 axes.set_xlabel(column2)  # ADD UNITS!
                 axes.set_ylabel(column1)  # ADD UNITS!
 
