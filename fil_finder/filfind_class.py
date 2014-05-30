@@ -519,12 +519,9 @@ class fil_finder_2D(object):
       '''
 
       for n in range(self.number_of_filaments):
-        theta, R = rht(self.filament_arrays["final"][n], radius, ntheta, background_percentile)
-        ecdf = np.cumsum(R/np.sum(R))
+        theta, R, ecdf, quantiles = rht(self.filament_arrays["final"][n], radius, ntheta, background_percentile)
 
-        median = theta[np.where(ecdf==find_nearest(ecdf,0.5))].mean() ## 50th percentile
-        twofive = theta[np.where(ecdf==find_nearest(ecdf,0.25))].mean()
-        sevenfive = theta[np.where(ecdf==find_nearest(ecdf,0.75))].mean()
+        twofive, median, sevenfive = quantiles
 
         self.rht_curvature["Median"].append(median)
         self.rht_curvature["Std"].append(np.abs(sevenfive - twofive)) ## Interquartile range

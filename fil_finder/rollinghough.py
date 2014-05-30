@@ -8,12 +8,14 @@ See  Clark et al. 2013 for description
 import numpy as np
 import scipy.ndimage as nd
 from scipy.stats import scoreatpercentile
+from scipy.ndimage import gaussian_filter1d
 import matplotlib.pyplot as p
 from operator import itemgetter
 from itertools import groupby
 
+from utilities import find_nearest
 
-def rht(mask, radius, ntheta=180, background_percentile=25):
+def rht(mask, radius, ntheta=180, background_percentile=25, verbose=False):
     '''
 
     Parameters
@@ -77,31 +79,55 @@ def rht(mask, radius, ntheta=180, background_percentile=25):
     if (R<0.0).any():
         R[R<0.0] = 0.0 ## Ignore negative values after subtraction
 
+    # Return to [0, pi] interval and position to the correct zero point.
+    theta -= np.pi/2
+    R = np.roll(R, (ntheta/2))
+
+    # Smooth R to get better minimum, quantile values.
+    smooth_R = gaussian_filter1d(R, 2, mode="wrap")
+
     # Now we want to set the position to "start" the distribution at
     # We look for minima (or near minima) in the distribution, then see if any are sequentially in line
     # The position used is the median of the longest sequence
-    zero_posn = np.where(R<=scoreatpercentile(R, 5))[0]
-    mins = np.where(R==R.min())[0]
-    if mins.shape[0]>zero_posn.shape[0]: # If there are more minima, use that for a better estimate.
-        zero_posn = mins
+    mins = np.where(smooth_R==smooth_R.min())[0]
+    five_percent = np.where(smooth_R<=scoreatpercentile(smooth_R, 5))[0]
 
-    if zero_posn.shape[0]>1:
-        continuous_sections = []
-        for _, g in groupby(enumerate(zero_posn), lambda (i,x): i-x):
-            continuous_sections.append(map(itemgetter(1), g))
-        try:
-            section = max(continuous_sections, key=len)
-            zero_posn = int(np.median(section))
-        except ValueError:
-            # If there are no groups, just choose the first point.
-            zero_posn = zero_posn[0]
+    check = True
+    while check:
+        if mins.shape[0]>1:
+            continuous_sections = []
+            for _, g in groupby(enumerate(mins), lambda (i,x): i-x):
+                continuous_sections.append(map(itemgetter(1), g))
+            try:
+                section = max(continuous_sections, key=len)
+                zero_posn = int(np.median(section))
+                check = False
+            except ValueError:
+                # If there are no groups, use the bottom 5 percentile.
+                mins = five_percent
+        else: # If there is only one minimum, use bottom 5 percentile.
+            mins = five_percent
 
-    # Return to [0, pi] interval and position to the correct zero point.
-    theta -= np.pi/2.
+    if verbose:
+     p.plot(theta, R, "rD")
+     p.plot([theta[zero_posn]]*2, [0, R.max()], "k")
+     p.plot(theta, smooth_R, "b")
+     p.show()
+
     theta = np.roll(theta, zero_posn)
-    R = np.roll(R, zero_posn+(ntheta/2))
+    R = np.roll(R, zero_posn)
+    smooth_R = np.roll(smooth_R, zero_posn)
 
-    return theta, R
+    # Make ecdf
+    ecdf = np.cumsum(smooth_R/np.sum(smooth_R))
+
+    # Use ecdf to find median and quantiles.
+    median = np.median(theta[np.where(ecdf==find_nearest(ecdf,0.5))]) ## 50th percentile
+    twofive = np.median(theta[np.where(ecdf==find_nearest(ecdf,0.25))])
+    sevenfive = np.median(theta[np.where(ecdf==find_nearest(ecdf,0.75))])
+    quantiles = (twofive, median, sevenfive)
+
+    return theta, R, ecdf, quantiles
 
 
 
