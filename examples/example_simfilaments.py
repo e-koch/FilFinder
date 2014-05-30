@@ -2,7 +2,7 @@
 from fil_finder import fil_finder_2D
 from astropy.io.fits import getdata
 
-img, hdr = getdata("examples/filaments_updatedhdr.fits", header=True)
+img, hdr = getdata("filaments_updatedhdr.fits", header=True)
 
 # Add some noise
 import numpy as np
