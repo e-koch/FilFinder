@@ -464,7 +464,6 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths, \
           label = int(label)
         except ValueError:
           pass
-        print isinstance(label, int)
         if not isinstance(label, int):
           k = 1
           while zip(product_gen(string.ascii_uppercase),[1]*k)[-1][0] != label:
