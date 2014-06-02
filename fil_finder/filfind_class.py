@@ -519,7 +519,7 @@ class fil_finder_2D(object):
       '''
 
       for n in range(self.number_of_filaments):
-        theta, R, ecdf, quantiles = rht(self.filament_arrays["final"][n], radius, ntheta, background_percentile)
+        theta, R, ecdf, quantiles = rht(self.filament_arrays["long path"][n], radius, ntheta, background_percentile)
 
         twofive, median, sevenfive = quantiles
 
@@ -527,17 +527,19 @@ class fil_finder_2D(object):
         self.rht_curvature["Std"].append(np.abs(sevenfive - twofive)) ## Interquartile range
 
         if verbose:
-          ax1 = p.subplot(121, polar=True)
+          ax1 = p.subplot(131, polar=True)
           ax1.plot(2*theta, R/R.max(), "kD")
           ax1.fill_between(2*theta, 0, R/R.max(), facecolor="blue", interpolate=True, alpha=0.5)
           ax1.set_rmax(1.0)
           ax1.plot([2*median]*2, np.linspace(0.0,1.0, 2), "g")
           ax1.plot([2*twofive]*2, np.linspace(0.0,1.0, 2), "b--")
           ax1.plot([2*sevenfive]*2, np.linspace(0.0,1.0, 2), "b--")
-          ax2 = p.subplot(122, polar=True)
+          ax2 = p.subplot(132, polar=True)
           ax2.plot(2*theta, ecdf, "k")
           ax2.set_rmax(1.0)
           ax2.set_yticks([0.25, 0.5, 0.75])
+          p.subplot(133)
+          p.imshow(self.filament_arrays["long path"][n], cmap="binary", origin="lower")
           p.show()
 
       return self
