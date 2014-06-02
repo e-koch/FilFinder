@@ -109,14 +109,17 @@ def rht(mask, radius, ntheta=180, background_percentile=25, verbose=False):
             mins = five_percent
 
     if verbose:
-     p.plot(theta, R, "rD")
-     p.plot([theta[zero_posn]]*2, [0, R.max()], "k")
-     p.plot(theta, smooth_R, "b")
-     p.show()
+        p.subplot(1, 2, 1, polar=True)
+        p.plot(theta, R, "rD")
+        p.plot([theta[zero_posn]]*2, [0, R.max()], "k")
+        p.plot(theta, smooth_R, "b")
+        p.subplot(1, 2, 2)
+        p.imshow(mask, cmap="binary")
+        p.show()
 
-    theta = np.roll(theta, zero_posn)
-    R = np.roll(R, zero_posn)
-    smooth_R = np.roll(smooth_R, zero_posn)
+    theta = np.roll(theta, -zero_posn)
+    R = np.roll(R, -zero_posn)
+    smooth_R = np.roll(smooth_R, -zero_posn)
 
     # Make ecdf
     ecdf = np.cumsum(smooth_R/np.sum(smooth_R))
