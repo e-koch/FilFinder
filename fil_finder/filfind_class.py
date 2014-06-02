@@ -519,7 +519,10 @@ class fil_finder_2D(object):
       '''
 
       for n in range(self.number_of_filaments):
-        theta, R, ecdf, quantiles = rht(self.filament_arrays["long path"][n], radius, ntheta, background_percentile)
+        # Need to correct for how image is read in
+        # fliplr aligns angles with image when shown in ds9
+        skel_arr = np.fliplr(self.filament_arrays["long path"][n])
+        theta, R, ecdf, quantiles = rht(skel_arr, radius, ntheta, background_percentile)
 
         twofive, median, sevenfive = quantiles
 
