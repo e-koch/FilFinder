@@ -527,7 +527,10 @@ class fil_finder_2D(object):
         twofive, median, sevenfive = quantiles
 
         self.rht_curvature["Median"].append(median)
-        self.rht_curvature["Std"].append(np.abs(sevenfive - twofive)) ## Interquartile range
+        if sevenfive > twofive:
+          self.rht_curvature["IQR"].append(np.abs(sevenfive - twofive)) ## Interquartile range
+        else:  #
+          self.rht_curvature["IQR"].append(np.abs(sevenfive - twofive + np.pi)) ## Interquartile range
 
         if verbose:
           ax1 = p.subplot(131, polar=True)
@@ -739,7 +742,7 @@ class fil_finder_2D(object):
 
         data = {"Lengths" : self.lengths, \
                 "Orientation" : self.rht_curvature["Median"],\
-                "Curvature" : self.rht_curvature["Std"],\
+                "Curvature" : self.rht_curvature["IQR"],\
                 "Branches" : self.branch_properties["number"], \
                 "Branch Length" : self.branch_properties["length"], \
                 "Branch Intensity" : self.branch_properties["intensity"], \
