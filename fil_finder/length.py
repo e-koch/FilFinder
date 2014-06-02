@@ -476,7 +476,8 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths, \
       skeleton = medial_axis(skeleton)
 
       main_lengths.append(skeleton_length(skeleton) * img_scale)
-      longpath_arrays.append(skeleton.astype(int))
+
+    longpath_arrays.append(skeleton.astype(int))
 
     if verbose:
       p.imshow(skeleton)
