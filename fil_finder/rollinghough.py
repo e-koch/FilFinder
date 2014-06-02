@@ -132,14 +132,6 @@ def rht(mask, radius, ntheta=180, background_percentile=25, verbose=False):
 
     return theta, R, ecdf, quantiles
 
-
-
-def threshold(img, radius, threshold):
-    smoothed = nd.black_tophat(img, radius)
-    difference = img - smoothed
-    return difference > scoreatpercentile(difference[np.where(~np.isnan(difference))], threshold)
-
-
 def circular_region(radius):
 
     xx, yy = np.mgrid[-radius:radius+1,-radius:radius+1]
