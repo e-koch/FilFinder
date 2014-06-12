@@ -150,7 +150,7 @@ class fil_finder_2D(object):
         self.flat_image = None
         self.lengths = None
         self.width_fits = {"Parameters": [], "Errors": [], "Names": None}
-        self.rht_curvature = {"Median": [], "Std": []}
+        self.rht_curvature = {"Median": [], "IQR": []}
         self.filament_arrays = {}
         self.labelled_filament_arrays = None
         self.number_of_filaments = None
