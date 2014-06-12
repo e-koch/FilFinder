@@ -65,31 +65,35 @@ def isolatefilaments(skel_img, size_threshold, pad_size=5):
 
   '''
 
-  skeleton_arrays = []; pix_val = []; corners = []
-  labels,num = nd.label(skel_img,eight_con())
+  skeleton_arrays = []
+  pix_val = []
+  corners = []
 
-  sums = nd.sum(skel_img,labels,range(num))
+  # Label skeletons
+  labels,num = nd.label(skel_img, eight_con())
+
+  # Remove skeletons which have less pixels than the threshold.
+  sums = nd.sum(skel_img, labels, range(1, num + 1))
+
   for n in range(num):
-    if sums[n]<size_threshold:
-      x,y = np.where(labels==n)
-      for i in range(len(x)):
-        skel_img[x[i],y[i]]=0
+    if sums[n] < size_threshold:
+      skel_img[np.where(labels == n + 1)] = 0
 
   # Relabel after deleting short skeletons.
-  labels,num = nd.label(skel_img,eight_con())
+  labels,num = nd.label(skel_img, eight_con())
   # Split each skeleton into its own array.
-  for n in range(1,num+1):
-    x,y = np.where(labels==n)
+  for n in range(1, num + 1):
+    x,y = np.where(labels == n)
     # Make an array shaped to the skeletons size and padded on each edge
-    shapes = (x.max()-x.min()+2*pad_size, y.max()-y.min()+2*pad_size)
+    shapes = (x.max() - x.min() + 2 * pad_size, y.max() - y.min() + 2 * pad_size)
     eachfil = np.zeros(shapes)
     for i in range(len(x)):
-      eachfil[x[i]-x.min()+pad_size,y[i]-y.min()+pad_size] = 1
+      eachfil[x[i] - x.min() + pad_size, y[i] - y.min() + pad_size] = 1
     skeleton_arrays.append(eachfil)
     # Keep the coordinates from the original image
-    lower = (x.min()-pad_size,y.min()-pad_size)
-    upper = (x.max()+pad_size+1,y.max()+pad_size+1)
-    corners.append([lower,upper])
+    lower = (x.min() - pad_size, y.min() - pad_size)
+    upper = (x.max() + pad_size + 1, y.max() + pad_size + 1)
+    corners.append([lower, upper])
 
   return skeleton_arrays, num, corners
 
