@@ -349,7 +349,7 @@ class fil_finder_2D(object):
 
 
         if verbose: # For examining results of skeleton
-            p.imshow(self.flat_image, interpolation=None, origin="lower")
+            p.imshow(self.flat_img, interpolation=None, origin="lower")
             p.contour(self.skeleton, colors="k")
             p.show()
 
@@ -472,7 +472,7 @@ class fil_finder_2D(object):
           lengths = self.branch_properties["length"][n]
           self.branch_properties["length"][n] = [self.imgscale * length for length in lengths]
 
-        self.skeletons = recombine_skeletons(self.filament_arrays["final"],
+        self.skeleton = recombine_skeletons(self.filament_arrays["final"],
                                              self.array_offsets, self.image.shape,
                                              self.pad_size, verbose=True)
 
