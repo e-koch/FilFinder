@@ -283,7 +283,7 @@ class fil_finder_2D(object):
         if verbose:
             scale = 0
             p.contour(self.mask)
-            vmax = np.nanmax(self.image)
+            vmax = np.nanmean(self.image)
             while scale==0:
                 p.imshow(self.image, vmax=vmax,interpolation=None,origin="lower")
                 p.show()
