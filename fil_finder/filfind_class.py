@@ -349,11 +349,8 @@ class fil_finder_2D(object):
 
 
         if verbose: # For examining results of skeleton
-            masked_image = self.image * self.mask
-            skel_points = np.where(self.skeleton==1)
-            for i in range(len(skel_points[0])):
-                masked_image[skel_points[0][i],skel_points[1][i]] = np.NaN
-            p.imshow(masked_image,interpolation=None,origin="lower")
+            p.imshow(self.flat_image, interpolation=None, origin="lower")
+            p.contour(self.skeleton, colors="k")
             p.show()
 
         return self
