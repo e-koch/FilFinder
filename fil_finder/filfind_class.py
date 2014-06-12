@@ -816,8 +816,11 @@ class fil_finder_2D(object):
       new_hdr["COMMENT"] = "Size of Adaptive Threshold Patch: "+str(self.adapt_thresh)+" pixels"
       new_hdr["COMMENT"] = "Original file name: "+filename
 
+      # Remove padding
+      mask = self.mask[self.pad_size:-self.pad_size, self.pad_size:-self.pad_size]
+
       ## Save mask
-      fits.writeto("".join([save_name,"_mask.fits"]), self.mask.astype("float"), new_hdr)
+      fits.writeto("".join([save_name,"_mask.fits"]), mask.astype("float"), new_hdr)
 
       ## Save skeletons. Includes final skeletons and the longest paths.
       new_hdr.update("BUNIT", value="int", comment="")
@@ -827,11 +830,18 @@ class fil_finder_2D(object):
       hdu_skel = fits.HDUList()
 
       # Final Skeletons - create labels which match up with table output
-      labels = nd.label(self.skeleton, eight_con())[0]
+
+      # Remove padding
+      skeleton = self.skeleton[self.pad_size:-self.pad_size,
+                               self.pad_size:-self.pad_size]
+      skeleton_long = self.skeleton_longpath[self.pad_size:-self.pad_size,
+                                             self.pad_size:-self.pad_size]
+
+      labels = nd.label(skeleton, eight_con())[0]
       hdu_skel.append(fits.PrimaryHDU(labels, header=new_hdr))
 
       # Longest Paths
-      labels_lp = nd.label(self.skeleton_longpath, eight_con())[0]
+      labels_lp = nd.label(skeleton_long, eight_con())[0]
       hdu_skel.append(fits.PrimaryHDU(labels_lp, header=new_hdr))
 
       hdu_skel.writeto("".join([save_name,"_skeletons.fits"]))
