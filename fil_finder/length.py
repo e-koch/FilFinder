@@ -443,7 +443,6 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths, \
   for path, edges, inters, skel_arr, lengths in zip(max_path, edge_list, interpts, \
                                            labelisofil, branch_lengths):
     if len(path) == 1:
-      lengths[0] *= img_scale
       main_lengths.append(lengths[0] * img_scale)
       skeleton = skel_arr  # for viewing purposes when verbose
     else:
