@@ -125,7 +125,7 @@ def gauss_model(distance, rad_profile, weights, img_beam):
 				* p[2] Background
 
 		'''
-		return (p[0]-p[2])*np.exp(-1*np.power(x,2) / (2*np.power(p[1],2))) + p[2]
+		return p[0]*np.exp(-1*np.power(x,2) / (2*np.power(p[1],2))) + p[2]
 
 	try:
 		fit, cov = op.curve_fit(gaussian, distance, rad_profile, p0=p0, \
