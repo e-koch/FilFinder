@@ -281,20 +281,10 @@ class fil_finder_2D(object):
           p.show()
 
         if verbose:
-            scale = 0
-            p.contour(self.mask)
-            vmax = np.nanmean(self.image)
-            while scale==0:
-                p.imshow(self.image, vmax=vmax,interpolation=None,origin="lower")
-                p.show()
-
-                print "Mean and median value of image are (%s,%s), vmax currently set to %s" \
-                    % (np.mean(self.image[~np.isnan(self.image)]),np.median(self.image[~np.isnan(self.image)]),vmax)
-                rescale = raw_input("Rescale image? Enter new vmax or no: ")
-                if rescale=="no" or rescale=="n" or rescale=="":
-                    scale = 1
-                else:
-                    vmax = float(rescale)
+            p.imshow(self.flat_img, interpolation=None, origin="lower")
+            p.contour(self.mask, colors="k")
+            p.title("Mask on Flattened Image.")
+            p.show()
 
         return self
 
