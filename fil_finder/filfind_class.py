@@ -20,6 +20,7 @@ from astropy.table import Table
 from copy import deepcopy
 import os
 import time
+import warnings
 
 
 class fil_finder_2D(object):
@@ -149,6 +150,11 @@ class fil_finder_2D(object):
         # later on.
         self.image = np.pad(self.image, self.pad_size, padwithnans)
 
+        # Make flattened image
+        self.flat_img = np.arctan(
+            self.image / scoreatpercentile(self.image[~np.isnan(self.image)],
+                                           flatten_thresh))
+
         if distance is None:
             print "No distance given. Results will be in pixel units."
             self.imgscale = 1.0  # pixel
@@ -164,31 +170,16 @@ class fil_finder_2D(object):
 
         self.glob_thresh = glob_thresh
         self.adapt_thresh = adapt_thresh
-        self.flatten_thresh = flatten_thresh
         self.smooth_size = smooth_size
         self.size_thresh = size_thresh
 
-        self.smooth_image = None
-        self.flat_image = None
-        self.lengths = None
         self.width_fits = {"Parameters": [], "Errors": [], "Names": None}
         self.rht_curvature = {"Median": [], "IQR": []}
         self.filament_arrays = {}
-        self.labelled_filament_arrays = None
-        self.number_of_filaments = None
-        self.array_offsets = None
-        self.skeleton = None
-        self.skeleton_longpath = None
-        self.filament_extents = None
-        self.branch_properties = None
-        self.masked_image = None
-        self.medial_axis_distance = None
-
-        self.dataframe = None
 
     def create_mask(self, glob_thresh=None, adapt_thresh=None,
                     smooth_size=None, size_thresh=None, verbose=False,
-                    test_mode=False):
+                    test_mode=False, regrid=True):
         '''
 
         This runs the complete segmentation process and returns a mask of the
@@ -213,7 +204,6 @@ class fil_finder_2D(object):
 
         Parameters
         ----------
-
         smooth_size : int, optional
             See previous definition.
         size_thresh : int, optional
@@ -230,11 +220,6 @@ class fil_finder_2D(object):
 
         Returns
         -------
-
-        self.flat_img : numpy.ndarray
-            The arctan transformed image.
-        self.smooth_img : numpy.ndarray
-            The smoothed version of the flattened image..
         self.mask : numpy.ndarray
             The mask.
 
@@ -254,7 +239,7 @@ class fil_finder_2D(object):
 
         if self.size_thresh is None:
             self.size_thresh = round(
-                0.1 * np.pi * (0.5) * (3 / 40.) * self.imgscale ** -2)
+                np.pi * 5 * self.beamwidth**2. * self.imgscale ** -2)
             # Area of ellipse for typical filament size. Divided by 10 to
             # incorporate sparsity.
         if self.adapt_thresh is None:
@@ -264,12 +249,50 @@ class fil_finder_2D(object):
             # half average FWHM for filaments
             self.smooth_size = round(0.02 / self.imgscale)
 
-        self.flat_img = np.arctan(
-            self.image / scoreatpercentile(self.image[~np.isnan(self.image)],
-                                           self.flatten_thresh))
-        self.smooth_img = nd.median_filter(
-            self.flat_img, size=self.smooth_size)
-        adapt = threshold_adaptive(self.smooth_img, self.adapt_thresh)
+        # Check if regridding is even necessary
+        if self.adapt_thresh >= 40 and regrid:
+            regrid = False
+            warnings.warn("Adaptive thresholding patch is larger than 40 \
+                          pixels. Regridding has been disabled.")
+
+        # Perform regridding
+        if regrid:
+            # Calculate the needed zoom to make the patch size ~40 pixels
+            ratio = 40 / self.adapt_thresh
+            # Round to the nearest factor of 2
+            regrid_factor = int(round(ratio/2.0)*2.0)
+
+            # Make a copy of the flattened image
+            flat_copy = self.flat_img.copy()
+
+            # Make the nan mask
+            nan_mask = np.isnan(flat_copy)
+            nan_mask = remove_small_objects(nan_mask, min_size=50,
+                                            connectivity=8)
+            nan_mask = nd.binary_dilation(nan_mask, eight_con(),
+                                          iterations=10)
+            nan_mask = np.logical_not(nan_mask)
+            # Remove nans (needed to do interpolation)
+            flat_copy[np.isnan(flat_copy)] = 0.0
+
+            # Defaults to cubic interpolation
+            masking_img = nd.zoom(flat_copy, (regrid_factor, regrid_factor))
+        else:
+            regrid_factor = 1
+            ratio = 1
+            nan_mask = np.ones(self.flat_img.shape)
+            masking_img = self.flat_img
+
+        smooth_img = nd.median_filter(masking_img,
+                                      size=round(self.smooth_size*ratio))
+        adapt = threshold_adaptive(smooth_img,
+                                   round(ratio * self.adapt_thresh),
+                                   method="mean")
+
+        if regrid:
+            regrid_factor = float(regrid_factor)
+            adapt = nd.zoom(adapt, (1/regrid_factor, 1/regrid_factor), order=0)
+            adapt = adapt * nan_mask
 
         if self.glob_thresh is not None:
             thresh_value = \
@@ -280,7 +303,8 @@ class fil_finder_2D(object):
             adapt = glob * adapt
 
         opening = nd.binary_opening(adapt, structure=np.ones((3, 3)))
-        cleaned = remove_small_objects(opening, min_size=self.size_thresh)
+        cleaned = \
+            remove_small_objects(opening, min_size=self.size_thresh)
         self.mask = nd.median_filter(cleaned, size=self.smooth_size)
         self.mask[np.where((self.mask * self.image) < 0.0)] = 0
 
@@ -290,7 +314,7 @@ class fil_finder_2D(object):
             p.colorbar()
             p.show()
             # p.subplot(3,3,2)
-            p.imshow(self.flat_img, origin="lower", interpolation=None)
+            p.imshow(masking_img, origin="lower", interpolation=None)
             p.colorbar()
             p.show()
             # p.subplot(3,3,3)
