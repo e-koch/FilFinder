@@ -13,67 +13,64 @@ import matplotlib.pyplot as p
 import copy
 
 
-def isolatefilaments(skel_img, size_threshold, pad_size=5):
+def isolateregions(binary_array, size_threshold=0, pad_size=5,
+                   fill_hole=False, rel_size=0.1):
     '''
-    This function separates each filament, over a threshold of number of
-    pixels, into its own array with the same dimensions as the inputed image.
 
     Parameters
     ----------
-    skel_img : numpy.ndarray
-               the resultant skeletons from the Medial Axis Transform
-
-    mask : numpy.ndarray
-           the binary mask from adaptive thresholding
+    binary_array : numpy.ndarray
+    A binary array of regions.
 
     size_threshold : int
-                     sets the pixel size on the size of objects
+    sets the pixel size on the size of regions
 
     Returns
     -------
-    skelton_arrays : list
-                contains the individual arrays for each skeleton
-    mask : numpy.ndarray
-           Updated version of the mask where small objects have been eliminated
+    output_arrays : list
+    Regions separated into individual arrays.
     num : int
-          Number of filaments
+    Number of filaments
     corners : list
-              Contains the indices where each skeleton array was taken from
-              the original
+    Contains the indices where each skeleton array was taken from
+    the original
 
     '''
 
-    skeleton_arrays = []
+    output_arrays = []
     corners = []
 
     # Label skeletons
-    labels, num = nd.label(skel_img, eight_con())
+    labels, num = nd.label(binary_array, eight_con())
 
     # Remove skeletons which have less pixels than the threshold.
-    sums = nd.sum(skel_img, labels, range(1, num + 1))
+    if size_threshold != 0:
+        sums = nd.sum(binary_array, labels, range(1, num + 1))
+        remove_fils = np.where(sums <= size_threshold)[0]
+        for lab in remove_fils:
+            binary_array[np.where(labels == lab + 1)] = 0
 
-    for n in range(num):
-        if sums[n] < size_threshold:
-            skel_img[np.where(labels == n + 1)] = 0
+        # Relabel after deleting short skeletons.
+        labels, num = nd.label(binary_array, eight_con())
 
-    # Relabel after deleting short skeletons.
-    labels, num = nd.label(skel_img, eight_con())
     # Split each skeleton into its own array.
     for n in range(1, num + 1):
         x, y = np.where(labels == n)
         # Make an array shaped to the skeletons size and padded on each edge
-        shapes = (
-            x.max() - x.min() + 2 * pad_size, y.max() - y.min() + 2 * pad_size)
+        shapes = (x.max() - x.min() + 2 * pad_size,
+                  y.max() - y.min() + 2 * pad_size)
         eachfil = np.zeros(shapes)
-        for i in range(len(x)):
-            eachfil[x[i] - x.min() + pad_size, y[i] - y.min() + pad_size] = 1
-        skeleton_arrays.append(eachfil)
+        eachfil[x - x.min() + pad_size, y - y.min() + pad_size] = 1
+        # Fill in small holes
+        if fill_hole:
+            eachfil = _fix_small_holes(eachfil, rel_size=rel_size)
+        output_arrays.append(eachfil)
         # Keep the coordinates from the original image
         lower = (x.min() - pad_size, y.min() - pad_size)
         upper = (x.max() + pad_size + 1, y.max() + pad_size + 1)
         corners.append([lower, upper])
 
-    return skeleton_arrays, num, corners
+    return output_arrays, num, corners
 
 
 def find_filpix(branches, labelfil, final=True):
@@ -615,3 +612,62 @@ def recombine_skeletons(skeletons, offsets, orig_size, pad_size,
             master_array[x[i] + x_off, y[i] + y_off] = 1
 
     return master_array
+
+
+def _fix_small_holes(mask_array, rel_size=0.1):
+    '''
+    Helper function to remove only small holes within a masked region.
+
+    Parameters
+    ----------
+
+    mask_array : numpy.ndarray
+    Array containing the masked region.
+
+    rel_size : float, optional
+    If < 1.0, sets the minimum size a hole must be relative to the area of the
+    mask. Otherwise, this is the maximum number of pixels the hole must have to
+    be deleted.
+    '''
+
+    if rel_size <= 0.0:
+        raise ValueError("rel_size must be positive.")
+    elif rel_size > 1.0:
+        pixel_flag = True
+    else:
+        pixel_flag = False
+
+    # Find the region area
+    reg_area = len(np.where(mask_array == 1)[0])
+
+    # Label the holes
+    holes = np.logical_not(mask_array).astype(float)
+    lab_holes, n_holes = nd.label(holes, eight_con())
+
+    # If no holes, return
+    if n_holes == 1:
+        return mask_array
+
+    # Ignore area outside of the region.
+    out_label = lab_holes[0, 0]
+    # Set size to be just larger than the region. Thus it can never be
+    # deleted.
+    holes[np.where(lab_holes == out_label)] = reg_area + 1.
+
+    # Sum up the regions and find holes smaller than the threshold.
+    sums = nd.sum(holes, lab_holes, range(1, n_holes + 1))
+    if pixel_flag:  # Use number of pixels
+        delete_holes = np.where(sums < rel_size)[0]
+    else:  # Use relative size of holes.
+        delete_holes = np.where(sums / reg_area < rel_size)[0]
+
+    # Return if there is nothing to delete.
+    if delete_holes == []:
+        return mask_array
+
+    # Add one to take into account 0 in list if object label 1.
+    delete_holes += 1
+    for label in delete_holes:
+        mask_array[np.where(lab_holes == label)] = 1
+
+    return mask_array

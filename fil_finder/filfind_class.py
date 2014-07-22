@@ -312,6 +312,14 @@ class fil_finder_2D(object):
         cleaned = \
             remove_small_objects(opening, min_size=self.size_thresh)
         self.mask = nd.median_filter(cleaned, size=self.smooth_size)
+
+        # Remove small holes within the object
+        mask_objs, num, corners = isolateregions(cleaned, fill_hole=True,
+                                                 rel_size=10)
+        self.mask = recombine_skeletons(mask_objs,
+                                        corners, self.image.shape,
+                                        self.pad_size, verbose=True)
+
         self.mask[np.where((self.mask * self.image) < 0.0)] = 0
 
         if test_mode:
