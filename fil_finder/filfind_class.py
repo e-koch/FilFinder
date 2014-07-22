@@ -255,6 +255,26 @@ class fil_finder_2D(object):
             warnings.warn("Adaptive thresholding patch is larger than 40 \
                           pixels. Regridding has been disabled.")
 
+        # Adaptive thresholding can't handle nans, so we create a nan mask
+        # by finding the large, outer regions, smoothing with a large median
+        # filter and eroding it.
+
+        # Make a copy of the flattened image
+        flat_copy = self.flat_img.copy()
+
+        # Make the nan mask
+        nan_mask = np.isnan(flat_copy)
+        nan_mask = remove_small_objects(nan_mask, min_size=50,
+                                        connectivity=8)
+        nan_mask = np.logical_not(nan_mask)
+
+        nan_mask = nd.median_filter(nan_mask, 25)
+        nan_mask = nd.binary_erosion(nan_mask, eight_con(),
+                                     iterations=15)
+
+        # Remove nans in the copy
+        flat_copy[np.isnan(flat_copy)] = 0.0
+
         # Perform regridding
         if regrid:
             # Calculate the needed zoom to make the patch size ~40 pixels
@@ -262,26 +282,12 @@ class fil_finder_2D(object):
             # Round to the nearest factor of 2
             regrid_factor = int(round(ratio/2.0)*2.0)
 
-            # Make a copy of the flattened image
-            flat_copy = self.flat_img.copy()
-
-            # Make the nan mask
-            nan_mask = np.isnan(flat_copy)
-            nan_mask = remove_small_objects(nan_mask, min_size=50,
-                                            connectivity=8)
-            nan_mask = nd.binary_dilation(nan_mask, eight_con(),
-                                          iterations=10)
-            nan_mask = np.logical_not(nan_mask)
-            # Remove nans (needed to do interpolation)
-            flat_copy[np.isnan(flat_copy)] = 0.0
-
             # Defaults to cubic interpolation
             masking_img = nd.zoom(flat_copy, (regrid_factor, regrid_factor))
         else:
             regrid_factor = 1
             ratio = 1
-            nan_mask = np.ones(self.flat_img.shape)
-            masking_img = self.flat_img
+            masking_img = flat_copy
 
         smooth_img = nd.median_filter(masking_img,
                                       size=round(self.smooth_size*ratio))
