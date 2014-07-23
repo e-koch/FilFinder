@@ -491,7 +491,8 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
     longpath_arrays = []
 
     for num, (path, edges, inters, skel_arr, lengths) in \
-          enumerate(zip(max_path, edge_list, interpts, labelisofil, branch_lengths)):
+        enumerate(zip(max_path, edge_list, interpts, labelisofil,
+                      branch_lengths)):
 
         if len(path) == 1:
             main_lengths.append(lengths[0] * img_scale)
@@ -535,6 +536,7 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
         longpath_arrays.append(skeleton.astype(int))
 
         if verbose:
+            print "Filament: %s / %s" % (num+1, len(labelisofil))
             p.imshow(skeleton)
             p.show()
 
