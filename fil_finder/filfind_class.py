@@ -179,7 +179,7 @@ class fil_finder_2D(object):
 
     def create_mask(self, glob_thresh=None, adapt_thresh=None,
                     smooth_size=None, size_thresh=None, verbose=False,
-                    test_mode=False, regrid=True):
+                    test_mode=False, regrid=True, border_masking=True):
         '''
 
         This runs the complete segmentation process and returns a mask of the
@@ -263,17 +263,19 @@ class fil_finder_2D(object):
         flat_copy = self.flat_img.copy()
 
         # Make the nan mask
-        nan_mask = np.isnan(flat_copy)
-        nan_mask = remove_small_objects(nan_mask, min_size=50,
-                                        connectivity=8)
-        nan_mask = np.logical_not(nan_mask)
+        if border_masking:
+            nan_mask = np.isnan(flat_copy)
+            nan_mask = remove_small_objects(nan_mask, min_size=50,
+                                            connectivity=8)
+            nan_mask = np.logical_not(nan_mask)
 
-        nan_mask = nd.median_filter(nan_mask, 25)
-        nan_mask = nd.binary_erosion(nan_mask, eight_con(),
-                                     iterations=15)
-
-        # Remove nans in the copy
-        flat_copy[np.isnan(flat_copy)] = 0.0
+            nan_mask = nd.median_filter(nan_mask, 25)
+            nan_mask = nd.binary_erosion(nan_mask, eight_con(),
+                                         iterations=15)
+            # Remove nans in the copy
+            flat_copy[np.isnan(flat_copy)] = 0.0
+        else:
+            nan_mask = np.ones(flat_copy.shape)
 
         # Perform regridding
         if regrid:
@@ -504,7 +506,7 @@ class fil_finder_2D(object):
 
         max_path, extremum, G = \
             longest_path(edge_list, nodes,
-                         verbose=verbose,
+                         verbose=False,
                          skeleton_arrays=labeled_fil_arrays,
                          lengths=self.branch_properties["length"])
 
