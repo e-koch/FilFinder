@@ -486,8 +486,8 @@ class fil_finder_2D(object):
                 "relintens_thresh must be set between (0.0, 1.0].")
 
         isolated_filaments, num, offsets = \
-            isolatefilaments(
-                self.skeleton, self.skel_thresh, pad_size=self.pad_size)
+            isolateregions(self.skeleton, size_threshold=self.skel_thresh,
+                           pad_size=self.pad_size)
         self.number_of_filaments = num
         self.array_offsets = offsets
 
