@@ -31,7 +31,7 @@ from pixel_ident import *
 import operator
 import string
 import copy
-from skimage.morphology import medial_axis, label
+from skimage.morphology import medial_axis, label, skeletonize
 
 # Create 4 to 8-connected elements to use with binary hit-or-miss
 struct1 = np.array([[1, 0, 0],
@@ -490,8 +490,8 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
     main_lengths = []
     longpath_arrays = []
 
-    for path, edges, inters, skel_arr, lengths in \
-          zip(max_path, edge_list, interpts, labelisofil, branch_lengths):
+    for num, (path, edges, inters, skel_arr, lengths) in \
+          enumerate(zip(max_path, edge_list, interpts, labelisofil, branch_lengths)):
 
         if len(path) == 1:
             main_lengths.append(lengths[0] * img_scale)
@@ -525,8 +525,10 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
                         x, y = pts
                         skeleton[x, y] = 1
 
-            # Remove unnecessary pixels
-            skeleton = medial_axis(skeleton)
+            # Remove unnecessary pixels by filling holes, then
+            # skeletonizing
+            skeleton = nd.binary_fill_holes(skeleton)
+            skeleton = skeletonize(skeleton)
 
             main_lengths.append(skeleton_length(skeleton) * img_scale)
 
