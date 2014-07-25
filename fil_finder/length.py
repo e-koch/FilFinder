@@ -27,11 +27,10 @@ import scipy.ndimage as nd
 import networkx as nx
 from utilities import *
 from pixel_ident import *
-#from curvature import *
 import operator
 import string
 import copy
-from skimage.morphology import medial_axis, label, skeletonize
+from skimage.morphology import label
 
 # Create 4 to 8-connected elements to use with binary hit-or-miss
 struct1 = np.array([[1, 0, 0],
@@ -417,10 +416,10 @@ Contains the starting and ending points of max_path
                 # Check if skeleton_arrays is a list
                 assert isinstance(skeleton_arrays, list)
                 import matplotlib.pyplot as p
-
+                print "Filament: %s / %s" % (n+1, num)
                 p.subplot(1, 2, 1)
                 p.imshow(
-                    skeleton_arrays[n], origin="lower", interpolation=None)
+                    skeleton_arrays[n], interpolation="nearest")
 
                 p.subplot(1, 2, 2)
                 elist = [(u, v) for (u, v, d) in G.edges(data=True)]
@@ -512,6 +511,7 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
                         skeleton[np.where(skel_arr == label)] = 1
 
             # Add intersections along longest path
+            intersec_pts = []
             for label in path:
                 try:
                     label = int(label)
@@ -522,14 +522,25 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
                     while zip(product_gen(string.ascii_uppercase),
                               [1] * k)[-1][0] != label:
                         k += 1
-                    for pts in inters[k - 1]:
-                        x, y = pts
-                        skeleton[x, y] = 1
+                    intersec_pts.extend(inters[k-1])
+                    skeleton[zip(*inters[k-1])] = 2
 
-            # Remove unnecessary pixels by filling holes, then
-            # skeletonizing
-            skeleton = nd.binary_fill_holes(skeleton)
-            skeleton = skeletonize(skeleton)
+            # Remove unnecessary pixels
+            count = 0
+            while True:
+                for pt in intersec_pts:
+                    # If we have already eliminated the point, continue
+                    if skeleton[pt] == 0:
+                        continue
+                    skeleton[pt] = 0
+                    lab_try, n = nd.label(skeleton, eight_con())
+                    if n > 1:
+                        skeleton[pt] = 1
+                    else:
+                        count += 1
+                if count == 0:
+                    break
+                count = 0
 
             main_lengths.append(skeleton_length(skeleton) * img_scale)
 
@@ -537,7 +548,10 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
 
         if verbose:
             print "Filament: %s / %s" % (num+1, len(labelisofil))
-            p.imshow(skeleton)
+            p.subplot(121)
+            p.imshow(skeleton, interpolation="nearest")
+            p.subplot(122)
+            p.imshow(labelisofil[num], interpolation="nearest")
             p.show()
 
     return main_lengths, longpath_arrays
