@@ -276,7 +276,7 @@ def find_filpix(branches, labelfil, final=True):
                     fila_pts.append(endpts + bodypts)
                 else:
                     fila_pts.append(endpts + bodypts + [l])
-                    cornerpts.remove(l)
+                    # cornerpts.remove(l)
         else:
             fila_pts.append(endpts + bodypts)
 
