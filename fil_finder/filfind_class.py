@@ -179,7 +179,7 @@ class fil_finder_2D(object):
 
     def create_mask(self, glob_thresh=None, adapt_thresh=None,
                     smooth_size=None, size_thresh=None, verbose=False,
-                    test_mode=False, regrid=True, border_masking=True):
+                    test_mode=False, regrid=False, border_masking=True):
         '''
 
         This runs the complete segmentation process and returns a mask of the
@@ -254,6 +254,10 @@ class fil_finder_2D(object):
             regrid = False
             warnings.warn("Adaptive thresholding patch is larger than 40 \
                           pixels. Regridding has been disabled.")
+
+        if regrid and not border_masking:
+            border_masking = True
+            warnings.warn("border_masking has been enabled to use regridding.")
 
         # Adaptive thresholding can't handle nans, so we create a nan mask
         # by finding the large, outer regions, smoothing with a large median
