@@ -307,7 +307,7 @@ class fil_finder_2D(object):
                 np.max([0.0,
                         scoreatpercentile(self.flat_img[~np.isnan(self.flat_img)],
                                           self.glob_thresh)])
-            glob = self.flat_img > thresh_value
+            glob = flat_copy > thresh_value
             adapt = glob * adapt
 
         opening = nd.binary_opening(adapt, structure=np.ones((3, 3)))
@@ -506,7 +506,7 @@ class fil_finder_2D(object):
 
         max_path, extremum, G = \
             longest_path(edge_list, nodes,
-                         verbose=False,
+                         verbose=verbose,
                          skeleton_arrays=labeled_fil_arrays,
                          lengths=self.branch_properties["length"])
 
