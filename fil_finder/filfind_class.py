@@ -12,6 +12,7 @@ from analysis import Analysis
 import numpy as np
 import matplotlib.pyplot as p
 import scipy.ndimage as nd
+from scipy.stats import lognorm
 from skimage.filter import threshold_adaptive
 from skimage.morphology import remove_small_objects, medial_axis
 from scipy.stats import scoreatpercentile
@@ -118,9 +119,9 @@ class fil_finder_2D(object):
     """
 
     def __init__(self, image, hdr, beamwidth, skel_thresh, branch_thresh,
-                 pad_size, flatten_thresh, smooth_size=None, size_thresh=None,
-                 glob_thresh=None, adapt_thresh=None, distance=None,
-                 region_slice=None, mask=None, freq=None):
+                 pad_size, flatten_thresh=None, smooth_size=None,
+                 size_thresh=None, glob_thresh=None, adapt_thresh=None,
+                 distance=None, region_slice=None, mask=None, freq=None):
 
         img_dim = len(image.shape)
         if img_dim < 2 or img_dim > 2:
@@ -151,9 +152,18 @@ class fil_finder_2D(object):
         self.image = np.pad(self.image, self.pad_size, padwithnans)
 
         # Make flattened image
-        self.flat_img = np.arctan(
-            self.image / scoreatpercentile(self.image[~np.isnan(self.image)],
-                                           flatten_thresh))
+        if flatten_thresh is None:
+            # Fit to a log-normal
+            fit_vals = lognorm.fit(self.image[~np.isnan(self.image)])
+
+            median = lognorm.median(*fit_vals)
+            std = lognorm.std(*fit_vals)
+            thresh_val = median + 2*std
+        else:
+            thresh_val = scoreatpercentile(self.image[~np.isnan(self.image)],
+                                           flatten_thresh)
+
+        self.flat_img = np.arctan(self.image / thresh_val)
 
         if distance is None:
             print "No distance given. Results will be in pixel units."
@@ -179,7 +189,7 @@ class fil_finder_2D(object):
 
     def create_mask(self, glob_thresh=None, adapt_thresh=None,
                     smooth_size=None, size_thresh=None, verbose=False,
-                    test_mode=False, regrid=False, border_masking=True):
+                    test_mode=False, regrid=True, border_masking=True):
         '''
 
         This runs the complete segmentation process and returns a mask of the
