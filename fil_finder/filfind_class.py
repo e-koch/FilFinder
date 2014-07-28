@@ -314,7 +314,9 @@ class fil_finder_2D(object):
         if regrid:
             regrid_factor = float(regrid_factor)
             adapt = nd.zoom(adapt, (1/regrid_factor, 1/regrid_factor), order=0)
-            adapt = adapt * nan_mask
+
+        # Remove areas near the image border
+        adapt = adapt * nan_mask
 
         if self.glob_thresh is not None:
             thresh_value = \
