@@ -257,7 +257,7 @@ class fil_finder_2D(object):
             self.adapt_thresh = round(0.2 / self.imgscale)
         if self.smooth_size is None:
             # half average FWHM for filaments
-            self.smooth_size = round(0.02 / self.imgscale)
+            self.smooth_size = round(0.05 / self.imgscale)
 
         # Check if regridding is even necessary
         if self.adapt_thresh >= 40 and regrid:
