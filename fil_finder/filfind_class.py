@@ -919,6 +919,10 @@ class fil_finder_2D(object):
                 del data["Branch Length"]
             if "Branch Intensity" in data.keys():
                 del data["Branch Intensity"]
+            # If RHT is run on branches, we have to delete that too for FITS
+            if "Orientation" in data.keys():
+                if isinstance(data["Orientation"][0], np.ndarray):
+                    del data["Orientation"]
 
             df = Table(data)
             df.write(filename)
