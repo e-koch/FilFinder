@@ -913,16 +913,24 @@ class fil_finder_2D(object):
             df.write(filename, format="ascii.csv")
 
         elif table_type == "fits":
+            warnings.warn("Entries containing lists have been deleted from \
+                           FITS output due to incompatible format. If you  \
+                           need these results, rerun save_table and save to\
+                           a CSV file")
             # Branch Lengths and Intensity contains a list for each entry,
             # which aren't accepted for BIN tables.
             if "Branch Length" in data.keys():
                 del data["Branch Length"]
+                print("Deleted: Branch Length")
             if "Branch Intensity" in data.keys():
                 del data["Branch Intensity"]
+                print("Deleted: Branch Intensity")
             # If RHT is run on branches, we have to delete that too for FITS
             if "Orientation" in data.keys():
                 if isinstance(data["Orientation"][0], np.ndarray):
                     del data["Orientation"]
+                    del data["Curvature"]
+                    print("Deleted: Orientation, Curvature")
 
             df = Table(data)
             df.write(filename)
