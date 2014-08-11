@@ -570,7 +570,7 @@ class fil_finder_2D(object):
         return self
 
     def exec_rht(self, radius=10, ntheta=180, background_percentile=25,
-                 verbose=False):
+                 branches=False, min_branch_pix=10, verbose=False):
         '''
 
         Implements the Rolling Hough Transform (Clark et al., 2013).
@@ -590,7 +590,13 @@ class fil_finder_2D(object):
             RHT distribution often has a constant background. This sets the
             percentile to subtract off.
 
-        verbose : bool
+        branches : bool, optional
+            If enabled, runs the RHT on individual branches in the skeleton.
+
+        min_branch_pix : int, optional
+            Sets the minimum pixels a branch must have to calculate the RHT
+
+        verbose : bool, optional
             Enables plotting.
 
         Returns
@@ -609,37 +615,75 @@ class fil_finder_2D(object):
         for n in range(self.number_of_filaments):
         # Need to correct for how image is read in
         # fliplr aligns angles with image when shown in ds9
-            skel_arr = np.fliplr(self.filament_arrays["long path"][n])
-            theta, R, ecdf, quantiles = rht(
-                skel_arr, radius, ntheta, background_percentile)
+            if branches:
+                # We need intermediary arrays now
+                medians = np.array([])
+                iqrs = np.array([])
+                # See above comment (613-614)
+                skel_arr = np.fliplr(self.filament_arrays["final"][n])
+                # Return the labeled skeleton without intersections
+                labeled_fil_array = pix_identify([skel_arr], 1)[-1][0]
+                branch_labels = \
+                    np.unique(labeled_fil_array[np.nonzero(labeled_fil_array)])
+                for val in branch_labels:
+                    num_pix = nd.sum(labeled_fil_array,
+                                     labeled_fil_array, val) / float(val)
+                    # Only include the branches with >10 pixels
+                    if num_pix < min_branch_pix:
+                        continue
+                    theta, R, ecdf, quantiles = \
+                        rht(labeled_fil_array == val,
+                            radius, ntheta, background_percentile)
 
-            twofive, median, sevenfive = quantiles
+                    twofive, median, sevenfive = quantiles
 
-            self.rht_curvature["Median"].append(median)
-            if sevenfive > twofive:
-                self.rht_curvature["IQR"].append(
-                    np.abs(sevenfive - twofive))  # Interquartile range
-            else:  #
-                self.rht_curvature["IQR"].append(
-                    np.abs(sevenfive - twofive + np.pi))  # Interquartile range
+                    medians = np.append(medians, median)
+                    if sevenfive > twofive:
+                        iqrs = \
+                            np.append(iqrs,
+                                      np.abs(sevenfive - twofive))
+                    else:  #
+                        iqrs = \
+                            np.append(iqrs,
+                                      np.abs(sevenfive - twofive) + np.pi)
+                self.rht_curvature["Median"].append(medians)
+                self.rht_curvature["IQR"].append(iqrs)
 
-            if verbose:
-                ax1 = p.subplot(131, polar=True)
-                ax1.plot(2 * theta, R / R.max(), "kD")
-                ax1.fill_between(2 * theta, 0, R / R.max(), facecolor="blue",
-                                 interpolate=True, alpha=0.5)
-                ax1.set_rmax(1.0)
-                ax1.plot([2 * median] * 2, np.linspace(0.0, 1.0, 2), "g")
-                ax1.plot([2 * twofive] * 2, np.linspace(0.0, 1.0, 2), "b--")
-                ax1.plot([2 * sevenfive] * 2, np.linspace(0.0, 1.0, 2), "b--")
-                ax2 = p.subplot(132, polar=True)
-                ax2.plot(2 * theta, ecdf, "k")
-                ax2.set_rmax(1.0)
-                ax2.set_yticks([0.25, 0.5, 0.75])
-                p.subplot(133)
-                p.imshow(self.filament_arrays["long path"][n],
-                         cmap="binary", origin="lower")
-                p.show()
+            else:
+                skel_arr = np.fliplr(self.filament_arrays["long path"][n])
+                theta, R, ecdf, quantiles = rht(
+                    skel_arr, radius, ntheta, background_percentile)
+
+                twofive, median, sevenfive = quantiles
+
+                self.rht_curvature["Median"].append(median)
+                if sevenfive > twofive:
+                    self.rht_curvature["IQR"].append(
+                        np.abs(sevenfive - twofive))  # Interquartile range
+                else:  #
+                    self.rht_curvature["IQR"].append(
+                        np.abs(sevenfive - twofive + np.pi))
+
+                if verbose:
+                    ax1 = p.subplot(131, polar=True)
+                    ax1.plot(2 * theta, R / R.max(), "kD")
+                    ax1.fill_between(2 * theta, 0, R / R.max(),
+                                     facecolor="blue",
+                                     interpolate=True, alpha=0.5)
+                    ax1.set_rmax(1.0)
+                    ax1.plot([2 * median] * 2, np.linspace(0.0, 1.0, 2), "g")
+                    ax1.plot([2 * twofive] * 2, np.linspace(0.0, 1.0, 2),
+                             "b--")
+                    ax1.plot([2 * sevenfive] * 2, np.linspace(0.0, 1.0, 2),
+                             "b--")
+                    ax2 = p.subplot(132, polar=True)
+                    ax2.plot(2 * theta, ecdf, "k")
+                    ax2.set_rmax(1.0)
+                    ax2.set_yticks([0.25, 0.5, 0.75])
+                    p.subplot(133)
+                    p.imshow(self.filament_arrays["long path"][n],
+                             cmap="binary", origin="lower")
+                    p.show()
 
         return self
 
