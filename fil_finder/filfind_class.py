@@ -18,6 +18,7 @@ from skimage.morphology import remove_small_objects, medial_axis
 from scipy.stats import scoreatpercentile
 from astropy.io import fits
 from astropy.table import Table
+import astropy.units as u
 from copy import deepcopy
 import os
 import time
@@ -177,6 +178,9 @@ class fil_finder_2D(object):
                 beamwidth / np.sqrt(8 * np.log(2.))) * \
                 (2 * np.pi / 206265.) * distance
             self.pixel_unit_flag = False
+
+        # Angular conversion (sr/pixel^2)
+        self.angular_scale = ((hdr['CDELT2'] * u.degree) ** 2.).to(u.sr).value
 
         self.glob_thresh = glob_thresh
         self.adapt_thresh = adapt_thresh
@@ -795,6 +799,8 @@ class fil_finder_2D(object):
                     (self.number_of_filaments, len(parameter_names)))
                 self.width_fits["Type"] = np.empty(
                     (self.number_of_filaments), dtype="S")
+                self.total_brightness = np.empty(
+                    (self.number_of_filaments, ))
 
             if verbose:
                 print "%s in %s" % (n, self.number_of_filaments)
@@ -840,6 +846,18 @@ class fil_finder_2D(object):
             if fail_flag:
                 fit = [np.NaN] * len(fit)
                 fit_error = [np.NaN] * len(fit)
+
+            # Using the unbinned profiles, we can find the total filament
+            # brightness. This can later be used to estimate the mass
+            # contained in each filament.
+            within_width = np.where(unbin_dist <= fit[1])
+            if within_width[0].size:  # Check if its empty
+                # Subtract off the estimated background
+                fil_bright = unbin_radprof[within_width] - fit[2]
+                sum_bright = np.sum(fil_bright[fil_bright >= 0], axis=None)
+                self.total_brightness[n] = sum_bright * self.angular_scale
+            else:
+                self.total_brightness[n] = np.NaN
 
             self.width_fits["Parameters"][n, :] = fit
             self.width_fits["Errors"][n, :] = fit_error
