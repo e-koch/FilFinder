@@ -616,6 +616,11 @@ class fil_finder_2D(object):
 
         '''
 
+        if not self.rht_curvature["Median"]:
+            pass
+        else:
+            self.rht_curvature = {"Median": [], "IQR": []}
+
         for n in range(self.number_of_filaments):
         # Need to correct for how image is read in
         # fliplr aligns angles with image when shown in ds9
