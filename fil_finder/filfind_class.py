@@ -951,7 +951,7 @@ class fil_finder_2D(object):
                 print("Deleted: Branch Intensity")
             # If RHT is run on branches, we have to delete that too for FITS
             if "Orientation" in data.keys():
-                if isinstance(data["Orientation"][0], np.ndarray):
+                if isinstance(data["Orientation"], list):
                     del data["Orientation"]
                     del data["Curvature"]
                     print("Deleted: Orientation, Curvature")
