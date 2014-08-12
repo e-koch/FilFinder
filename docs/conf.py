@@ -19,10 +19,6 @@ import sys, os
 #sys.path.insert(0, os.path.abspath('.'))
 
 # -- General configuration -----------------------------------------------------
-import sphinx_readable_theme
-
-html_theme_path = [sphinx_readable_theme.get_html_theme_path()]
-html_theme = 'readable'
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #needs_sphinx = '1.0'
