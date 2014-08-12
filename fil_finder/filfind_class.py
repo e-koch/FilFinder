@@ -920,7 +920,8 @@ class fil_finder_2D(object):
                 "Branches": self.branch_properties["number"],
                 "Branch Length": self.branch_properties["length"],
                 "Branch Intensity": self.branch_properties["intensity"],
-                "Fit Type": self.width_fits["Type"]}
+                "Fit Type": self.width_fits["Type"],
+                "Total Intensity": self.total_brightness}
 
         for i, param in enumerate(self.width_fits["Names"]):
             data[param] = self.width_fits["Parameters"][:, i]
