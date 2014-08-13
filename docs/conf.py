@@ -18,6 +18,22 @@ import sys, os
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
 
+
+# Mock out the imports
+from mock import Mock as MagicMock
+
+
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+            return Mock()
+
+MOCK_MODULES = ['matplotlib', 'astropy', 'scipy', 'scikits-image', 'numpy', 'pandas', "networkx"]
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+
+
+
+
 # -- General configuration -----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
