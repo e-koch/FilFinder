@@ -621,6 +621,8 @@ class fil_finder_2D(object):
         else:
             self.rht_curvature = {"Median": [], "IQR": []}
 
+        self.rht_curvature["Intensity"] = []
+
         for n in range(self.number_of_filaments):
         # Need to correct for how image is read in
         # fliplr aligns angles with image when shown in ds9
@@ -628,17 +630,30 @@ class fil_finder_2D(object):
                 # We need intermediary arrays now
                 medians = np.array([])
                 iqrs = np.array([])
+                intensity = np.array([])
                 # See above comment (613-614)
                 skel_arr = np.fliplr(self.filament_arrays["final"][n])
+                # Return the labeled skeleton without intersections
+                output = \
+                    pix_identify([skel_arr], 1)[-2:]
+                labeled_fil_array = output[1]
+                filbranch = output[0]
+                branch_properties = init_lengths(labeled_fil_array,
+                                                 filbranch,
+                                                 [self.array_offsets[n]],
+                                                 self.image)
+                labeled_fil_array = labeled_fil_array[0]
+                filbranch = filbranch[0]
+
                 # Return the labeled skeleton without intersections
                 labeled_fil_array = pix_identify([skel_arr], 1)[-1][0]
                 branch_labels = \
                     np.unique(labeled_fil_array[np.nonzero(labeled_fil_array)])
+                print branch_labels.max(), len(branch_properties["length"])
                 for val in branch_labels:
-                    num_pix = nd.sum(labeled_fil_array,
-                                     labeled_fil_array, val) / float(val)
+                    length = branch_properties["length"][0][val-1]
                     # Only include the branches with >10 pixels
-                    if num_pix < min_branch_pix:
+                    if length < min_branch_pix:
                         continue
                     theta, R, ecdf, quantiles = \
                         rht(labeled_fil_array == val,
@@ -655,8 +670,10 @@ class fil_finder_2D(object):
                         iqrs = \
                             np.append(iqrs,
                                       np.abs(sevenfive - twofive) + np.pi)
+                    intensity = np.append(intensity, branch_properties["intensity"][0][val-1])
                 self.rht_curvature["Median"].append(medians)
                 self.rht_curvature["IQR"].append(iqrs)
+                self.rht_curvature["Intensity"].append(intensity)
 
             else:
                 skel_arr = np.fliplr(self.filament_arrays["long path"][n])
