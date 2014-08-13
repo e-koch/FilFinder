@@ -12,3 +12,4 @@ build/
 fil_finder.egg-info/
 bulk_analysis.py
 examples/.*
+interruptible_pool.py*
