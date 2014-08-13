@@ -649,7 +649,7 @@ class fil_finder_2D(object):
                 labeled_fil_array = pix_identify([skel_arr], 1)[-1][0]
                 branch_labels = \
                     np.unique(labeled_fil_array[np.nonzero(labeled_fil_array)])
-                print branch_labels.max(), len(branch_properties["length"])
+
                 for val in branch_labels:
                     length = branch_properties["length"][0][val-1]
                     # Only include the branches with >10 pixels
