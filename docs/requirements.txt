@@ -1,7 +1,1 @@
-numpy
-matplotlib
-astropy
-scipy
-scikits-image
-networkx
-pandas
+mock
