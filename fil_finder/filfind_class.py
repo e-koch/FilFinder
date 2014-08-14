@@ -623,6 +623,11 @@ class fil_finder_2D(object):
 
         self.rht_curvature["Intensity"] = []
 
+        # Flag branch output
+        self._rht_branches_flag = False
+        if branches:
+            self._rht_branches_flag = True
+
         for n in range(self.number_of_filaments):
         # Need to correct for how image is read in
         # fliplr aligns angles with image when shown in ds9
@@ -967,11 +972,10 @@ class fil_finder_2D(object):
                 del data["Branch Intensity"]
                 print("Deleted: Branch Intensity")
             # If RHT is run on branches, we have to delete that too for FITS
-            if "Orientation" in data.keys():
-                if isinstance(data["Orientation"], list):
-                    del data["Orientation"]
-                    del data["Curvature"]
-                    print("Deleted: Orientation, Curvature")
+            if self._rht_branches_flag:
+                del data["Orientation"]
+                del data["Curvature"]
+                print("Deleted: Orientation, Curvature")
 
             df = Table(data)
             df.write(filename)
