@@ -637,7 +637,7 @@ class fil_finder_2D(object):
                 medians = np.array([])
                 iqrs = np.array([])
                 intensity = np.array([])
-                length = np.array([])
+                lengths = np.array([])
                 # See above comment (613-614)
                 skel_arr = np.fliplr(self.filament_arrays["final"][n])
                 # Return the labeled skeleton without intersections
@@ -678,7 +678,8 @@ class fil_finder_2D(object):
                             np.append(iqrs,
                                       np.abs(sevenfive - twofive) + np.pi)
                     intensity = np.append(intensity, branch_properties["intensity"][0][val-1])
-                    length = np.append(intensity, branch_properties["length"][0][val-1])
+                    lengths = np.append(lengths, branch_properties["length"][0][val-1])
+
                 self.rht_curvature["Median"].append(medians)
                 self.rht_curvature["IQR"].append(iqrs)
                 self.rht_curvature["Intensity"].append(intensity)
