@@ -574,7 +574,7 @@ class fil_finder_2D(object):
         return self
 
     def exec_rht(self, radius=10, ntheta=180, background_percentile=25,
-                 branches=False, min_branch_pix=10, verbose=False):
+                 branches=False, min_branch_length=3, verbose=False):
         '''
 
         Implements the Rolling Hough Transform (Clark et al., 2013).
@@ -597,7 +597,7 @@ class fil_finder_2D(object):
         branches : bool, optional
             If enabled, runs the RHT on individual branches in the skeleton.
 
-        min_branch_pix : int, optional
+        min_branch_length : int, optional
             Sets the minimum pixels a branch must have to calculate the RHT
 
         verbose : bool, optional
@@ -621,12 +621,13 @@ class fil_finder_2D(object):
         else:
             self.rht_curvature = {"Median": [], "IQR": []}
 
-        self.rht_curvature["Intensity"] = []
-
         # Flag branch output
         self._rht_branches_flag = False
         if branches:
             self._rht_branches_flag = True
+            # Set up new dict entries.
+            self.rht_curvature["Intensity"] = []
+            self.rht_curvature["Length"] = []
 
         for n in range(self.number_of_filaments):
         # Need to correct for how image is read in
@@ -636,6 +637,7 @@ class fil_finder_2D(object):
                 medians = np.array([])
                 iqrs = np.array([])
                 intensity = np.array([])
+                length = np.array([])
                 # See above comment (613-614)
                 skel_arr = np.fliplr(self.filament_arrays["final"][n])
                 # Return the labeled skeleton without intersections
@@ -658,7 +660,7 @@ class fil_finder_2D(object):
                 for val in branch_labels:
                     length = branch_properties["length"][0][val-1]
                     # Only include the branches with >10 pixels
-                    if length < min_branch_pix:
+                    if length < min_branch_length:
                         continue
                     theta, R, ecdf, quantiles = \
                         rht(labeled_fil_array == val,
@@ -676,9 +678,11 @@ class fil_finder_2D(object):
                             np.append(iqrs,
                                       np.abs(sevenfive - twofive) + np.pi)
                     intensity = np.append(intensity, branch_properties["intensity"][0][val-1])
+                    length = np.append(intensity, branch_properties["length"][0][val-1])
                 self.rht_curvature["Median"].append(medians)
                 self.rht_curvature["IQR"].append(iqrs)
                 self.rht_curvature["Intensity"].append(intensity)
+                self.rht_curvature["Length"].append(length)
 
             else:
                 skel_arr = np.fliplr(self.filament_arrays["long path"][n])
