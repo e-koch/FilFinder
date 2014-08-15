@@ -683,7 +683,7 @@ class fil_finder_2D(object):
                 self.rht_curvature["Median"].append(medians)
                 self.rht_curvature["IQR"].append(iqrs)
                 self.rht_curvature["Intensity"].append(intensity)
-                self.rht_curvature["Length"].append(length)
+                self.rht_curvature["Length"].append(lengths)
 
             else:
                 skel_arr = np.fliplr(self.filament_arrays["long path"][n])
