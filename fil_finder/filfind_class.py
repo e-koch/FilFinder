@@ -831,7 +831,7 @@ class fil_finder_2D(object):
                     (self.number_of_filaments, len(parameter_names)))
                 self.width_fits["Type"] = np.empty(
                     (self.number_of_filaments), dtype="S")
-                self.total_brightness = np.empty(
+                self.total_intensity = np.empty(
                     (self.number_of_filaments, ))
 
             if verbose:
@@ -887,14 +887,29 @@ class fil_finder_2D(object):
                 # Subtract off the estimated background
                 fil_bright = unbin_radprof[within_width] - fit[2]
                 sum_bright = np.sum(fil_bright[fil_bright >= 0], axis=None)
-                self.total_brightness[n] = sum_bright * self.angular_scale
+                self.total_intensity[n] = sum_bright * self.angular_scale
             else:
-                self.total_brightness[n] = np.NaN
+                self.total_intensity[n] = np.NaN
 
             self.width_fits["Parameters"][n, :] = fit
             self.width_fits["Errors"][n, :] = fit_error
             self.width_fits["Type"][n] = fit_type
         self.width_fits["Names"] = parameter_names
+
+        return self
+
+    def compute_filament_brightness(self):
+        '''
+        Returns the median brightness along the skeleton of the filament.
+        '''
+
+        self.filament_brightness = []
+
+        labels, n = nd.label(self.skeleton, eight_con())
+
+        for n in range(1, self.number_of_filaments+1):
+            values = self.image[np.where(labels == n)]
+            self.filament_brightness.append(np.median(values))
 
         return self
 
@@ -953,7 +968,8 @@ class fil_finder_2D(object):
                 "Branch Length": self.branch_properties["length"],
                 "Branch Intensity": self.branch_properties["intensity"],
                 "Fit Type": self.width_fits["Type"],
-                "Total Intensity": self.total_brightness}
+                "Total Intensity": self.total_intensity,
+                "Median Brightness": self.filament_brightness}
 
         for i, param in enumerate(self.width_fits["Names"]):
             data[param] = self.width_fits["Parameters"][:, i]
