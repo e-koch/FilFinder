@@ -278,10 +278,6 @@ class fil_finder_2D(object):
             warnings.warn("Adaptive thresholding patch is larger than 40 \
                           pixels. Regridding has been disabled.")
 
-        if regrid and not border_masking:
-            border_masking = True
-            warnings.warn("border_masking has been enabled to use regridding.")
-
         # Adaptive thresholding can't handle nans, so we create a nan mask
         # by finding the large, outer regions, smoothing with a large median
         # filter and eroding it.
@@ -299,13 +295,14 @@ class fil_finder_2D(object):
             nan_mask = nd.median_filter(nan_mask, 25)
             nan_mask = nd.binary_erosion(nan_mask, eight_con(),
                                          iterations=15)
-            # Remove nans in the copy
-            flat_copy[np.isnan(flat_copy)] = 0.0
         else:
-            nan_mask = np.ones(flat_copy.shape)
+            nan_mask = np.logical_not(np.isnan(flat_copy))
 
         # Perform regridding
         if regrid:
+            # Remove nans in the copy
+            flat_copy[np.isnan(flat_copy)] = 0.0
+
             # Calculate the needed zoom to make the patch size ~40 pixels
             ratio = 40 / self.adapt_thresh
             # Round to the nearest factor of 2
@@ -328,6 +325,9 @@ class fil_finder_2D(object):
             smooth_img[-self.pad_size*ratio-1:, :] = 0.0
             smooth_img[:, :self.pad_size*ratio+1] = 0.0
             smooth_img[:, -self.pad_size*ratio-1:] = 0.0
+
+            p.imshow(smooth_img)
+            p.show()
 
         adapt = threshold_adaptive(smooth_img,
                                    round(ratio * self.adapt_thresh),
