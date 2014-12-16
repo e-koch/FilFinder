@@ -357,7 +357,9 @@ class fil_finder_2D(object):
                                         corners, self.image.shape,
                                         self.pad_size, verbose=True)
 
-        self.mask[np.where((self.mask * self.image) < 0.0)] = 0
+        ## WARNING!! Setting some image values to 0 to avoid negative weights.
+        ## This may cause issues, however it will allow for proper skeletons
+        self.image[np.where((self.mask * self.image) < 0.0)] = 0
 
         if test_mode:
             # p.subplot(3,3,1)
