@@ -193,7 +193,8 @@ class fil_finder_2D(object):
 
     def create_mask(self, glob_thresh=None, adapt_thresh=None,
                     smooth_size=None, size_thresh=None, verbose=False,
-                    test_mode=False, regrid=True, border_masking=True):
+                    test_mode=False, regrid=True, border_masking=True,
+                    zero_border=False):
         '''
 
         This runs the complete segmentation process and returns a mask of the
@@ -231,6 +232,9 @@ class fil_finder_2D(object):
         test_mode : bool, optional
             Plot each masking step.
 
+        zero_border : bool, optional
+            Replaces the NaN border with zeros for the adaptive thresholding.
+            This is useful when emission continues to the edge of the image.
 
         Returns
         -------
@@ -316,6 +320,15 @@ class fil_finder_2D(object):
 
         smooth_img = nd.median_filter(masking_img,
                                       size=round(self.smooth_size*ratio))
+
+        # Set the border to zeros for the adaptive thresholding. Avoid border
+        # effects.
+        if zero_border:
+            smooth_img[:self.pad_size*ratio+1, :] = 0.0
+            smooth_img[-self.pad_size*ratio-1:, :] = 0.0
+            smooth_img[:, :self.pad_size*ratio+1] = 0.0
+            smooth_img[:, -self.pad_size*ratio-1:] = 0.0
+
         adapt = threshold_adaptive(smooth_img,
                                    round(ratio * self.adapt_thresh),
                                    method="mean")
