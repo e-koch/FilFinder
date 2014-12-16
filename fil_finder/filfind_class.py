@@ -252,6 +252,10 @@ class fil_finder_2D(object):
             self.size_thresh = size_thresh
 
         if self.size_thresh is None:
+            if self.beamwidth == 0.0:
+                warnings.warn("Beam width is set to 0.0. \
+                               The size threshold is then 0. It is recommended \
+                               that size_thresh is manually set.")
             self.size_thresh = round(
                 np.pi * 5 * self.beamwidth**2. * self.imgscale ** -2)
             # Area of ellipse for typical filament size. Divided by 10 to
