@@ -326,9 +326,6 @@ class fil_finder_2D(object):
             smooth_img[:, :self.pad_size*ratio+1] = 0.0
             smooth_img[:, -self.pad_size*ratio-1:] = 0.0
 
-            p.imshow(smooth_img)
-            p.show()
-
         adapt = threshold_adaptive(smooth_img,
                                    round(ratio * self.adapt_thresh),
                                    method="mean")
