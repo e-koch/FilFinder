@@ -30,7 +30,7 @@ from pixel_ident import *
 import operator
 import string
 import copy
-from skimage.morphology import label
+from skimage.measure import label
 
 # Create 4 to 8-connected elements to use with binary hit-or-miss
 struct1 = np.array([[1, 0, 0],
