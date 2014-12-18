@@ -13,6 +13,7 @@ import numpy as np
 import matplotlib.pyplot as p
 import scipy.ndimage as nd
 from scipy.stats import lognorm
+from scipy.ndimage import distance_transform_edt
 from skimage.filter import threshold_adaptive
 from skimage.morphology import remove_small_objects, medial_axis
 from scipy.stats import scoreatpercentile
@@ -929,6 +930,39 @@ class fil_finder_2D(object):
             self.filament_brightness.append(np.median(values))
 
         return self
+
+    def filament_model(self, max_radius=25):
+        '''
+        Returns a model of the diffuse filamentary network based
+        on the radial profiles.
+        '''
+
+        if len(Filament.width_fits['Parameters']) == 0:
+            raise TypeError("Run profile fitting first!")
+
+        params = self.width_fits['Parameters']
+        scale = self.imgscale
+
+        # Create the distance transforms
+        all_fils = dist_transform(self.filament_arrays["final"],
+                                  self.skeleton)[0]
+
+        model_image = np.zeros(all_fils.shape)
+
+        for param, offset, fil_array in zip(params, self.array_offsets,
+                                             self.filament_arrays["final"]):
+            if np.isnan(param).any():
+                continue
+            # Avoid issues with the sizes of each filament array
+            full_size = np.ones(model_image.shape)
+            skel_posns = np.where(fil_array >= 1)
+            full_size[skel_posns[0] + offset[0][0], skel_posns[1] + offset[0][1]] = 0
+            dist_array = distance_transform_edt(full_size)
+            posns = np.where(dist_array < max_radius)
+            model_image[posns] += \
+                param[0] * np.exp(-np.power(dist_array[posns], 2)/(2*4*(param[1]/scale)**2))
+
+        return model_image
 
     def save_table(self, table_type="csv", path=None, save_name=None):
         '''
