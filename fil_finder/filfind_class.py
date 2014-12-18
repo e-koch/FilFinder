@@ -950,17 +950,19 @@ class fil_finder_2D(object):
         model_image = np.zeros(all_fils.shape)
 
         for param, offset, fil_array in zip(params, self.array_offsets,
-                                             self.filament_arrays["final"]):
+                                            self.filament_arrays["final"]):
             if np.isnan(param).any():
                 continue
             # Avoid issues with the sizes of each filament array
             full_size = np.ones(model_image.shape)
             skel_posns = np.where(fil_array >= 1)
-            full_size[skel_posns[0] + offset[0][0], skel_posns[1] + offset[0][1]] = 0
+            full_size[skel_posns[0] + offset[0][0],
+                      skel_posns[1] + offset[0][1]] = 0
             dist_array = distance_transform_edt(full_size)
             posns = np.where(dist_array < max_radius)
             model_image[posns] += \
-                param[0] * np.exp(-np.power(dist_array[posns], 2)/(2*4*(param[1]/scale)**2))
+                param[0] * np.exp(-np.power(dist_array[posns], 2) /
+                                  (2*(param[1]/scale)**2))
 
         return model_image
 
