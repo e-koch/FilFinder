@@ -937,7 +937,7 @@ class fil_finder_2D(object):
         on the radial profiles.
         '''
 
-        if len(Filament.width_fits['Parameters']) == 0:
+        if len(self.width_fits['Parameters']) == 0:
             raise TypeError("Run profile fitting first!")
 
         params = self.width_fits['Parameters']
