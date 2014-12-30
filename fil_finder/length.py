@@ -1,25 +1,4 @@
-#!/usr/bin/python
-
-
-'''
-Skeleton Length Routines for fil-finder package
-
-
-Contains:
-fil_length
-init_lengths
-pre_graph
-longest_path
-final_lengths
-
-
-
-Requires:
-numpy
-networkx
-
-
-'''
+# Licensed under an MIT open source license - see LICENSE
 
 import numpy as np
 from scipy.stats import nanmean

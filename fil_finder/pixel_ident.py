@@ -1,10 +1,4 @@
-#!/usr/bin/python
-
-
-'''
-Pixel Identification Routines for fil-finder package
-'''
-
+# Licensed under an MIT open source license - see LICENSE
 
 import numpy as np
 import scipy.ndimage as nd

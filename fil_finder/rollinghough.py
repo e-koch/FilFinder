@@ -1,9 +1,4 @@
-'''
-
-Rolling Hough Transform Implementation
-See  Clark et al. 2013 for description
-
-'''
+# Licensed under an MIT open source license - see LICENSE
 
 import numpy as np
 from scipy.stats import scoreatpercentile
