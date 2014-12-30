@@ -2,7 +2,7 @@ Pixel Identification Routines
 *****************************
 
 
-.. autofunction:: fil_finder.isolatefilaments
+.. autofunction:: fil_finder.isolateregions
 
 .. autofunction:: fil_finder.find_filpix
 
