@@ -17,23 +17,26 @@ def isolateregions(binary_array, size_threshold=0, pad_size=5,
                    fill_hole=False, rel_size=0.1):
     '''
 
+    Labels regions in a boolean array and returns individual arrays for each
+    region. Regions below a threshold can optionlly be removed. Small holes
+    may also be filled in.
+
     Parameters
     ----------
     binary_array : numpy.ndarray
-    A binary array of regions.
-
+        A binary array of regions.
     size_threshold : int
-    sets the pixel size on the size of regions
+        sets the pixel size on the size of regions
 
     Returns
     -------
     output_arrays : list
-    Regions separated into individual arrays.
+        Regions separated into individual arrays.
     num : int
-    Number of filaments
+        Number of filaments
     corners : list
-    Contains the indices where each skeleton array was taken from
-    the original
+        Contains the indices where each skeleton array was taken from
+        the original.
 
     '''
 
@@ -75,54 +78,32 @@ def isolateregions(binary_array, size_threshold=0, pad_size=5,
 
 def find_filpix(branches, labelfil, final=True):
     '''
-     This function identifies the types of pixels contained in the skeleton.
-     This is done by creating lists of the pixel values surrounding the pixel
-     to be determined.
-     For example, consider a 3x3 array about a pixel is
-              [1,0,1] \n
-                                      [0,1,0] \n
-                                      [0,1,0] \n
-    By considering the surrounding pixels around the center, we get the list,
-              [0,0,1,0,1,0,0,1]
-    The list is then shifted once to the right giving
-              [1,0,0,1,0,1,0,0].
-    The shifted list is subtracted from the original yielding
-              [-1,0,1,-1,1,-1,0,1].
-    The number of 1s (or -1s) give the amount of step-ups around the pixel.
-    By comparing the step-ups and the number of non-zero elements in the
-    original list, the pixel can be identified into an end point, body point,
-    or an intersection point. In this example, the middle pixel is an
-    intersection point.
+
+    Identifies the types of pixels in the given skeletons. Identification is
+    based on the connectivity of the pixel.
 
     Parameters
     ----------
-
     branches : list
-               Contains the number of branches in each skeleton.
-
+        Contains the number of branches in each skeleton.
     labelfil : list
-               Contains the arrays of each skeleton.
-
-    final : bool
-            If true, corner points, intersections, and body points are all
-            labeled as a body point for use when the skeletons have already
-            been cleaned.
+        Contains the arrays of each skeleton.
+    final : bool, optional
+        If true, corner points, intersections, and body points are all
+        labeled as a body point for use when the skeletons have already
+        been cleaned.
 
     Returns
     -------
-
     fila_pts : list
-               All points on the body of each skeleton.
-
+        All points on the body of each skeleton.
     inters : list
-             All points associated with an intersection in each skeleton.
-
+        All points associated with an intersection in each skeleton.
     labelfil : list
-               Contains the arrays of each skeleton where all intersections
-               have been removed.
-
+       Contains the arrays of each skeleton where all intersections
+       have been removed.
     endpts_return : list
-                    The end points of each branch of each skeleton.
+        The end points of each branch of each skeleton.
   '''
 
     initslices = []
@@ -320,27 +301,23 @@ def find_filpix(branches, labelfil, final=True):
 
 def find_extran(branches, labelfil):
     '''
-    This function's purpose is to identify pixels that are not necessary
-    to keep the connectivity of the skeleton. It uses a same process as
-    find_filpix.
-    Extraneous pixels tend to be those from former intersections,
-    whose attached branch was eliminated in the cleaning process.
+    Identify pixels that are not necessary to keep the connectivity of the
+    skeleton. It uses the same labeling process as find_filpix. Extraneous
+    pixels tend to be those from former intersections, whose attached branch
+    was eliminated in the cleaning process.
 
     Parameters
     ----------
-
     branches : list
-               Contains the number of branches in each skeleton.
-
+        Contains the number of branches in each skeleton.
     labelfil : list
-               Contains arrays of the labeled versions of each skeleton.
+        Contains arrays of the labeled versions of each skeleton.
 
     Returns
     -------
-
     labelfil : list
-               Contains the updated labeled arrays with extraneous pieces
-               removed.
+       Contains the updated labeled arrays with extraneous pieces
+       removed.
     '''
     initslices = []
     initlist = []
@@ -445,30 +422,23 @@ def pix_identify(isolatefilarr, num):
 
     Parameters
     ----------
-
     isolatefilarr : list
         Contains individual arrays of each skeleton.
-
     num  : int
         The number of skeletons.
 
     Returns
     -------
-
     interpts : list
         Contains lists of all intersections points in each skeleton.
-
     hubs : list
         Contains the number of intersections in each filament. This is
         useful for identifying those with no intersections as their analysis
         is straight-forward.
-
     ends : list
         Contains the positions of all end points in each skeleton.
-
     filbranches : list
         Contains the number of branches in each skeleton.
-
     labelisofil : list
         Contains individual arrays for each skeleton where the
         branches are labeled and the intersections have been removed.
@@ -502,22 +472,18 @@ def extremum_pts(labelisofil, extremum, ends):
 
     Parameters
     ----------
-
     labelisofil : list
-                   Contains individual arrays for each skeleton.
-
+        Contains individual arrays for each skeleton.
     extremum : list
-               Contains the extents as determined by the shortest
-               path algorithm.
-
+       Contains the extents as determined by the shortest
+       path algorithm.
     ends : list
-           Contains the positions of each end point in eahch filament.
+        Contains the positions of each end point in eahch filament.
 
     Returns
     -------
-
-    extren_pts : list
-                 Contains the indices of the extremum points.
+    extrem_pts : list
+        Contains the indices of the extremum points.
     '''
 
     num = len(labelisofil)
@@ -536,6 +502,20 @@ def extremum_pts(labelisofil, extremum, ends):
 def make_final_skeletons(labelisofil, inters, verbose=False):
     '''
     Creates the final skeletons outputted by the algorithm.
+
+    Parameters
+    ----------
+    labelisofil : list
+        List of labeled skeletons.
+    inters : list
+        Positions of the intersections in each skeleton.
+    verbose : bool, optional
+        Enables plotting of the final skeleton.
+
+    Returns
+    -------
+    filament_arrays : list
+        List of the final skeletons.
     '''
 
     filament_arrays = []
@@ -566,6 +546,26 @@ def recombine_skeletons(skeletons, offsets, orig_size, pad_size,
     '''
     Takes a list of skeleton arrays and combines them back into
     the original array.
+
+    Parameters
+    ----------
+    skeletons : list
+        Arrays of each skeleton.
+    offsets : list
+        Coordinates where the skeleton arrays have been sliced from the
+        image.
+    orig_size : tuple
+        Size of the image.
+    pad_size : int
+        Size of the array padding.
+    verbose : bool, optional
+        Enables printing when a skeleton array needs to be resized to fit
+        into the image.
+
+    Returns
+    -------
+    master_array : numpy.ndarray
+        Contains all skeletons placed in their original positions in the image.
     '''
 
     num = len(skeletons)
@@ -620,14 +620,18 @@ def _fix_small_holes(mask_array, rel_size=0.1):
 
     Parameters
     ----------
-
     mask_array : numpy.ndarray
-    Array containing the masked region.
+        Array containing the masked region.
 
     rel_size : float, optional
-    If < 1.0, sets the minimum size a hole must be relative to the area of the
-    mask. Otherwise, this is the maximum number of pixels the hole must have to
-    be deleted.
+        If < 1.0, sets the minimum size a hole must be relative to the area
+        of the mask. Otherwise, this is the maximum number of pixels the hole
+        must have to be deleted.
+
+    Returns
+    -------
+    mask_array : numpy.ndarray
+        Altered array.
     '''
 
     if rel_size <= 0.0:
