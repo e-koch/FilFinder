@@ -55,8 +55,8 @@ check3 = np.array([[1, 1, 0],
 
 def skeleton_length(skeleton):
     '''
-Length finding via morphological operators.
-'''
+    Length finding via morphological operators.
+    '''
 
     # 4-connected labels
     four_labels = me.label(skeleton, 4, background=0)
@@ -131,34 +131,34 @@ Length finding via morphological operators.
 def init_lengths(labelisofil, filbranches, array_offsets, img):
     '''
 
-This is a wrapper on fil_length for running on the branches of the
-skeletons.
+    This is a wrapper on fil_length for running on the branches of the
+    skeletons.
 
-Parameters
-----------
+    Parameters
+    ----------
 
-labelisofil : list
-Contains individual arrays for each skeleton where the
-branches are labeled and the intersections have been removed.
+    labelisofil : list
+        Contains individual arrays for each skeleton where the
+        branches are labeled and the intersections have been removed.
 
-filbranches : list
-Contains the number of branches in each skeleton.
+    filbranches : list
+        Contains the number of branches in each skeleton.
 
-array_offsets : List
-The indices of where each filament array fits in the
-original image.
+    array_offsets : List
+        The indices of where each filament array fits in the
+        original image.
 
-img : numpy.ndarray
-Original image.
+    img : numpy.ndarray
+        Original image.
 
-Returns
--------
+    Returns
+    -------
 
-branch_properties: dict
-Contains the lengths and intensities of the branches.
-Keys are *length* and *intensity*.
+    branch_properties: dict
+        Contains the lengths and intensities of the branches.
+        Keys are *length* and *intensity*.
 
-'''
+    '''
     num = len(labelisofil)
 
     # Initialize Lists
@@ -211,44 +211,44 @@ Keys are *length* and *intensity*.
 def pre_graph(labelisofil, branch_properties, interpts, ends):
     '''
 
-This function converts the skeletons into a graph object compatible with
-networkx. The graphs have nodes corresponding to end and
-intersection points and edges defining the connectivity as the branches
-with the weights set to the branch length.
+    This function converts the skeletons into a graph object compatible with
+    networkx. The graphs have nodes corresponding to end and
+    intersection points and edges defining the connectivity as the branches
+    with the weights set to the branch length.
 
-Parameters
-----------
+    Parameters
+    ----------
 
-labelisofil : list
-Contains individual arrays for each skeleton where the
-branches are labeled and the intersections have been removed.
+    labelisofil : list
+        Contains individual arrays for each skeleton where the
+        branches are labeled and the intersections have been removed.
 
-branch_properties : dict
-Contains the lengths and intensities of all branches.
+    branch_properties : dict
+        Contains the lengths and intensities of all branches.
 
-interpts : list
-Contains the pixels which belong to each intersection.
+    interpts : list
+        Contains the pixels which belong to each intersection.
 
-ends : list
-Contains the end pixels for each skeleton.
+    ends : list
+        Contains the end pixels for each skeleton.
 
-Returns
--------
+    Returns
+    -------
 
-end_nodes : list
-Contains the nodes corresponding to end points.
+    end_nodes : list
+        Contains the nodes corresponding to end points.
 
-inter_nodes : list
-Contains the nodes corresponding to intersection points.
+    inter_nodes : list
+        Contains the nodes corresponding to intersection points.
 
-edge_list : list
-Contains the connectivity information for the graphs.
+    edge_list : list
+        Contains the connectivity information for the graphs.
 
-nodes : list
-A complete list of all of the nodes. The other nodes lists have
-been separated as they are labeled differently.
+    nodes : list
+        A complete list of all of the nodes. The other nodes lists have
+        been separated as they are labeled differently.
 
-'''
+    '''
 
     num = len(labelisofil)
 
@@ -352,40 +352,40 @@ lengths and the average intensity along the branch.
 def longest_path(edge_list, nodes, verbose=False, lengths=None,
                  skeleton_arrays=None):
     '''
-Takes the output of pre_graph and runs the shortest path algorithm.
+    Takes the output of pre_graph and runs the shortest path algorithm.
 
-Parameters
-----------
+    Parameters
+    ----------
 
-edge_list : list
-Contains the connectivity information for the graphs.
+    edge_list : list
+        Contains the connectivity information for the graphs.
 
-nodes : list
-A complete list of all of the nodes. The other nodes lists have
-been separated as they are labeled differently.
+    nodes : list
+        A complete list of all of the nodes. The other nodes lists have
+        been separated as they are labeled differently.
 
-verbose : bool, optional
-If True, enables the plotting of the graph. *Recommend pygraphviz
-be installed for best results.*
+    verbose : bool, optional
+        If True, enables the plotting of the graph. *Recommend pygraphviz
+        be installed for best results.*
 
-lengths : list, optional
-Contains the lengths of each branch. Required only for graphviz
-plotting of the graphs.
+    lengths : list, optional
+        Contains the lengths of each branch. Required only for graphviz
+        plotting of the graphs.
 
-skeleton_arrays : list, optional
-List of the skeleton arrays. Required when verbose=True.
+    skeleton_arrays : list, optional
+        List of the skeleton arrays. Required when verbose=True.
 
-Returns
--------
+    Returns
+    -------
 
-max_path : list
-Contains the paths corresponding to the longest lengths for
-each skeleton.
+    max_path : list
+        Contains the paths corresponding to the longest lengths for
+        each skeleton.
 
-extremum : list
-Contains the starting and ending points of max_path
+    extremum : list
+        Contains the starting and ending points of max_path
 
-'''
+    '''
     num = len(nodes)
 
     # Initialize lists
@@ -441,11 +441,11 @@ Contains the starting and ending points of max_path
 def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
                 length_thresh, relintens_thresh=0.2):
     '''
-Function to remove unnecessary branches, while maintaining connectivity
-in the graph. Also updates edge_list, nodes, branch_lengths and
-filbranches.
+    Function to remove unnecessary branches, while maintaining connectivity
+    in the graph. Also updates edge_list, nodes, branch_lengths and
+    filbranches.
 
-'''
+    '''
 
     num = len(labelisofil)
 
@@ -484,7 +484,7 @@ filbranches.
 def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
                 img_scale, verbose=False):
     '''
-'''
+    '''
 
     main_lengths = []
     longpath_arrays = []
