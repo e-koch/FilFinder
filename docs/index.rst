@@ -18,6 +18,7 @@ Contents:
    install.rst
    algorithm.rst
    tutorial.rst
+   fil_finder_2d.rst
    length.rst
    pixel_ident.rst
    width.rst
