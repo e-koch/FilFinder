@@ -8,7 +8,7 @@ from scipy.integrate import quad
 from scipy.stats import scoreatpercentile, percentileofscore
 
 
-def dist_transform(labelisofil, filclean_all, verbose=False):
+def dist_transform(labelisofil, filclean_all):
     '''
 
     Recombines the cleaned skeletons from final analysis and takes the
@@ -18,23 +18,18 @@ def dist_transform(labelisofil, filclean_all, verbose=False):
 
     Parameters
     ----------
-
     labelisofil : list
         Contains arrays of the cleaned individual skeletons
-
     filclean_all : numpy.ndarray
         Master array with all final skeletons.
 
     Returns
     -------
-
     dist_transform_all : numpy.ndarray
         A Euclidean Distance Transform of all of the skeletons combined.
-
     dist_transform_sep : list
         Contains the Euclidean Distance Transform of each
         individual skeleton.
-
     '''
 
     dist_transform_sep = []
@@ -58,6 +53,27 @@ def cyl_model(distance, rad_profile, img_beam):
     Fits the radial profile of filament to a cylindrical model
     (see Arzoumanian et al. (2011)).
 
+    Parameters
+    ----------
+    distance : list
+        Distances from the skeleton.
+    rad_profile : list
+        Intensity values from the image.
+    img_beam : float
+        FWHM of the beam size.
+
+    Returns
+    -------
+    fit : numpy.ndarray
+        Fit values.
+    fit_errors : numpy.ndarray
+        Fit errors.
+    model : function
+        Function used to fit the profile.
+    parameters : list
+        Names of the parameters.
+    fail_flag : bool
+        Identifies a failed fit.
     '''
 
     p0 = (np.max(rad_profile), 0.1, 2.0)
@@ -96,11 +112,31 @@ def cyl_model(distance, rad_profile, img_beam):
 
 def gauss_model(distance, rad_profile, weights, img_beam):
     '''
-    Fits a Gaussian to the radial profile of each filament by comparing
-    the intensity profile from the center of the skeleton using the output
-    of dist_transform. The FWHM width of the Gaussian is deconvolved with
-    the beam-size of the image. Errors are estimated from the trace of
-    the covariance matrix of the fit.
+    Fits a Gaussian to the radial profile of each filament.
+
+    Parameters
+    ----------
+    distance : list
+        Distances from the skeleton.
+    rad_profile : list
+        Intensity values from the image.
+    weights : list
+        Weights to be used for the fit.
+    img_beam : float
+        FWHM of the beam size.
+
+    Returns
+    -------
+    fit : numpy.ndarray
+        Fit values.
+    fit_errors : numpy.ndarray
+        Fit errors.
+    gaussian : function
+        Function used to fit the profile.
+    parameters : list
+        Names of the parameters.
+    fail_flag : bool
+        Identifies a failed fit.
     '''
 
     p0 = (np.max(rad_profile), 0.1, np.min(rad_profile))
@@ -108,19 +144,15 @@ def gauss_model(distance, rad_profile, weights, img_beam):
 
     def gaussian(x, *p):
         '''
-
         Parameters
-        **********
-
+        ----------
         x : list or numpy.ndarray
-                1D array of values where the model is evaluated
-
+            1D array of values where the model is evaluated
         p : tuple
-                Components are:
-                        * p[0] Amplitude
-                        * p[1] Width
-                        * p[2] Background
-
+            Components are:
+            * p[0] Amplitude
+            * p[1] Width
+            * p[2] Background
         '''
         return (p[0]-p[2]) * np.exp(-1 * np.power(x, 2) /
                                     (2 * np.power(p[1], 2))) + p[2]
@@ -159,29 +191,43 @@ def gauss_model(distance, rad_profile, weights, img_beam):
 
 def lorentzian_model(distance, rad_profile, img_beam):
     '''
-            Fits a Gaussian to the radial profile of each filament by comparing
-    the intensity profile from the center of the skeleton using the output
-    of dist_transform. The FWHM width of the Gaussian is deconvolved with
-    the beam-size of the image. Errors are estimated from the trace of
-    the covariance matrix of the fit.
-    '''
+    Fits a Gaussian to the Lorentzian profile to each filament.
+
+    Parameters
+    ----------
+    distance : list
+        Distances from the skeleton.
+    rad_profile : list
+        Intensity values from the image.
+    img_beam : float
+        FWHM of the beam size.
+
+    Returns
+    -------
+    fit : numpy.ndarray
+        Fit values.
+    fit_errors : numpy.ndarray
+        Fit errors.
+    lorentzian : function
+        Function used to fit the profile.
+    parameters : list
+        Names of the parameters.
+    fail_flag : bool
+        Identifies a failed fit.     '''
 
     p0 = (np.max(rad_profile), 0.1, np.min(rad_profile))
 
     def lorentzian(x, *p):
         '''
-
         Parameters
         **********
-
         x : list or numpy.ndarray
                 1D array of values where the model is evaluated
-
         p : tuple
-                Components are:
-                        * p[0] Amplitude
-                        * p[1] FWHM Width
-                        * p[2] Background
+            Components are:
+            * p[0] Amplitude
+            * p[1] FWHM Width
+            * p[2] Background
 
         '''
         return (p[0] - p[2]) * (0.5 * p[1]) ** 2 / \
@@ -216,59 +262,43 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
                    img_scale, bins=None, bintype="linear", weighting="number",
                    return_unbinned=True, pad_to_distance=0.15):
     '''
+    Fits the radial profiles to all filaments in the image.
+
     Parameters
     ----------
-
     img : numpy.ndarray
               The original image.
-
     dist_transform_all : numpy.ndarray
         The distance transform of all the skeletons.
-        Outputted from dist_transform.
-
     dist_transform_sep : list
         The distance transforms of each individual skeleton.
-        Outputted from dist_transform.
-
     offsets : list
-                    The output from isolatefilaments during the segmentation
-                    process. Contains the indices where each skeleton was cut
-                    out of the original array.
-
+        Contains the indices where each skeleton was cut out of the original
+        array.
     img_scale : float
-                        Pixel to physical scale conversion.
-
+        Pixel to physical scale conversion.
     bins : numpy.ndarray, optional
-               Bins to use in the binning process.
-
-    bintype : str
+        Bins to use for the profile fitting.
+    bintype : str, optional
         "linear" for linearly spaced bins; "log" for log-spaced bins.
         Default is "linear".
-
-    weighting : str
-        Weighting for the radial profile. "number" is by the number
-        of points in each bin; "var" is the variance of the values in
-        each bin. Default is "number".
-
+    weighting : str, optional
+        "number" is by the number of points in each bin; "var" is the
+        variance of the values in each bin. Default is "number".
     return_unbinned : bool
         If True, returns the unbinned data as well as the binned.
-
     pad_to_distance : float
         Pad the profile out to the specified distance (physical units).
         If set to 0.0, the profile will not be padded.
 
     Returns
     -------
-
     bin_centers : numpy.ndarray
         Center of the bins used in physical units.
-
     radial_prof : numpy.ndarray
         Binned intensity profile.
-
     weights : numpy.ndarray
         Weights evaluated for each bin.
-
     '''
 
     width_value = []
@@ -345,7 +375,36 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
                    img_beam, bkg_percent, peak_percent):
     '''
     Estimate the width and peak brightness of a filament non-parametrically.
+    The intensity at the peak and background is estimated. The profile is then
+    interpolated over in order to find the distance corresponding to these
+    intensities. The width is then estimated by finding the distance where
+    the intensity drops to 1/e.
 
+    Parameters
+    ----------
+    distance : list
+        Binned distances from the skeleton.
+    rad_profile : list
+        Binned intensity values from the image.
+    unbin_dist : list
+        Unbinned distances.
+    unbin_prof : list
+        Unbinned intensity values.
+    img_beam : float
+        FWHM of the beam size.
+    bkg_percent : float
+        Percentile of the data to estimate the background.
+    peak_percent : float
+        Percentile of the data to estimate the peak of the profile.
+
+    Returns
+    -------
+    params : numpy.ndarray
+        Estimated parameter values.
+    param_errors : numpy.ndarray
+        Estimated errors.
+    fail_flag : bool
+        Indicates whether the fit failed.
     '''
 
     fail_flag = False
