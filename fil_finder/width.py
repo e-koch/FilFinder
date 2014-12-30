@@ -1,10 +1,4 @@
-
-'''
-
-Routines for calculating the widths of filaments.
-
-'''
-
+# Licensed under an MIT open source license - see LICENSE
 
 from utilities import *
 import numpy as np
