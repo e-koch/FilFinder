@@ -30,7 +30,7 @@ from pixel_ident import *
 import operator
 import string
 import copy
-from skimage.measure import label
+from skimage import measure as me
 
 # Create 4 to 8-connected elements to use with binary hit-or-miss
 struct1 = np.array([[1, 0, 0],
@@ -59,7 +59,7 @@ Length finding via morphological operators.
 '''
 
     # 4-connected labels
-    four_labels = label(skeleton, 4, background=0)
+    four_labels = me.label(skeleton, 4, background=0)
 
     four_sizes = nd.sum(skeleton, four_labels, range(np.max(four_labels) + 1))
 
@@ -79,7 +79,7 @@ Length finding via morphological operators.
     # Remaining pixels are only 8-connected
     # Lengths is same as before, multiplied by sqrt(2)
 
-    eight_labels = label(skel_copy, 8, background=0)
+    eight_labels = me.label(skel_copy, 8, background=0)
 
     eight_sizes = nd.sum(
         skel_copy, eight_labels, range(np.max(eight_labels) + 1))
