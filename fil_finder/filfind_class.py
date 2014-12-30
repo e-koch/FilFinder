@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 from cores import *
-from curvature import *
 from length import *
 from pixel_ident import *
 from utilities import *
