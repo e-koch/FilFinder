@@ -24,7 +24,6 @@ Requires: numpy 1.7.1
 '''
 
 from cores import *
-from curvature import *
 from length import *
 from pixel_ident import *
 from utilities import *
