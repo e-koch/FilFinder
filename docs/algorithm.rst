@@ -3,9 +3,9 @@ Algorithm
 
 Here we provide an in-detail explanation of fil_finder.
 Essentially, the algorithm consists of three parts:
-    * filament detection
-    * cleaning and finding lengths
-    * deriving widths
+*   filament detection
+*   cleaning and finding lengths
+*   deriving widths
 
 **Filament Detection**
 

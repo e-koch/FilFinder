@@ -18,7 +18,11 @@ Contents:
    install.rst
    algorithm.rst
    tutorial.rst
-   docs.rst
+   length.rst
+   pixel_ident.rst
+   width.rst
+   curve_direc.rst
+   analysis.rst
 
 
 
