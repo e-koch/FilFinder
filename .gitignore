@@ -13,3 +13,6 @@ fil_finder.egg-info/
 bulk_analysis.py
 examples/.*
 interruptible_pool.py*
+
+# Sphinx documentation
+docs/_build/
