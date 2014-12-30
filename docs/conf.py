@@ -22,8 +22,12 @@ import sys, os
 # Mock out the imports
 import mock
 
-MOCK_MODULES = ['numpy', 'scipy.ndimage', 'scipy.stats', 'matplotlib', 'matplotlib.pyplot',
-                'astropy.io', "skimage.morphology", 'skimage.filter', 'astropy.table', 'astropy.units']
+MOCK_MODULES = ['numpy', 'scipy', 'scipy.ndimage', 'scipy.stats',
+                'scipy.optimize', 'scipy.integrate',
+                'matplotlib', 'matplotlib.pyplot', 'matplotlib.ticker',
+                'aplpy', "skimage.morphology",
+                'skimage.filter', 'skimage.measure',
+                'astropy.io', 'astropy.table', 'astropy.units']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
 
