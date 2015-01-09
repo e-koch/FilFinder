@@ -348,7 +348,7 @@ class fil_finder_2D(object):
         opening = nd.binary_opening(adapt, structure=np.ones((3, 3)))
         cleaned = \
             remove_small_objects(opening, min_size=self.size_thresh)
-        self.mask = nd.median_filter(cleaned, size=self.smooth_size)
+        cleaned = nd.median_filter(cleaned, size=2)
 
         # Remove small holes within the object
         mask_objs, num, corners = isolateregions(cleaned, fill_hole=True,
