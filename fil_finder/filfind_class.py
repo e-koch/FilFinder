@@ -371,7 +371,7 @@ class fil_finder_2D(object):
             p.colorbar()
             p.show()
             # p.subplot(3,3,3)
-            p.imshow(self.smooth_img, origin="lower", interpolation=None)
+            p.imshow(smooth_img, origin="lower", interpolation=None)
             p.colorbar()
             p.show()
             # p.subplot(3,3,4)
