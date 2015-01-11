@@ -8,7 +8,7 @@ import copy
 
 
 def isolateregions(binary_array, size_threshold=0, pad_size=5,
-                   fill_hole=False, rel_size=0.1):
+                   fill_hole=False, rel_size=0.1, morph_smooth=False):
     '''
 
     Labels regions in a boolean array and returns individual arrays for each
@@ -61,6 +61,9 @@ def isolateregions(binary_array, size_threshold=0, pad_size=5,
         # Fill in small holes
         if fill_hole:
             eachfil = _fix_small_holes(eachfil, rel_size=rel_size)
+        if morph_smooth:
+            eachfil = nd.binary_opening(eachfil, np.ones((3, 3)))
+            eachfil = nd.binary_closing(eachfil, np.ones((3, 3)))
         output_arrays.append(eachfil)
         # Keep the coordinates from the original image
         lower = (x.min() - pad_size, y.min() - pad_size)
