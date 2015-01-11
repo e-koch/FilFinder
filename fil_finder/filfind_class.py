@@ -1061,7 +1061,8 @@ class fil_finder_2D(object):
 
         return self
 
-    def save_fits(self, save_name=None, stamps=False, filename=None):
+    def save_fits(self, save_name=None, stamps=False, filename=None,
+                  model_save=True):
         '''
 
         This function saves the mask and the skeleton array as FITS files.
@@ -1187,6 +1188,17 @@ class fil_finder_2D(object):
 
                 hdu.writeto(
                     "stamps_" + save_name + "/" + save_name + "_object_" + str(n + 1) + ".fits")
+
+        if model_save:
+            model = self.filament_model()
+
+            model_hdr = new_hdr.copy()
+
+            model_hdr.update('BUNIT', value=self.header['BUNIT'], comment="")
+
+            model_hdu = fits.PrimaryHDU(model, header=model_hdr)
+
+            model_hdu.writeto("".join([save_name, "_filament_model.fits"]))
 
         return self
 
