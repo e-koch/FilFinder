@@ -262,7 +262,7 @@ class fil_finder_2D(object):
                                The size threshold is then 0. It is recommended \
                                that size_thresh is manually set.")
             self.size_thresh = round(
-                np.pi * 5 * self.beamwidth**2. * self.imgscale ** -2)
+                np.pi * 3 * self.beamwidth**2. * self.imgscale ** -2)
             # Area of ellipse for typical filament size. Divided by 10 to
             # incorporate sparsity.
         if self.adapt_thresh is None:
@@ -306,7 +306,7 @@ class fil_finder_2D(object):
             # Calculate the needed zoom to make the patch size ~40 pixels
             ratio = 40 / self.adapt_thresh
             # Round to the nearest factor of 2
-            regrid_factor = int(round(ratio/2.0)*2.0)
+            regrid_factor = 2.0  # int(round(ratio/2.0)*2.0)
 
             # Defaults to cubic interpolation
             masking_img = nd.zoom(flat_copy, (regrid_factor, regrid_factor))
@@ -348,11 +348,11 @@ class fil_finder_2D(object):
         opening = nd.binary_opening(adapt, structure=np.ones((3, 3)))
         cleaned = \
             remove_small_objects(opening, min_size=self.size_thresh)
-        cleaned = nd.median_filter(cleaned, size=2)
 
         # Remove small holes within the object
-        mask_objs, num, corners = isolateregions(cleaned, fill_hole=True,
-                                                 rel_size=10)
+        mask_objs, num, corners = \
+            isolateregions(cleaned, fill_hole=True, rel_size=10,
+                           morph_smooth=True)
         self.mask = recombine_skeletons(mask_objs,
                                         corners, self.image.shape,
                                         self.pad_size, verbose=True)
