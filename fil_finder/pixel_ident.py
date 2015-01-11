@@ -19,8 +19,18 @@ def isolateregions(binary_array, size_threshold=0, pad_size=5,
     ----------
     binary_array : numpy.ndarray
         A binary array of regions.
-    size_threshold : int
-        sets the pixel size on the size of regions
+    size_threshold : int, optional
+        Sets the pixel size on the size of regions.
+    pad_size : int, optional
+        Padding to be added to the individual arrays.
+    fill_hole : int, optional
+        Enables hole filling.
+    rel_size : float or int, optional
+        If < 1.0, sets the minimum size a hole must be relative to the area
+        of the mask. Otherwise, this is the maximum number of pixels the hole
+        must have to be deleted.
+    morph_smooth : bool, optional
+        Morphologically smooth the image using a binar opening and closing.
 
     Returns
     -------
