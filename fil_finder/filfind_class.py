@@ -306,7 +306,7 @@ class fil_finder_2D(object):
             # Calculate the needed zoom to make the patch size ~40 pixels
             ratio = 40 / self.adapt_thresh
             # Round to the nearest factor of 2
-            regrid_factor = 2.0  # int(round(ratio/2.0)*2.0)
+            regrid_factor = np.min([2., int(round(ratio/2.0)*2.0)])
 
             # Defaults to cubic interpolation
             masking_img = nd.zoom(flat_copy, (regrid_factor, regrid_factor))
