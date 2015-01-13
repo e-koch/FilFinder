@@ -326,6 +326,7 @@ def find_extran(branches, labelfil):
        Contains the updated labeled arrays with extraneous pieces
        removed.
     '''
+
     initslices = []
     initlist = []
     shiftlist = []
@@ -397,23 +398,23 @@ def find_extran(branches, labelfil):
                 if len(y) >= 2:
                     extran.append(filpix[k][l])
                     labelfil[filpix[k][l][0], filpix[k][l][1]] = 0
-        if len(extran) >= 2:
-            for i in extran:
-                for j in extran:
-                    if i != j:
-                        if distance(i[0], j[0], i[1], j[1]) == np.sqrt(2.0):
-                            proximity = [(i[0], i[1] - 1),
-                                         (i[0], i[1] + 1),
-                                         (i[0] - 1, i[1]),
-                                         (i[0] + 1, i[1]),
-                                         (i[0] - 1, i[1] + 1),
-                                         (i[0] + 1, i[1] + 1),
-                                         (i[0] - 1, i[1] - 1),
-                                         (i[0] + 1, i[1] - 1)]
-                            match = set(filpix[k]) & set(proximity)
-                            if len(match) > 0:
-                                for z in match:
-                                    labelfil[z[0], z[1]] = 0
+        # if len(extran) >= 2:
+        #     for i in extran:
+        #         for j in extran:
+        #             if i != j:
+        #                 if distance(i[0], j[0], i[1], j[1]) == np.sqrt(2.0):
+        #                     proximity = [(i[0], i[1] - 1),
+        #                                  (i[0], i[1] + 1),
+        #                                  (i[0] - 1, i[1]),
+        #                                  (i[0] + 1, i[1]),
+        #                                  (i[0] - 1, i[1] + 1),
+        #                                  (i[0] + 1, i[1] + 1),
+        #                                  (i[0] - 1, i[1] - 1),
+        #                                  (i[0] + 1, i[1] - 1)]
+        #                     match = set(filpix[k]) & set(proximity)
+        #                     if len(match) > 0:
+        #                         for z in match:
+        #                             labelfil[z[0], z[1]] = 0
     return labelfil
 
 
