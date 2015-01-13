@@ -239,10 +239,10 @@ def pre_graph(labelisofil, branch_properties, interpts, ends):
     def path_weighting(idx, length, intensity, w=0.5):
         '''
 
-Relative weighting for the shortest path algorithm using the branch
-lengths and the average intensity along the branch.
+        Relative weighting for the shortest path algorithm using the branch
+        lengths and the average intensity along the branch.
 
-'''
+        '''
         if w > 1.0 or w < 0.0:
             raise ValueError(
                 "Relative weighting w must be between 0.0 and 1.0.")
