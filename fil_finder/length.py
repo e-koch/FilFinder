@@ -298,7 +298,6 @@ def pre_graph(labelisofil, branch_properties, interpts, ends):
         for alpha, node in zip(product_gen(string.ascii_uppercase),
                                inter_nodes_temp):
             nodes[n].append(alpha)
-
         # Edges are created from the information contained in the nodes.
         edge_list_temp = []
         for i, inters in enumerate(inter_nodes[n]):
@@ -436,26 +435,28 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
             (set(nodes[n]) - set(max_path[n])) & set(single_connect))
 
         if not delete_candidate:  # Nothing to delete!
-            pass
+            continue
 
-        else:
-            edge_candidates = [edge for edge in edge_list[n] if edge[
-                0] in delete_candidate or edge[1] in delete_candidate]
-            intensities = [edge[2][3] for edge in edge_list[n]]
-            for edge in edge_candidates:
-                # If its too short and relatively not as intense, delete it
-                length = edge[2][2]
-                av_intensity = edge[2][3]
-                if length < length_thresh \
-                  and (av_intensity / np.sum(intensities)) < relintens_thresh:
-                    x, y = np.where(labelisofil[n] == edge[2][0])
-                    for i in range(len(x)):
-                        labelisofil[n][x[i], y[i]] = 0
-                    edge_list[n].remove(edge)
-                    nodes[n].remove(edge[1])
-                    branch_properties["length"][n].remove(length)
-                    branch_properties["intensity"][n].remove(av_intensity)
-                    branch_properties["number"][n] -= 1
+        edge_candidates = [edge for edge in edge_list[n] if edge[
+            0] in delete_candidate or edge[1] in delete_candidate]
+        intensities = [edge[2][3] for edge in edge_list[n]]
+        for edge in edge_candidates:
+            # In the odd case where a loop meets at the same intersection,
+            # ensure that edge is kept.
+            if isinstance(edge[0], str) & isinstance(edge[1], str):
+                continue
+            # If its too short and relatively not as intense, delete it
+            length = edge[2][2]
+            av_intensity = edge[2][3]
+            if length < length_thresh \
+              and (av_intensity / np.sum(intensities)) < relintens_thresh:
+                edge_pts = np.where(labelisofil[n] == edge[2][0])
+                labelisofil[n][edge_pts] = 0
+                edge_list[n].remove(edge)
+                nodes[n].remove(edge[1])
+                branch_properties["length"][n].remove(length)
+                branch_properties["intensity"][n].remove(av_intensity)
+                branch_properties["number"][n] -= 1
 
     return labelisofil, edge_list, nodes, branch_properties
 
