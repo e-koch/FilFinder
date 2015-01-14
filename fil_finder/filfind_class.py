@@ -799,16 +799,10 @@ class fil_finder_2D(object):
         for n in range(self.number_of_filaments):
 
             # Need the unbinned data for the non-parametric fit.
-            if try_nonparam:
-                dist, radprof, weights, unbin_dist, unbin_radprof = \
-                    radial_profile(self.image, dist_transform_all,
-                                   dist_transform_separate[n],
-                                   self.array_offsets[n], self.imgscale)
-            else:
-                dist, radprof, weights = \
-                    radial_profile(self.image, dist_transform_all,
-                                   dist_transform_separate[n],
-                                   self.array_offsets[n], self.imgscale)
+            dist, radprof, weights, unbin_dist, unbin_radprof = \
+                radial_profile(self.image, dist_transform_all,
+                               dist_transform_separate[n],
+                               self.array_offsets[n], self.imgscale)
 
             if fit_model == cyl_model:
                 if self.freq is None:
