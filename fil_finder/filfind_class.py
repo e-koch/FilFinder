@@ -965,6 +965,23 @@ class fil_finder_2D(object):
 
         return model_image
 
+    def find_covering_fraction(self, max_radius=25):
+        '''
+        Compute the fraction of the intensity in the image contained in
+        the filamentary structure.
+
+        Parameters
+        ----------
+        max_radius : int, optional
+            Passed to :method:`filament_model`
+        '''
+
+        fil_model = self.filament_model(max_radius=25)
+
+        self.covering_fraction = np.nansum(fil_model) / np.nansum(self.image)
+
+        return self
+
     def save_table(self, table_type="csv", path=None, save_name=None):
         '''
 
