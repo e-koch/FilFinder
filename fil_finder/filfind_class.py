@@ -1186,6 +1186,10 @@ class fil_finder_2D(object):
         if model_save:
             model = self.filament_model()
 
+            # Remove the padding
+            model = model[self.pad_size:-self.pad_size,
+                          self.pad_size:-self.pad_size]
+
             model_hdr = new_hdr.copy()
 
             model_hdr.update('BUNIT', value=self.header['BUNIT'], comment="")
