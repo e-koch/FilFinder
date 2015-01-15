@@ -928,6 +928,12 @@ class fil_finder_2D(object):
         '''
         Returns a model of the diffuse filamentary network based
         on the radial profiles.
+
+        Parameters
+        ----------
+        max_radius : int, optional
+            Number of pixels to extend profiles to.
+
         '''
 
         if len(self.width_fits['Parameters']) == 0:
