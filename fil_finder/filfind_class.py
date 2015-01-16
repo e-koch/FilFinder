@@ -960,8 +960,9 @@ class fil_finder_2D(object):
             dist_array = distance_transform_edt(full_size)
             posns = np.where(dist_array < max_radius)
             model_image[posns] += \
-                param[0] * np.exp(-np.power(dist_array[posns], 2) /
-                                  (2*(param[1]/scale)**2))
+                (param[0] - param[2]) * \
+                np.exp(-np.power(dist_array[posns], 2) /
+                       (2*(param[1]/scale)**2))
 
         return model_image
 
