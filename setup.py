@@ -22,8 +22,8 @@ def check_dependencies():
 
     try:
         from numpy.version import version as np_version
-        if parse_version(np_version) < parse_version('1.6'):
-            print("***Before installing, upgrade numpy to 1.6***")
+        if parse_version(np_version) < parse_version('1.7'):
+            print("***Before installing, upgrade numpy to 1.7***")
             raise ImportError
     except:
         raise ImportError(
@@ -41,7 +41,7 @@ def check_dependencies():
     try:
         from astropy.version import version as ast_version
         if parse_version(ast_version[:3]) < parse_version('0.2'):
-            print(("""***Before installing, upgrade astropy to 0.4.
+            print(("""***Before installing, upgrade astropy to 0.2.
                     NOTE: This is the dev version as of 17/06/14.***"""))
             raise ImportError("")
     except:
