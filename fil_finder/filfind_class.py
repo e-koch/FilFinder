@@ -621,7 +621,7 @@ class fil_finder_2D(object):
             Enables plotting.
 
         Returns
-        *******
+        -------
 
         self.rht_curvature : dict
             Contains the median and IQR for each filament.
