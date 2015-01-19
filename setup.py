@@ -71,5 +71,5 @@ if __name__ == "__main__":
           author_email='koch.eric.w@gmail.com',
           url='http://github.com/e-koch/fil_finder',
           packages=['fil_finder'],
-          requires=['numpy','astropy','scipy','skimage','networkx']
+          requires=['numpy','astropy','scipy','skimage','networkx', 'matplotlib']
          )
