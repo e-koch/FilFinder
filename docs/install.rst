@@ -8,7 +8,6 @@ fil_finder has several dependent packages:
     * scipy
     * skimage (>0.8)
     * networkx
-    * pandas
     * *OPTIONAL* pygraphviz
 
 To install the package, run:

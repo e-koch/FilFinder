@@ -50,7 +50,6 @@ Requires:
  *   scipy
  *   scikits-image 0.8.0
  *   networkx
- *   pandas
 
 Optional:
 
