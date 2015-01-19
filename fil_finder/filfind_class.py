@@ -1263,6 +1263,8 @@ class fil_finder_2D(object):
         self.analyze_skeletons(verbose=verbose)
         self.exec_rht(verbose=verbose)
         self.find_widths(verbose=verbose)
+        self.compute_filament_brightness()
+        self.find_covering_fraction()
         self.save_table(save_name=save_name, table_type="fits")
         self.save_table(save_name=save_name, table_type="csv")
         self.save_fits(save_name=save_name, stamps=False)
