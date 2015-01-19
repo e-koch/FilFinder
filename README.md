@@ -1,6 +1,8 @@
 fil_finder
 ==========
 
+[![Documentation Status](https://readthedocs.org/projects/fil-finder/badge/?version=latest)](https://readthedocs.org/projects/fil-finder/?badge=latest)
+
 Description
 ------------
 
