@@ -1,3 +1,4 @@
+# Licensed under an MIT open source license - see LICENSE
 
 '''
 Examine the orientation distributions of the Gould Belt data

@@ -1,3 +1,4 @@
+# Licensed under an MIT open source license - see LICENSE
 
 '''
 Check resolution effects of masking process.

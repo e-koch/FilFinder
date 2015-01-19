@@ -1,3 +1,4 @@
+# Licensed under an MIT open source license - see LICENSE
 
 from fil_finder import fil_finder_2D
 from astropy.io.fits import getdata

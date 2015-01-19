@@ -1,4 +1,4 @@
-#!/usr/bin/python
+# Licensed under an MIT open source license - see LICENSE
 
 """
 **THESE ARE NOT CURRENTLY USED IN THE ALGORITHM**

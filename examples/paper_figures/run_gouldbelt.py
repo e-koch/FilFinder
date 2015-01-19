@@ -1,3 +1,4 @@
+# Licensed under an MIT open source license - see LICENSE
 
 '''
 Script to run fil_finder on the Herschel Gould Belt data set.

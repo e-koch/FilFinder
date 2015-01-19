@@ -1,4 +1,4 @@
-#!/usr/bin/python
+# Licensed under an MIT open source license - see LICENSE
 
 """
 Utility functions for fil-finder package

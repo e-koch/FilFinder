@@ -1,3 +1,4 @@
+# Licensed under an MIT open source license - see LICENSE
 
 '''
 KS p-values for different properties.

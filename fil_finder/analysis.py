@@ -1,8 +1,4 @@
-'''
-
-Analysis routines for the output of the filament finder. These can be run from the filament finder or from a saved .csv file.
-
-'''
+# Licensed under an MIT open source license - see LICENSE
 
 import numpy as np
 from scipy.stats import nanmean, nanmedian, nanstd

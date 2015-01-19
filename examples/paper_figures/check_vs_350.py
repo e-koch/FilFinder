@@ -1,3 +1,5 @@
+# Licensed under an MIT open source license - see LICENSE
+
 import astropy.wcs as wcs
 import astropy.io.fits as fits
 import healpy as hp

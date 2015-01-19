@@ -1,3 +1,4 @@
+# Licensed under an MIT open source license - see LICENSE
 
 '''
 Make histogram of surface brightness along the filaments.
