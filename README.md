@@ -3,10 +3,10 @@ fil_finder
 
 [![Documentation Status](https://readthedocs.org/projects/fil-finder/badge/?version=latest)](https://readthedocs.org/projects/fil-finder/?badge=latest)
 
-Description
-------------
+Brief Description
+-----------------
 
-fil_finder is a module for extraction and analysis of filamentary structure in molecular clouds.
+fil_finder is a module for extraction and analysis of filamentary structure in molecular clouds. In particular, the algorithm is capable of uniformly extracting structure over a large dynamical range in intensity (see images below).
 
 fil_finder segments filamentary structure in an integrated intensity image using adaptive thresholding.
 Detected regions are reduced to a skeleton using a Medial Axis Transform.
@@ -19,16 +19,25 @@ A Gaussian with a constant background is fit to the profile to find the width.
 The filament width is the FWHM value after deconvolving with the FWHM beamwidth of the instrument.
 The curvature of the filament is described using the Rolling Hough Transform (Clark et al., 2013) is used.
 This method returns the direction of the filament on the plane (median of the RHT) and the curvature (IQR of the RHT).
-Also included in the package is an alternate method to find curvature based on the Menger Curvature Formula. This method does NOT yet return a reliable value and we recommend using the RHT method.
 
 Example Images
 --------------
 
 Data shown below is from the Herschel Gould Belt Survey (Andre et al. 2010).
 
-![Chameleon-250 Scaled to 2150](images/chameleon-250-filcontours-2150.png "Chameleon-250 Scaled to 2200")
+A close-up of the Chamaeleon I at 350 microns.
+![Chameleon-350](images/chamaeleon-350_closeup.png "Chameleon-350")
 
-![Chameleon-250 Scaled to 2500](images/chameleon-250-filcontours-2500.png "Chameleon-250 Scaled to 2500")
+
+W3 and IC-1795 in the Aquila region also at 350 microns.
+![Aquila-350](images/aquila-350_closeup.png "Aquila-350")
+
+The same region with different color scaling to show faint features surrounding the complexes.
+![Aquila-350 Scaled](images/aquila-350_closeup_faint.png "Aquila-350 Scaled")
+
+
+NGC-1333 and surrounding areas in Orion at 350 microns.
+![OrionB-350](images/orionB-250_closeup.png "OrionB-350")
 
 Package Dependencies
 --------------------
