@@ -14,7 +14,7 @@ def rht(mask, radius, ntheta=180, background_percentile=25, verbose=False):
     '''
 
     Parameters
-    **********
+    ----------
 
     mask : numpy.ndarray
         Boolean or integer array. Transform performed at all non-zero points.
@@ -30,7 +30,7 @@ def rht(mask, radius, ntheta=180, background_percentile=25, verbose=False):
         due to limits on pixel resolution.
 
     Returns
-    *******
+    -------
 
     theta : numpy.ndarray
         Angles transform was performed at.

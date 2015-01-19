@@ -599,7 +599,7 @@ class fil_finder_2D(object):
         RHT. "Curvature" is represented by the IQR of the transform.
 
         Parameters
-        **********
+        ----------
 
         radius : int
             Sets the patch size that the RHT uses.
@@ -627,7 +627,7 @@ class fil_finder_2D(object):
             Contains the median and IQR for each filament.
 
         References
-        **********
+        ----------
 
         Clark et al. (2013)
 
