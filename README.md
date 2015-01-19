@@ -37,7 +37,7 @@ The same region with different color scaling to show faint features surrounding 
 
 
 NGC-1333 and surrounding areas in Orion at 350 microns.
-![OrionB-350](images/orionB-250_closeup.png "OrionB-350")
+![OrionB-350](images/orionB-350_closeup.png "OrionB-350")
 
 Package Dependencies
 --------------------
