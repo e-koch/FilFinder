@@ -220,7 +220,7 @@ def lorentzian_model(distance, rad_profile, img_beam):
     def lorentzian(x, *p):
         '''
         Parameters
-        **********
+        ----------
         x : list or numpy.ndarray
                 1D array of values where the model is evaluated
         p : tuple

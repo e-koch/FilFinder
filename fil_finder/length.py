@@ -34,7 +34,24 @@ check3 = np.array([[1, 1, 0],
 
 def skeleton_length(skeleton):
     '''
-    Length finding via morphological operators.
+    Length finding via morphological operators. We use the differences in
+    connectivity between 4 and 8-connected to split regions. Connections
+    between 4 and 8-connected regions are found using a series of hit-miss
+    operators.
+
+    The inputted skeleton MUST have no intersections otherwise the returned
+    length will not be correct!
+
+    Parameters
+    ----------
+    skeleton : numpy.ndarray
+        Array containing the skeleton.
+
+    Returns
+    -------
+    length : float
+        Length of the skeleton.
+
     '''
 
     # 4-connected labels
@@ -423,6 +440,40 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
     in the graph. Also updates edge_list, nodes, branch_lengths and
     filbranches.
 
+    Parameters
+    ----------
+    G : list
+        Contains the networkx Graph objects.
+    nodes : list
+        A complete list of all of the nodes. The other nodes lists have
+        been separated as they are labeled differently.
+    edge_list : list
+        Contains the connectivity information for the graphs.
+    max_path : list
+        Contains the paths corresponding to the longest lengths for
+        each skeleton.
+    labelisofil : list
+        Contains individual arrays for each skeleton where the
+        branches are labeled and the intersections have been removed.
+    branch_properties : dict
+        Contains the lengths and intensities of all branches.
+    length_thresh : int or float
+        Minimum length a branch must be to be kept. Can be overridden if the
+        branch is bright relative to the entire skeleton.
+    relintens_thresh : float between 0 and 1, optional.
+        Threshold for how bright the branch must be relative to the entire
+        skeleton. Can be overridden by length.
+
+    Returns
+    -------
+    labelisofil : list
+        Updated from input.
+    edge_list : list
+        Updated from input.
+    nodes : list
+        Updated from input.
+    branch_properties : dict
+        Updated from input.
     '''
 
     num = len(labelisofil)
@@ -464,6 +515,35 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
 def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
                 img_scale, verbose=False):
     '''
+    Wraps previous functionality together for all of the skeletons in the
+    image. To find the overall length for each skeleton, intersections are
+    added back in, and any extraneous pixels they bring with them are deleted.
+
+    Parameters
+    ----------
+    max_path : list
+        Contains the paths corresponding to the longest lengths for
+        each skeleton.
+    edge_list : list
+        Contains the connectivity information for the graphs.
+    labelisofil : list
+        Contains individual arrays for each skeleton where the
+        branches are labeled and the intersections have been removed.
+    interpts : list
+        Contains the pixels which belong to each intersection.
+    branch_lengths : list
+        Lengths of individual branches in each skeleton.
+    img_scale : float
+        Conversion from pixel to physical units.
+    verbose : bool, optional
+        Returns plots of the longest path skeletons.
+
+    Returns
+    -------
+    main_lengths : list
+        Lengths of the skeletons.
+    longpath_arrays : list
+        Arrays of the longest paths in the skeletons.
     '''
 
     main_lengths = []
