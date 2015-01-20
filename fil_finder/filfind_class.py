@@ -629,7 +629,7 @@ class fil_finder_2D(object):
         References
         ----------
 
-        Clark et al. (2013)
+        Clark et al. (2014)
 
         '''
 
