@@ -934,6 +934,11 @@ class fil_finder_2D(object):
         max_radius : int, optional
             Number of pixels to extend profiles to.
 
+        Returns
+        -------
+        model_image : numpy.ndarray
+            Array of the model
+
         '''
 
         if len(self.width_fits['Parameters']) == 0:
