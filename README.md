@@ -3,6 +3,8 @@ fil_finder
 
 [![Documentation Status](https://readthedocs.org/projects/fil-finder/badge/?version=latest)](https://readthedocs.org/projects/fil-finder/?badge=latest)
 
+See tutorial here! [fil_finder Tutorial](http://nbviewer.ipython.org/github/e-koch/fil_finder/blob/master/examples/fil_finder%20Tutorial.ipynb)
+
 Brief Description
 -----------------
 
