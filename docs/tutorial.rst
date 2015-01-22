@@ -16,25 +16,32 @@ Load in the algorithm and the usual suspects.
 Next we initialize the fil\_finder\_2D object.
 
 The algorithm requires a few inputs to begin (other than the image and
-header): \* beamsize in arcseconds (set to 15.1 arcsec, though this is a
-simulated image, a none zero value is needed as it sets the minimum size
-a filament can be). \* skeleton threshold - minimum pixels a skeleton
-must contain to be considered (= 30 pixels) \* branch threshold -
-minimum length for a branch. This sets one of the skeleton pruning
-criteria. If the intensity along it is significant to the filament, or
-if its deletion will change the graph connectivity, it will still be
-kept. (= 5 pixels) \* pad size - number of pixels to pad around each
-filament. This ensures the adaptive thresholding can reach the edges of
-the image. Must be at least 1 pixel. (= 10 pixels, about the size of the
-patch used). \* distance - distance to the region in parsecs. This is
-used to set the size of the adaptive thresholding patch. The input is
-optional. If no distance is provided, results remain in pixel units (=
-260 pc, distance set for the simulation). \* global threshold - sets the
-percentile of data to ignore. This is intended to remove noisy regions
-of the data. (= 20%) \* flattening threshold - sets the normalization to
-use in the arctan transform (flattens bright, compact regions). This
-parameter is generally set automatically, but we seem to get better
-results by setting it to the 95% percentile.
+header):
+* 'beamwidth' - in arcseconds (set to 15.1 arcsec, though this is a
+  simulated image, a none zero value is needed as it sets the minimum size
+  a filament can be).
+* 'skel_thresh' - minimum pixels a skeleton
+  must contain to be considered (= 30 pixels)
+* 'branch_thresh' -
+  minimum length for a branch. This sets one of the skeleton pruning
+  criteria. If the intensity along it is significant to the filament, or
+  if its deletion will change the graph connectivity, it will still be
+  kept. (= 5 pixels)
+* 'pad_size' - number of pixels to pad around each
+  filament. This ensures the adaptive thresholding can reach the edges of
+  the image. Must be at least 1 pixel. (= 10 pixels, about the size of the
+  patch used).
+* 'distance' - distance to the region in parsecs. This is
+  used to set the size of the adaptive thresholding patch. The input is
+  optional. If no distance is provided, results remain in pixel units (=
+  260 pc, distance set for the simulation).
+* 'glob_threshold' - sets the
+  percentile of data to ignore. This is intended to remove noisy regions
+  of the data. (= 20%)
+* 'flatten_thresh' - sets the normalization to
+  use in the arctan transform (flattens bright, compact regions). This
+  parameter is generally set automatically, but we seem to get better
+  results by setting it to the 95% percentile.
 
 .. code:: python
 
@@ -134,9 +141,9 @@ That's better! Not only are the small scale features better
 characterized, but some additional faint regions have also been picked
 up.
 
-The regridding is useful only when the regions are becoming fragmented.
+Regridding is useful only when the regions are becoming fragmented.
 As a default, it is enabled when the patch size is less than 40 pixels.
-This is value is based on many trials with observational data.
+This value is based on many trials with observational data.
 
 Note that pre-made masks can also be supplied to the algorithm during
 initialization without completing this step. As a default, if a mask has
@@ -235,22 +242,23 @@ profiles. By default, a Gaussian with a background and mean zero is
 used. Using the ``fit_model`` parameter, a Lorentzian model or radial
 cylindrical model can also be specified (imported from
 ``fil_finder.widths``). With observational data, we found that many
-profiles are not well fit by these idealized cases. So there is also a
-non-parameteric method we have developed which simply estimates a peak
-and background and interpolates between them to estimate the width. This
+profiles are not well fit by these idealized cases. A non-parametric method
+has developed for these cases. It simply estimates the peak
+and background levels and esimates the width by interpolating between them. This
 is enabled, by default, using ``try_nonparam``. If a fit returns a lousy
-:math:`\chi^2` value, we attempt to use the non-parameteric method.
+:math:`\chi^2` value, we attempt to use this method.
 
-Fits are rejected based on a set of criteria: \* Background is above the
-peak \* Errors are larger than the respective parameters \* The width is
-too small to be deconvolved from the beamwidth \* The width is not
-appreciably smaller than the length \* The non-parametric method cannot
-find a reasonable estimate
+Fits are rejected based on a set of criteria:
+* Background is above the peak
+* Errors are larger than the respective parameters
+* The width is too small to be deconvolved from the beamwidth
+* The width is not appreciably smaller than the length
+* The non-parametric method cannot find a reasonable estimate
 
-*Note:* Each profile is plotted before invoking the rejection criteria.
-This is why some of the plots below look particularly suspect. Also, the
+**Note:** Each profile is plotted before invoking the rejection criteria.
+This is why some of the plots created will look suspect. Also, the
 fitted lines are based on the model given (gaussian for this case) and
-since the non-parameteric method is not quite this profile, the fits
+since the non-parameteric method is not quite this profile, the fits will
 appear to be overestimated.
 
 .. code:: python
@@ -263,7 +271,7 @@ appear to be overestimated.
 
 .. parsed-literal::
 
-    7 in 19
+    # Order: [Amplitude, Half-width, Background, Deconvolved FWHM]
     Fit Parameters: [ 0.19037385  0.09057394  0.02852461  0.20715061]
     Fit Errors: [ 0.04603811  0.09476529  0.07063716  0.0828698 ]
     Fit Type: nonparam
@@ -333,7 +341,8 @@ skeleton, and model images are all saved. Saving of the model can be
 disabled through ``model_save=False``. The output skeleton FITS file has
 one extension of the final, cleaned skeletons, and a second containing
 only the longest path skeletons. Optionally, stamp images of each
-individual filament can be created. These contain a portion of the
+individual filament can be created using the `stamps` argument.
+These contain a portion of the
 image, the final skeleton, and the longest path in the outputted FITS
 file. The files are automatically saved in a 'stamps\_(save\_name)'
 folder.
