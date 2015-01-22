@@ -63,7 +63,7 @@ def check_dependencies():
 
 if __name__ == "__main__":
 
-    check_dependencies()
+    # check_dependencies()
 
     setup(name='fil_finder',
           version='1.0',
@@ -72,5 +72,11 @@ if __name__ == "__main__":
           author_email='koch.eric.w@gmail.com',
           url='http://github.com/e-koch/fil_finder',
           packages=['fil_finder'],
-          requires=['numpy','astropy','scipy','skimage','networkx', 'matplotlib']
+          requires=['numpy','astropy','scipy','skimage','networkx', 'matplotlib'],
+          # setup_requires=['numpy>=1.7'],
+          # install_requires=['matplotlib>=1.2',
+          #                   'astropy>=0.2',
+          #                   'networkx',
+          #                   'scikit-image',
+          #                   'scipy>=0.13']
          )
