@@ -61,7 +61,7 @@ parameters is shown in the next few steps.
 
 
 
-.. image:: images/fil_finder%20Tutorial_9_0.png
+.. image:: images/fil_finder_9_0.png
 
 
 
@@ -84,7 +84,7 @@ To fix this, we invoke the ``border_masking=False`` input.
     fils.create_mask(verbose=True, border_masking=False)
 
 
-.. image:: images/fil_finder%20Tutorial_11_0.png
+.. image:: images/fil_finder_11_0.png
 
 
 
@@ -112,7 +112,7 @@ size,
     fils.create_mask(verbose=True, border_masking=False, adapt_thresh=13.)
 
 
-.. image:: images/fil_finder%20Tutorial_13_0.png
+.. image:: images/fil_finder_13_0.png
 
 
 
@@ -139,7 +139,7 @@ This corresponds to about 3 pixels.
     fils.create_mask(verbose=True, border_masking=False, adapt_thresh=13., smooth_size=3.0)
 
 
-.. image:: images/fil_finder%20Tutorial_15_0.png
+.. image:: images/fil_finder_15_0.png
 
 
 
@@ -168,7 +168,7 @@ size.
     fils.create_mask(verbose=True, border_masking=False, adapt_thresh=13., smooth_size=3.0, regrid=False, zero_border=True, size_thresh=300.)
 
 
-.. image:: images/fil_finder%20Tutorial_17_0.png
+.. image:: images/fil_finder_17_0.png
 
 
 
@@ -206,7 +206,7 @@ be defined as the centers.
     fils.medskel(verbose=True)
 
 
-.. image:: images/fil_finder%20Tutorial_20_0.png
+.. image:: images/fil_finder_20_0.png
 
 
 
@@ -246,7 +246,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_1.png
+.. image:: images/fil_finder_22_1.png
 
 
 .. parsed-literal::
@@ -255,7 +255,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_3.png
+.. image:: images/fil_finder_22_3.png
 
 
 .. parsed-literal::
@@ -264,7 +264,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_5.png
+.. image:: images/fil_finder_22_5.png
 
 
 .. parsed-literal::
@@ -273,7 +273,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_7.png
+.. image:: images/fil_finder_22_7.png
 
 
 .. parsed-literal::
@@ -282,7 +282,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_9.png
+.. image:: images/fil_finder_22_9.png
 
 
 .. parsed-literal::
@@ -291,7 +291,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_11.png
+.. image:: images/fil_finder_22_11.png
 
 
 .. parsed-literal::
@@ -300,7 +300,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_13.png
+.. image:: images/fil_finder_22_13.png
 
 
 .. parsed-literal::
@@ -309,7 +309,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_15.png
+.. image:: images/fil_finder_22_15.png
 
 
 .. parsed-literal::
@@ -318,7 +318,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_17.png
+.. image:: images/fil_finder_22_17.png
 
 
 .. parsed-literal::
@@ -327,7 +327,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_19.png
+.. image:: images/fil_finder_22_19.png
 
 
 .. parsed-literal::
@@ -336,7 +336,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_21.png
+.. image:: images/fil_finder_22_21.png
 
 
 .. parsed-literal::
@@ -345,7 +345,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_23.png
+.. image:: images/fil_finder_22_23.png
 
 
 .. parsed-literal::
@@ -354,7 +354,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_25.png
+.. image:: images/fil_finder_22_25.png
 
 
 .. parsed-literal::
@@ -363,7 +363,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_27.png
+.. image:: images/fil_finder_22_27.png
 
 
 .. parsed-literal::
@@ -372,7 +372,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_29.png
+.. image:: images/fil_finder_22_29.png
 
 
 .. parsed-literal::
@@ -381,7 +381,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_31.png
+.. image:: images/fil_finder_22_31.png
 
 
 .. parsed-literal::
@@ -390,7 +390,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_33.png
+.. image:: images/fil_finder_22_33.png
 
 
 .. parsed-literal::
@@ -399,7 +399,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_35.png
+.. image:: images/fil_finder_22_35.png
 
 
 .. parsed-literal::
@@ -408,7 +408,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_37.png
+.. image:: images/fil_finder_22_37.png
 
 
 .. parsed-literal::
@@ -417,7 +417,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_39.png
+.. image:: images/fil_finder_22_39.png
 
 
 .. parsed-literal::
@@ -426,7 +426,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_41.png
+.. image:: images/fil_finder_22_41.png
 
 
 .. parsed-literal::
@@ -435,7 +435,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_43.png
+.. image:: images/fil_finder_22_43.png
 
 
 .. parsed-literal::
@@ -444,7 +444,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_45.png
+.. image:: images/fil_finder_22_45.png
 
 
 .. parsed-literal::
@@ -453,7 +453,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_47.png
+.. image:: images/fil_finder_22_47.png
 
 
 .. parsed-literal::
@@ -462,7 +462,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_49.png
+.. image:: images/fil_finder_22_49.png
 
 
 .. parsed-literal::
@@ -471,7 +471,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_51.png
+.. image:: images/fil_finder_22_51.png
 
 
 .. parsed-literal::
@@ -480,7 +480,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_53.png
+.. image:: images/fil_finder_22_53.png
 
 
 .. parsed-literal::
@@ -489,7 +489,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_55.png
+.. image:: images/fil_finder_22_55.png
 
 
 .. parsed-literal::
@@ -498,7 +498,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_57.png
+.. image:: images/fil_finder_22_57.png
 
 
 .. parsed-literal::
@@ -507,7 +507,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_59.png
+.. image:: images/fil_finder_22_59.png
 
 
 .. parsed-literal::
@@ -516,7 +516,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_61.png
+.. image:: images/fil_finder_22_61.png
 
 
 .. parsed-literal::
@@ -525,7 +525,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_63.png
+.. image:: images/fil_finder_22_63.png
 
 
 .. parsed-literal::
@@ -534,7 +534,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_65.png
+.. image:: images/fil_finder_22_65.png
 
 
 .. parsed-literal::
@@ -543,7 +543,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_67.png
+.. image:: images/fil_finder_22_67.png
 
 
 .. parsed-literal::
@@ -552,7 +552,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_69.png
+.. image:: images/fil_finder_22_69.png
 
 
 .. parsed-literal::
@@ -561,7 +561,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_71.png
+.. image:: images/fil_finder_22_71.png
 
 
 .. parsed-literal::
@@ -570,7 +570,7 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_73.png
+.. image:: images/fil_finder_22_73.png
 
 
 .. parsed-literal::
@@ -579,83 +579,83 @@ to be used for the rest of the analysis.
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_75.png
+.. image:: images/fil_finder_22_75.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_76.png
+.. image:: images/fil_finder_22_76.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_77.png
+.. image:: images/fil_finder_22_77.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_78.png
+.. image:: images/fil_finder_22_78.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_79.png
+.. image:: images/fil_finder_22_79.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_80.png
+.. image:: images/fil_finder_22_80.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_81.png
+.. image:: images/fil_finder_22_81.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_82.png
+.. image:: images/fil_finder_22_82.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_83.png
+.. image:: images/fil_finder_22_83.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_84.png
+.. image:: images/fil_finder_22_84.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_85.png
+.. image:: images/fil_finder_22_85.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_86.png
+.. image:: images/fil_finder_22_86.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_87.png
+.. image:: images/fil_finder_22_87.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_88.png
+.. image:: images/fil_finder_22_88.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_89.png
+.. image:: images/fil_finder_22_89.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_90.png
+.. image:: images/fil_finder_22_90.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_91.png
+.. image:: images/fil_finder_22_91.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_92.png
+.. image:: images/fil_finder_22_92.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_93.png
+.. image:: images/fil_finder_22_93.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_22_94.png
+.. image:: images/fil_finder_22_94.png
 
 
 
@@ -682,7 +682,7 @@ Let's plot the final skeletons before moving on:
 
 
 
-.. image:: images/fil_finder%20Tutorial_24_1.png
+.. image:: images/fil_finder_24_1.png
 
 
 The original skeletons didn't contain too many spurious features, so
@@ -709,79 +709,79 @@ a better estimate for the image as a whole.
     fils.exec_rht(verbose=True)
 
 
-.. image:: images/fil_finder%20Tutorial_26_0.png
+.. image:: images/fil_finder_26_0.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_1.png
+.. image:: images/fil_finder_26_1.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_2.png
+.. image:: images/fil_finder_26_2.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_3.png
+.. image:: images/fil_finder_26_3.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_4.png
+.. image:: images/fil_finder_26_4.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_5.png
+.. image:: images/fil_finder_26_5.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_6.png
+.. image:: images/fil_finder_26_6.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_7.png
+.. image:: images/fil_finder_26_7.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_8.png
+.. image:: images/fil_finder_26_8.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_9.png
+.. image:: images/fil_finder_26_9.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_10.png
+.. image:: images/fil_finder_26_10.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_11.png
+.. image:: images/fil_finder_26_11.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_12.png
+.. image:: images/fil_finder_26_12.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_13.png
+.. image:: images/fil_finder_26_13.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_14.png
+.. image:: images/fil_finder_26_14.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_15.png
+.. image:: images/fil_finder_26_15.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_16.png
+.. image:: images/fil_finder_26_16.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_17.png
+.. image:: images/fil_finder_26_17.png
 
 
 
-.. image:: images/fil_finder%20Tutorial_26_18.png
+.. image:: images/fil_finder_26_18.png
 
 
 
@@ -840,7 +840,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_2.png
+.. image:: images/fil_finder_28_2.png
 
 
 .. parsed-literal::
@@ -852,7 +852,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_4.png
+.. image:: images/fil_finder_28_4.png
 
 
 .. parsed-literal::
@@ -864,7 +864,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_6.png
+.. image:: images/fil_finder_28_6.png
 
 
 .. parsed-literal::
@@ -876,7 +876,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_8.png
+.. image:: images/fil_finder_28_8.png
 
 
 .. parsed-literal::
@@ -893,7 +893,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_11.png
+.. image:: images/fil_finder_28_11.png
 
 
 .. parsed-literal::
@@ -905,7 +905,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_13.png
+.. image:: images/fil_finder_28_13.png
 
 
 .. parsed-literal::
@@ -917,7 +917,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_15.png
+.. image:: images/fil_finder_28_15.png
 
 
 .. parsed-literal::
@@ -929,7 +929,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_17.png
+.. image:: images/fil_finder_28_17.png
 
 
 .. parsed-literal::
@@ -941,7 +941,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_19.png
+.. image:: images/fil_finder_28_19.png
 
 
 .. parsed-literal::
@@ -953,7 +953,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_21.png
+.. image:: images/fil_finder_28_21.png
 
 
 .. parsed-literal::
@@ -965,7 +965,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_23.png
+.. image:: images/fil_finder_28_23.png
 
 
 .. parsed-literal::
@@ -977,7 +977,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_25.png
+.. image:: images/fil_finder_28_25.png
 
 
 .. parsed-literal::
@@ -989,7 +989,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_27.png
+.. image:: images/fil_finder_28_27.png
 
 
 .. parsed-literal::
@@ -1001,7 +1001,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_29.png
+.. image:: images/fil_finder_28_29.png
 
 
 .. parsed-literal::
@@ -1013,7 +1013,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_31.png
+.. image:: images/fil_finder_28_31.png
 
 
 .. parsed-literal::
@@ -1025,7 +1025,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_33.png
+.. image:: images/fil_finder_28_33.png
 
 
 .. parsed-literal::
@@ -1037,7 +1037,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_35.png
+.. image:: images/fil_finder_28_35.png
 
 
 .. parsed-literal::
@@ -1049,7 +1049,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_37.png
+.. image:: images/fil_finder_28_37.png
 
 
 .. parsed-literal::
@@ -1061,7 +1061,7 @@ appear to be overestimated.
 
 
 
-.. image:: images/fil_finder%20Tutorial_28_39.png
+.. image:: images/fil_finder_28_39.png
 
 
 
@@ -1106,7 +1106,7 @@ shown below.
 
 
 
-.. image:: images/fil_finder%20Tutorial_30_1.png
+.. image:: images/fil_finder_30_1.png
 
 
 Though not a perfect representation, it gives an esimate of the network
