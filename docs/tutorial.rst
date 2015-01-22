@@ -2,21 +2,17 @@
 fil\_finder Tutorial
 ====================
 
+** For brevity, only a few example output images are shown.
+The entire set can be found in the Ipython notebook in the examples folder. **
+
 Load in the algorithm and the usual suspects.
 
 .. code:: python
 
     from astropy.io.fits import getdata
     from fil_finder import fil_finder_2D
-    import matplotlib.pylab as pylab
-    pylab.rcParams['figure.figsize'] = 128, 96
-    import matplotlib.pyplot as p
-    %matplotlib inline
-Load in the FITS file containing the simulated image.
-
-.. code:: python
-
     img, hdr = getdata("filaments_updatedhdr.fits", header=True)
+
 Next we initialize the fil\_finder\_2D object.
 
 The algorithm requires a few inputs to begin (other than the image and
@@ -43,13 +39,13 @@ results by setting it to the 95% percentile.
 .. code:: python
 
     fils = fil_finder_2D(img, hdr, 15.1, 30, 5, 10, distance=260, glob_thresh=20, flatten_thresh=95)
+
 The algorithm has several steps, which will be outlined below. Using the
 run() function will perform all the steps in one with the algorithm
 defaults.
 
 Masking
-=======
-
+-------
 We begin by creating the mask of the image. All of the parameters are
 set by default based on physical parameters. However this simulation
 doesn't quite adhere to these and so the effect of manipulating these
@@ -62,15 +58,6 @@ parameters is shown in the next few steps.
 
 
 .. image:: images/fil_finder_9_0.png
-
-
-
-
-.. parsed-literal::
-
-    <fil_finder.filfind_class.fil_finder_2D at 0x10dd8e690>
-
-
 
 Here is the default mask. The algorithm has largely picked out the
 filamentary structure, but there are two issues. First, the mask is not
@@ -85,15 +72,6 @@ To fix this, we invoke the ``border_masking=False`` input.
 
 
 .. image:: images/fil_finder_11_0.png
-
-
-
-
-.. parsed-literal::
-
-    <fil_finder.filfind_class.fil_finder_2D at 0x10dd8e690>
-
-
 
 This is better, but some variations within the regions are being
 combined together. To try to pick up on the smaller scale variations, we
@@ -114,15 +92,6 @@ size,
 
 .. image:: images/fil_finder_13_0.png
 
-
-
-
-.. parsed-literal::
-
-    <fil_finder.filfind_class.fil_finder_2D at 0x10dd8e690>
-
-
-
 This hasn't made a large difference. In general if the patch size is a
 reasonable size based on physical information, the mask obtained will be
 largely the same.
@@ -140,15 +109,6 @@ This corresponds to about 3 pixels.
 
 
 .. image:: images/fil_finder_15_0.png
-
-
-
-
-.. parsed-literal::
-
-    <fil_finder.filfind_class.fil_finder_2D at 0x10dd8e690>
-
-
 
 Again, this has not made a large difference which ensures that the
 smoothing is only acting on scales smaller than we care about here.
@@ -170,15 +130,6 @@ size.
 
 .. image:: images/fil_finder_17_0.png
 
-
-
-
-.. parsed-literal::
-
-    <fil_finder.filfind_class.fil_finder_2D at 0x10dd8e690>
-
-
-
 That's better! Not only are the small scale features better
 characterized, but some additional faint regions have also been picked
 up.
@@ -193,7 +144,7 @@ been attached to the object it will assume that that mask has been
 prescribed and will skip the mask making process.
 
 Skeletons
-=========
+---------
 
 The next step in the algorithm is to use a Medial Axis Transform to
 return the skeletons of the regions. These skeletons are the actual
@@ -208,17 +159,8 @@ be defined as the centers.
 
 .. image:: images/fil_finder_20_0.png
 
-
-
-
-.. parsed-literal::
-
-    <fil_finder.filfind_class.fil_finder_2D at 0x10dd8e690>
-
-
-
 Pruning and Lengths
-===================
+-------------------
 
 Now begins the analysis of the filaments! This begins with finding the
 length. The skeletons are also pruned during this process to remove
@@ -240,430 +182,12 @@ to be used for the rest of the analysis.
 
     fils.analyze_skeletons(verbose=True)
 
-.. parsed-literal::
-
-    Filament: 1 / 19
-
-
-
-.. image:: images/fil_finder_22_1.png
-
-
-.. parsed-literal::
-
-    Filament: 2 / 19
-
-
-
-.. image:: images/fil_finder_22_3.png
-
-
-.. parsed-literal::
-
-    Filament: 3 / 19
-
-
-
-.. image:: images/fil_finder_22_5.png
-
-
-.. parsed-literal::
-
-    Filament: 4 / 19
-
-
-
-.. image:: images/fil_finder_22_7.png
-
-
-.. parsed-literal::
-
-    Filament: 5 / 19
-
-
-
-.. image:: images/fil_finder_22_9.png
-
-
-.. parsed-literal::
-
-    Filament: 6 / 19
-
-
-
-.. image:: images/fil_finder_22_11.png
-
-
-.. parsed-literal::
-
-    Filament: 7 / 19
-
-
 
 .. image:: images/fil_finder_22_13.png
 
-
-.. parsed-literal::
-
-    Filament: 8 / 19
-
-
-
-.. image:: images/fil_finder_22_15.png
-
-
-.. parsed-literal::
-
-    Filament: 9 / 19
-
-
-
-.. image:: images/fil_finder_22_17.png
-
-
-.. parsed-literal::
-
-    Filament: 10 / 19
-
-
-
-.. image:: images/fil_finder_22_19.png
-
-
-.. parsed-literal::
-
-    Filament: 11 / 19
-
-
-
-.. image:: images/fil_finder_22_21.png
-
-
-.. parsed-literal::
-
-    Filament: 12 / 19
-
-
-
-.. image:: images/fil_finder_22_23.png
-
-
-.. parsed-literal::
-
-    Filament: 13 / 19
-
-
-
-.. image:: images/fil_finder_22_25.png
-
-
-.. parsed-literal::
-
-    Filament: 14 / 19
-
-
-
-.. image:: images/fil_finder_22_27.png
-
-
-.. parsed-literal::
-
-    Filament: 15 / 19
-
-
-
-.. image:: images/fil_finder_22_29.png
-
-
-.. parsed-literal::
-
-    Filament: 16 / 19
-
-
-
-.. image:: images/fil_finder_22_31.png
-
-
-.. parsed-literal::
-
-    Filament: 17 / 19
-
-
-
-.. image:: images/fil_finder_22_33.png
-
-
-.. parsed-literal::
-
-    Filament: 18 / 19
-
-
-
-.. image:: images/fil_finder_22_35.png
-
-
-.. parsed-literal::
-
-    Filament: 19 / 19
-
-
-
-.. image:: images/fil_finder_22_37.png
-
-
-.. parsed-literal::
-
-    Filament: 1 / 19
-
-
-
-.. image:: images/fil_finder_22_39.png
-
-
-.. parsed-literal::
-
-    Filament: 2 / 19
-
-
-
-.. image:: images/fil_finder_22_41.png
-
-
-.. parsed-literal::
-
-    Filament: 3 / 19
-
-
-
-.. image:: images/fil_finder_22_43.png
-
-
-.. parsed-literal::
-
-    Filament: 4 / 19
-
-
-
-.. image:: images/fil_finder_22_45.png
-
-
-.. parsed-literal::
-
-    Filament: 5 / 19
-
-
-
-.. image:: images/fil_finder_22_47.png
-
-
-.. parsed-literal::
-
-    Filament: 6 / 19
-
-
-
-.. image:: images/fil_finder_22_49.png
-
-
-.. parsed-literal::
-
-    Filament: 7 / 19
-
-
-
 .. image:: images/fil_finder_22_51.png
 
-
-.. parsed-literal::
-
-    Filament: 8 / 19
-
-
-
-.. image:: images/fil_finder_22_53.png
-
-
-.. parsed-literal::
-
-    Filament: 9 / 19
-
-
-
-.. image:: images/fil_finder_22_55.png
-
-
-.. parsed-literal::
-
-    Filament: 10 / 19
-
-
-
-.. image:: images/fil_finder_22_57.png
-
-
-.. parsed-literal::
-
-    Filament: 11 / 19
-
-
-
-.. image:: images/fil_finder_22_59.png
-
-
-.. parsed-literal::
-
-    Filament: 12 / 19
-
-
-
-.. image:: images/fil_finder_22_61.png
-
-
-.. parsed-literal::
-
-    Filament: 13 / 19
-
-
-
-.. image:: images/fil_finder_22_63.png
-
-
-.. parsed-literal::
-
-    Filament: 14 / 19
-
-
-
-.. image:: images/fil_finder_22_65.png
-
-
-.. parsed-literal::
-
-    Filament: 15 / 19
-
-
-
-.. image:: images/fil_finder_22_67.png
-
-
-.. parsed-literal::
-
-    Filament: 16 / 19
-
-
-
-.. image:: images/fil_finder_22_69.png
-
-
-.. parsed-literal::
-
-    Filament: 17 / 19
-
-
-
-.. image:: images/fil_finder_22_71.png
-
-
-.. parsed-literal::
-
-    Filament: 18 / 19
-
-
-
-.. image:: images/fil_finder_22_73.png
-
-
-.. parsed-literal::
-
-    Filament: 19 / 19
-
-
-
-.. image:: images/fil_finder_22_75.png
-
-
-
-.. image:: images/fil_finder_22_76.png
-
-
-
-.. image:: images/fil_finder_22_77.png
-
-
-
-.. image:: images/fil_finder_22_78.png
-
-
-
-.. image:: images/fil_finder_22_79.png
-
-
-
-.. image:: images/fil_finder_22_80.png
-
-
-
-.. image:: images/fil_finder_22_81.png
-
-
-
 .. image:: images/fil_finder_22_82.png
-
-
-
-.. image:: images/fil_finder_22_83.png
-
-
-
-.. image:: images/fil_finder_22_84.png
-
-
-
-.. image:: images/fil_finder_22_85.png
-
-
-
-.. image:: images/fil_finder_22_86.png
-
-
-
-.. image:: images/fil_finder_22_87.png
-
-
-
-.. image:: images/fil_finder_22_88.png
-
-
-
-.. image:: images/fil_finder_22_89.png
-
-
-
-.. image:: images/fil_finder_22_90.png
-
-
-
-.. image:: images/fil_finder_22_91.png
-
-
-
-.. image:: images/fil_finder_22_92.png
-
-
-
-.. image:: images/fil_finder_22_93.png
-
-
-
-.. image:: images/fil_finder_22_94.png
-
-
-
-
-.. parsed-literal::
-
-    <fil_finder.filfind_class.fil_finder_2D at 0x10dd8e690>
-
 
 
 Let's plot the final skeletons before moving on:
@@ -673,15 +197,6 @@ Let's plot the final skeletons before moving on:
     p.imshow(fils.flat_img, interpolation=None, origin='lower')
     p.contour(fils.skeleton, colors='k')
 
-
-
-.. parsed-literal::
-
-    <matplotlib.contour.QuadContourSet instance at 0x10dff2290>
-
-
-
-
 .. image:: images/fil_finder_24_1.png
 
 
@@ -689,7 +204,7 @@ The original skeletons didn't contain too many spurious features, so
 there is relatively little change.
 
 Curvature and Direction
-=======================
+-----------------------
 
 Following this step, we use a version of the `Rolling Hough
 Transform <http://adsabs.harvard.edu/abs/2014ApJ...789...82C>`__ to find
@@ -709,91 +224,10 @@ a better estimate for the image as a whole.
     fils.exec_rht(verbose=True)
 
 
-.. image:: images/fil_finder_26_0.png
-
-
-
-.. image:: images/fil_finder_26_1.png
-
-
-
-.. image:: images/fil_finder_26_2.png
-
-
-
-.. image:: images/fil_finder_26_3.png
-
-
-
-.. image:: images/fil_finder_26_4.png
-
-
-
-.. image:: images/fil_finder_26_5.png
-
-
-
 .. image:: images/fil_finder_26_6.png
 
-
-
-.. image:: images/fil_finder_26_7.png
-
-
-
-.. image:: images/fil_finder_26_8.png
-
-
-
-.. image:: images/fil_finder_26_9.png
-
-
-
-.. image:: images/fil_finder_26_10.png
-
-
-
-.. image:: images/fil_finder_26_11.png
-
-
-
-.. image:: images/fil_finder_26_12.png
-
-
-
-.. image:: images/fil_finder_26_13.png
-
-
-
-.. image:: images/fil_finder_26_14.png
-
-
-
-.. image:: images/fil_finder_26_15.png
-
-
-
-.. image:: images/fil_finder_26_16.png
-
-
-
-.. image:: images/fil_finder_26_17.png
-
-
-
-.. image:: images/fil_finder_26_18.png
-
-
-
-
-.. parsed-literal::
-
-    <fil_finder.filfind_class.fil_finder_2D at 0x10dd8e690>
-
-
-
 Widths
-======
+------
 
 One of the final steps is to find the widths of the filaments.
 ``fil_finder`` supports three different models to fit to the radial
@@ -823,99 +257,6 @@ appear to be overestimated.
 
     fils.find_widths(verbose=True)
 
-.. parsed-literal::
-
-    0 in 19
-    Fit Parameters: [ 0.07826921  0.08033422 -0.00112114  0.18222796]
-    Fit Errors: [ 0.00691331  0.04211509  0.03820988  0.04363059]
-    Fit Type: gaussian
-
-
-.. parsed-literal::
-
-    /Users/eric/anaconda/lib/python2.7/site-packages/numpy/core/_methods.py:59: RuntimeWarning: Mean of empty slice.
-      warnings.warn("Mean of empty slice.", RuntimeWarning)
-    /Users/eric/anaconda/lib/python2.7/site-packages/numpy/core/_methods.py:71: RuntimeWarning: invalid value encountered in true_divide
-      ret = ret.dtype.type(ret / rcount)
-
-
-
-.. image:: images/fil_finder_28_2.png
-
-
-.. parsed-literal::
-
-    1 in 19
-    Fit Parameters: [ 0.02902631  0.06588213  0.01916882  0.14659243]
-    Fit Errors: [ 0.00014506  0.01061423  0.00149817  0.01121018]
-    Fit Type: gaussian
-
-
-
-.. image:: images/fil_finder_28_4.png
-
-
-.. parsed-literal::
-
-    2 in 19
-    Fit Parameters: [ 1.20522334  0.0219877   0.0189823   0.01008039]
-    Fit Errors: [ 0.00984049  0.00051245  0.00057427  0.00262677]
-    Fit Type: gaussian
-
-
-
-.. image:: images/fil_finder_28_6.png
-
-
-.. parsed-literal::
-
-    3 in 19
-    Fit Parameters: [ 2.3075243   0.14985602  0.13712579  0.3492103 ]
-    Fit Errors: [ 1.55684352  0.15573363  0.36581519  0.13365941]
-    Fit Type: nonparam
-
-
-
-.. image:: images/fil_finder_28_8.png
-
-
-.. parsed-literal::
-
-    4 in 19
-    Fit Parameters: [ 0.83000271  0.01555012  0.02147785  0.        ]
-    Fit Errors: [ 0.02972446  0.00200598  0.00662622  0.        ]
-    Fit Type: gaussian
-
-
-.. parsed-literal::
-
-    /Users/eric/anaconda/lib/python2.7/site-packages/fil_finder-1.0-py2.7.egg/fil_finder/filfind_class.py:896: RuntimeWarning: invalid value encountered in less_equal
-
-
-
-.. image:: images/fil_finder_28_11.png
-
-
-.. parsed-literal::
-
-    5 in 19
-    Fit Parameters: [ 0.4307426   0.02101916  0.00674746  0.        ]
-    Fit Errors: [ 0.00333481  0.00061792  0.0014207   0.        ]
-    Fit Type: gaussian
-
-
-
-.. image:: images/fil_finder_28_13.png
-
-
-.. parsed-literal::
-
-    6 in 19
-    Fit Parameters: [ 1.10187851  0.04946428  0.03033507  0.10482469]
-    Fit Errors: [ 0.03499969  0.00359438  0.0162534   0.00398585]
-    Fit Type: gaussian
-
-
 
 .. image:: images/fil_finder_28_15.png
 
@@ -928,152 +269,8 @@ appear to be overestimated.
     Fit Type: nonparam
 
 
-
-.. image:: images/fil_finder_28_17.png
-
-
-.. parsed-literal::
-
-    8 in 19
-    Fit Parameters: [ 0.77565624  0.02372127  0.0387381   0.02325965]
-    Fit Errors: [ 0.0045763   0.00061823  0.00323371  0.00148167]
-    Fit Type: gaussian
-
-
-
-.. image:: images/fil_finder_28_19.png
-
-
-.. parsed-literal::
-
-    9 in 19
-    Fit Parameters: [  1.54644855e-01   5.82543676e+00  -5.40882024e+02   1.37177612e+01]
-    Fit Errors: [  8.82951623e-03   5.13787488e+03   9.54312772e+05   5.12739338e+03]
-    Fit Type: gaussian
-
-
-
-.. image:: images/fil_finder_28_21.png
-
-
-.. parsed-literal::
-
-    10 in 19
-    Fit Parameters: [ 0.06034145  0.03863372  0.03557391  0.07548035]
-    Fit Errors: [ 0.00033573  0.00265216  0.00025108  0.00319008]
-    Fit Type: gaussian
-
-
-
-.. image:: images/fil_finder_28_23.png
-
-
-.. parsed-literal::
-
-    11 in 19
-    Fit Parameters: [ 0.27323391  0.12239918  0.04373292  0.28371845]
-    Fit Errors: [ 0.03727465  0.12587496  0.09212256  0.10860762]
-    Fit Type: nonparam
-
-
-
-.. image:: images/fil_finder_28_25.png
-
-
-.. parsed-literal::
-
-    12 in 19
-    Fit Parameters: [  1.73530290e-01   6.73499469e+00  -7.87543652e+02   1.58596192e+01]
-    Fit Errors: [  6.98964005e-03   5.85109038e+03   1.36859049e+06   5.83914381e+03]
-    Fit Type: gaussian
-
-
-
-.. image:: images/fil_finder_28_27.png
-
-
-.. parsed-literal::
-
-    13 in 19
-    Fit Parameters: [ 1.73875602  0.01200995  0.03349105  0.        ]
-    Fit Errors: [ 0.00662544  0.00019407  0.00544095  0.        ]
-    Fit Type: gaussian
-
-
-
-.. image:: images/fil_finder_28_29.png
-
-
-.. parsed-literal::
-
-    14 in 19
-    Fit Parameters: [ 0.35794214  0.0486717   0.02433705  0.10274682]
-    Fit Errors: [ 0.00234102  0.00196255  0.00246432  0.00218472]
-    Fit Type: gaussian
-
-
-
-.. image:: images/fil_finder_28_31.png
-
-
-.. parsed-literal::
-
-    15 in 19
-    Fit Parameters: [ 2.02660581  0.01160084  0.45819778  0.        ]
-    Fit Errors: [ 0.06886086  0.00224936  0.01280631  0.        ]
-    Fit Type: gaussian
-
-
-
-.. image:: images/fil_finder_28_33.png
-
-
-.. parsed-literal::
-
-    16 in 19
-    Fit Parameters: [ 0.50019826  0.12083968  0.02364759  0.27998697]
-    Fit Errors: [ 0.07848576  0.05176816  0.21708085  0.04468528]
-    Fit Type: nonparam
-
-
-
-.. image:: images/fil_finder_28_35.png
-
-
-.. parsed-literal::
-
-    17 in 19
-    Fit Parameters: [ 0.31453035  0.01606313  0.09530031  0.        ]
-    Fit Errors: [ 0.00364746  0.0010019   0.0009622   0.        ]
-    Fit Type: gaussian
-
-
-
-.. image:: images/fil_finder_28_37.png
-
-
-.. parsed-literal::
-
-    18 in 19
-    Fit Parameters: [ 2.23622518  0.02492762  0.1032614   0.02943544]
-    Fit Errors: [ 0.031038    0.00147043  0.01080677  0.00292633]
-    Fit Type: gaussian
-
-
-
-.. image:: images/fil_finder_28_39.png
-
-
-
-
-.. parsed-literal::
-
-    <fil_finder.filfind_class.fil_finder_2D at 0x10dd8e690>
-
-
-
 Further Methods and Properties
-==============================
+------------------------------
 
 While the above represent the major filamentary properties, some others
 can also be computed.
@@ -1097,15 +294,6 @@ shown below.
 
     p.imshow(fils.filament_model(), interpolation=None, origin='lower')
 
-
-
-.. parsed-literal::
-
-    <matplotlib.image.AxesImage at 0x110d5a4d0>
-
-
-
-
 .. image:: images/fil_finder_30_1.png
 
 
@@ -1117,11 +305,7 @@ image. This fraction is computed by the function
 .. code:: python
 
     fils.find_covering_fraction()
-    print fils.covering_fraction
-
-.. parsed-literal::
-
-    0.529317467425
+    print fils.covering_fraction  # 0.529317467425
 
 
 Approximately 52% of the total intensity in the image is coming from the
@@ -1130,7 +314,7 @@ ignores compact features, whose intensities generally greatly exceed
 that of the filaments.
 
 Saving Outputs
-==============
+--------------
 
 Saving of outputs created by the algorithm are split into 2 functions.
 
