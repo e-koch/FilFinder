@@ -2,8 +2,8 @@
 fil\_finder Tutorial
 ====================
 
-** For brevity, only a few example output images are shown.
-The entire set can be found in the Ipython notebook in the examples folder. **
+**For brevity, only a few example output images are shown.
+The entire set can be found in the Ipython notebook in the examples folder.**
 
 Load in the algorithm and the usual suspects.
 
@@ -17,28 +17,28 @@ Next we initialize the fil\_finder\_2D object.
 
 The algorithm requires a few inputs to begin (other than the image and
 header):
-* 'beamwidth' - in arcseconds (set to 15.1 arcsec, though this is a
+* ``beamwidth`` - in arcseconds (set to 15.1 arcsec, though this is a
   simulated image, a none zero value is needed as it sets the minimum size
   a filament can be).
-* 'skel_thresh' - minimum pixels a skeleton
+* ``skel_thresh`` - minimum pixels a skeleton
   must contain to be considered (= 30 pixels)
-* 'branch_thresh' -
+* ``branch_thresh`` -
   minimum length for a branch. This sets one of the skeleton pruning
   criteria. If the intensity along it is significant to the filament, or
   if its deletion will change the graph connectivity, it will still be
   kept. (= 5 pixels)
-* 'pad_size' - number of pixels to pad around each
+* ``pad_size`` - number of pixels to pad around each
   filament. This ensures the adaptive thresholding can reach the edges of
   the image. Must be at least 1 pixel. (= 10 pixels, about the size of the
   patch used).
-* 'distance' - distance to the region in parsecs. This is
+* ``distance`` - distance to the region in parsecs. This is
   used to set the size of the adaptive thresholding patch. The input is
   optional. If no distance is provided, results remain in pixel units (=
   260 pc, distance set for the simulation).
-* 'glob_threshold' - sets the
+* ``glob_threshold`` - sets the
   percentile of data to ignore. This is intended to remove noisy regions
   of the data. (= 20%)
-* 'flatten_thresh' - sets the normalization to
+* ``flatten_thresh`` - sets the normalization to
   use in the arctan transform (flattens bright, compact regions). This
   parameter is generally set automatically, but we seem to get better
   results by setting it to the 95% percentile.
@@ -175,15 +175,17 @@ short branches which aren't essential. This is preferable over
 traditional pruning methods which shorten the entire skeleton.
 
 A whole ton of information is printed out when verbose mode is enabled.
-\* The first set show the skeletons segmented into their branches (and
-intersections have beem removed). Their connectivity graphs are also
-shown. Their placement is unfortunately only useful for small
-structures. \* Next, the longest paths through the skeleton are shown.
-This is determined by the length of the branch and the median brightness
-along it relative to the rest of the structure. These lengths are
-classified as the main length of the filament. \* The final set shows
-the final, pruned skeletons which are recombined into the skeleton image
-to be used for the rest of the analysis.
+* The first set show the skeletons segmented into their branches (and
+  intersections have beem removed). Their connectivity graphs are also
+  shown. Their placement is unfortunately only useful for small
+  structures.
+* Next, the longest paths through the skeleton are shown.
+  This is determined by the length of the branch and the median brightness
+  along it relative to the rest of the structure. These lengths are
+  classified as the main length of the filament.
+* The final set shows
+  the final, pruned skeletons which are recombined into the skeleton image
+  to be used for the rest of the analysis.
 
 .. code:: python
 
