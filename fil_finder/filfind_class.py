@@ -262,7 +262,7 @@ class fil_finder_2D(object):
                                The size threshold is then 0. It is recommended \
                                that size_thresh is manually set.")
             self.size_thresh = round(
-                np.pi * 3 * self.beamwidth**2. * self.imgscale ** -2)
+                np.pi * 5 * (0.1)**2. * self.imgscale ** -2)
             # Area of ellipse for typical filament size. Divided by 10 to
             # incorporate sparsity.
         if self.adapt_thresh is None:
