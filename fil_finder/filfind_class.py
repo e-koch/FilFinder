@@ -679,7 +679,7 @@ class fil_finder_2D(object):
                     # Only include the branches with >10 pixels
                     if length < min_branch_length:
                         continue
-                    theta, R, ecdf, quantiles = \
+                    theta, R, quantiles = \
                         rht(labeled_fil_array == val,
                             radius, ntheta, background_percentile)
 
@@ -704,7 +704,7 @@ class fil_finder_2D(object):
 
             else:
                 skel_arr = np.fliplr(self.filament_arrays["long path"][n])
-                theta, R, ecdf, quantiles = rht(
+                theta, R, quantiles = rht(
                     skel_arr, radius, ntheta, background_percentile)
 
                 twofive, median, sevenfive = quantiles
@@ -718,9 +718,10 @@ class fil_finder_2D(object):
                         np.abs(sevenfive - twofive + np.pi))
 
                 if verbose:
-                    ax1 = p.subplot(131, polar=True)
+                    ax1 = p.subplot(121, polar=True)
                     ax1.plot(2 * theta, R / R.max(), "kD")
-                    ax1.fill_between(2 * theta, 0, R / R.max(),
+                    ax1.fill_between(2 * theta, 0,
+                                     R[:, 0] / R.max(),
                                      facecolor="blue",
                                      interpolate=True, alpha=0.5)
                     ax1.set_rmax(1.0)
@@ -729,11 +730,7 @@ class fil_finder_2D(object):
                              "b--")
                     ax1.plot([2 * sevenfive] * 2, np.linspace(0.0, 1.0, 2),
                              "b--")
-                    ax2 = p.subplot(132, polar=True)
-                    ax2.plot(2 * theta, ecdf, "k")
-                    ax2.set_rmax(1.0)
-                    ax2.set_yticks([0.25, 0.5, 0.75])
-                    p.subplot(133)
+                    p.subplot(122)
                     p.imshow(self.filament_arrays["long path"][n],
                              cmap="binary", origin="lower")
                     p.show()
