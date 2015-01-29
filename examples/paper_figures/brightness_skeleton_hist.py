@@ -150,6 +150,8 @@ median_fil_bright = {}
 
 for i, fold in enumerate(folders):
     if fold in sfr.keys():
+        # if fold == 'polaris-350':
+        #     continue
         median_fil_bright[fold] = np.nanmedian(all_points[-i-1])
 
 # Covering fraction
@@ -166,7 +168,7 @@ cfr = {"aquilaM2-350": 0.340836,
        "orionB-350": 0.374889,
        "perseus04-350": 0.360365,
        "pipeCenterB59-350": 0.159801,
-       "polaris-350": 0.319689,
+       # "polaris-350": 0.319689,
        "taurusN3-350": 0.367821}
 
 
@@ -174,7 +176,35 @@ from pandas import DataFrame, Series
 
 df = DataFrame([Series(median_fil_bright), Series(sfr), Series(cfr)])
 
-p.scatter(df.ix[0, :], df.ix[1, :])
-p.xlabel('log$_{10}$ Median Filamentary Surface Brightness / (MJy/sr)')
+symb_col = ["bD", "gD", "rD", "kD", "b^", "g^", "r^",
+            "k^", "bo", "go", "ro", "ko", "bv", "gh", "rh", "kh"]
+
+for i, key in enumerate(np.sort(sfr.keys())):
+    p.plot(df.ix[0, i], df.ix[1, i], symb_col[i], label=labels[key],
+           markersize=10, alpha=0.75)
+p.legend(loc="upper right", ncol=2, prop={"size": 12}, markerscale=0.75)
+p.grid(True)
+p.xlabel('log$_{10}$ Median of Filament Surface Brightness / (MJy/sr)')
 p.ylabel(r'$\Sigma$(SFR) (Msol Myr$^{-1}$ pc$^{-2}$)')
+p.xlim([0.55, 1.6])
+p.ylim([-0.1, 4.0])
+
+# Drop chamaeleon from the fit
+
+del df['chamaeleonI-350']
+
+import statsmodels.api as sm
+
+mod = sm.OLS(df.ix[1], df.ix[0])
+
+fit = mod.fit()
+
+x_pred = np.linspace(0.55, 1.6, 100)
+y_pred = np.empty_like(x_pred)
+
+for i, val in enumerate(x_pred):
+    y_pred[i] = fit.predict(val)
+
+p.plot(x_pred, y_pred, 'k--', linewidth=3)
+
 p.show()
