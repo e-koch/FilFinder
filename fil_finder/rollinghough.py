@@ -67,7 +67,7 @@ def rht(mask, radius, ntheta=180, background_percentile=25, verbose=False):
         R = R[:-1]
         theta = theta[:-1]
     else:
-        raise ValueError("R(pi/2) should equal R(3/2*pi). Check input.")
+        raise ValueError("R(-pi/2) should equal R(1/2*pi). Check input.")
 
     # You're likely to get a somewhat constant background, so subtract it out
     R = R - np.median(R[R <= scoreatpercentile(R, background_percentile)])
