@@ -23,23 +23,23 @@ def make_kde(y):
     return kde
 
 
-files = [f for f in os.listdir(".") if os.path.isfile(f) and f[-3:]== "csv"
+files = [f for f in os.listdir(".") if os.path.isfile(f) and f[-3:] == "csv"
          and f[3:] != "deg"]
-print len(files)
-x = np.linspace(0, np.pi, 1000)
+
+x = np.linspace(-np.pi/2, np.pi/2, 1000)
 cols = ["k-", "b-", "g-", "r-", "c-", "m-",
         "k--", "b--", "g--", "r--", "c--", "m--",
         "k-.", "b-.", "g-.", "r-."]
 
 
-keepers = {"pipeCenterB59-250_rht_branches.csv": "Pipe",
-           "california_west-250_normed_rht_branches.csv": "California West",
-           "chamaeleonI-250_normed_rht_branches.csv": "Chamaeleon",
-           "california_east-250_normed_rht_branches.csv": "California East",
-           "orionA-S-250_rht_branches.csv": "Orion-A South",
-           "aquilaM2-250_rht_branches.csv": "Aquila"}
+keepers = {"pipeCenterB59-350/pipeCenterB59-350_rht_branches.csv": "Pipe",
+           "california_west-350/california_west-350_rht_branches.csv": "California West",
+           "chamaeleonI-350/chamaeleonI-350_rht_branches.csv": "Chamaeleon",
+           "california_east-350/california_east-350_rht_branches.csv": "California East",
+           "orionA-S-350/orionA-S-350_rht_branches.csv": "Orion-A South",
+           "aquilaM2-350/aquilaM2-350_rht_branches.csv": "Aquila"}
 
-for i, (f, col) in enumerate(zip(keepers.keys(), cols)):
+for i, (f, col) in enumerate(zip(np.sort(keepers.keys()), cols)):
     print f
     t = read_csv(f)
 
@@ -51,20 +51,20 @@ for i, (f, col) in enumerate(zip(keepers.keys(), cols)):
     intens = intens[lengths > 5]
 
     ax = p.subplot(3, 2, i+1)
-    p.title(keepers[f])
+    p.title(keepers[f], fontsize=15)
     p.plot(x, 3*kde(x), "k-", label=f[:-21].replace("_", " "), alpha=0.9,
            linewidth=3)
     p.hist(med, bins=15, normed=1, alpha=1.0, color="gray")
            # weights=intens)
 
-    ax.set_xticks([0, np.pi/4, np.pi/2, 0.75*np.pi, np.pi])
+    ax.set_xticks([-np.pi/2, -np.pi/4, 0, np.pi/4, np.pi/2])
     ax.set_yticks([])
     if not i >= 4:
         ax.set_xticklabels([])
     else:
-        ax.set_xticklabels([0, "", r"$\pi/2$", "", r"$\pi$"], fontsize=13)
+        ax.set_xticklabels([r"$-\pi/2$", "", 0, "", r"$\pi/2$"], fontsize=13)
 
-    ax.set_xlim([0.0, np.pi])
+    ax.set_xlim([-np.pi/2, np.pi/2])
 p.show()
 
 

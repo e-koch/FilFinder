@@ -20,7 +20,7 @@ img, hdr = fits.getdata('pipeCenterB59-250.fits', header=True)
 
 filfind = fil_finder_2D(img, hdr, 18.2, 30, 15, 30, glob_thresh=20,
                         distance=145.)
-filfind.create_mask()
+filfind.create_mask(size_thresh=400)
 filfind.medskel()
 filfind.analyze_skeletons()
 filfind.exec_rht()
@@ -41,23 +41,23 @@ conv_img = conv_img * nan_pix
 
 filfind2 = fil_finder_2D(conv_img, hdr, 18.2, 30, 15, 30, glob_thresh=20,
                          distance=460.)
-filfind2.create_mask()
+filfind2.create_mask(size_thresh=400)
 filfind2.medskel()
 filfind2.analyze_skeletons()
 filfind2.exec_rht()
 filfind2.find_widths()
 
 
-p.imshow(filfind.flat_img, interpolation='nearest', cmap='binary',
-         origin='lower')
-p.contour(filfind.skeleton, colors='g', label="Normal", linewidths=6)
-p.contour(filfind2.skeleton, colors='b', label='Degraded')
-p.plot(None, None, label='Normal', color='g', linewidth=6)
-p.plot(None, None, label='Degraded', color='b')
-p.legend(prop={'size': 20})
-p.xticks([])
-p.yticks([])
-p.show()
+# p.imshow(filfind.flat_img, interpolation='nearest', cmap='binary',
+#          origin='lower')
+# p.contour(filfind.skeleton, colors='g', label="Normal", linewidths=6)
+# p.contour(filfind2.skeleton, colors='b', label='Degraded')
+# p.plot(None, None, label='Normal', color='g', linewidth=6)
+# p.plot(None, None, label='Degraded', color='b')
+# p.legend(prop={'size': 20})
+# p.xticks([])
+# p.yticks([])
+# p.show()
 
 # Histograms plot
 
@@ -100,7 +100,7 @@ ax3.hist(deg_orient[np.isfinite(deg_orient)], bins=7,
        color="b", alpha=0.5, label="Degraded")
 ax3.hist(norm_orient[np.isfinite(norm_orient)], bins=7,
        color="g", alpha=0.5, label="Normal")
-ax3.set_xlim([0.0, np.pi])
+ax3.set_xlim([-np.pi/2, np.pi/2])
 
 ax3.set_xlabel("Orientation")
 

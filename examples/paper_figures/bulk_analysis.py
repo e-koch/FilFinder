@@ -160,7 +160,7 @@ if scatter:
     p.grid(True)
     p.legend(loc="lower right", ncol=2, prop={"size": 12}, markerscale=0.75)
     p.ylim([-0.3, 1.55])
-    p.xlim([0.15, 1.7])
+    p.xlim([0.1, 1.7])
     # fig.savefig("length_vs_amp_centroids.eps", format="eps", dpi=1000)
     # p.clf()
     p.tight_layout()
@@ -331,10 +331,10 @@ if ks_tests:
     # Widths
     width_tables = ks_table(widths, boot=boot)
 
-    width_kd_table = DataFrame(
-        width_tables[0], index=ordered_labels, columns=ordered_labels)
-    # width_kd_table.to_latex("width_ks_table.tex")
-    width_kd_table.to_csv("width_ks_table.csv")
+    # width_kd_table = DataFrame(
+    #     width_tables[0], index=ordered_labels, columns=ordered_labels)
+    # # width_kd_table.to_latex("width_ks_table.tex")
+    # width_kd_table.to_csv("width_ks_table.csv")
 
     width_kd_table = DataFrame(
         width_tables[1], index=ordered_labels, columns=ordered_labels)
@@ -342,40 +342,40 @@ if ks_tests:
     width_kd_table.to_csv("width_ks_table_pvals.csv")
 
     # Lengths
-    length_tables = ks_table(lengths, boot=boot)
+    # length_tables = ks_table(lengths, boot=boot)
 
-    length_kd_table = DataFrame(
-        length_tables[0], index=ordered_labels, columns=ordered_labels)
-    # length_kd_table.to_latex("length_ks_table.tex")
-    length_kd_table.to_csv("length_ks_table.csv")
+    # length_kd_table = DataFrame(
+    #     length_tables[0], index=ordered_labels, columns=ordered_labels)
+    # # length_kd_table.to_latex("length_ks_table.tex")
+    # length_kd_table.to_csv("length_ks_table.csv")
 
-    length_kd_table = DataFrame(
-        length_tables[1], index=ordered_labels, columns=ordered_labels)
-    # length_kd_table.to_latex("length_ks_table_pvals.tex")
-    length_kd_table.to_csv("length_ks_table_pvals.csv")
+    # length_kd_table = DataFrame(
+    #     length_tables[1], index=ordered_labels, columns=ordered_labels)
+    # # length_kd_table.to_latex("length_ks_table_pvals.tex")
+    # length_kd_table.to_csv("length_ks_table_pvals.csv")
 
     # Orientations
     # Convert to sin(2*phi) to deal with continuity issues
-    for key in orientation.keys():
-        orientation[key] = np.sin(2 * orientation[key])
-    orientation_tables = ks_table(orientation, boot=boot)
-    orientation_kd_table = DataFrame(
-        orientation_tables[0], index=ordered_labels, columns=ordered_labels)
-    # orientation_kd_table.to_latex("orientation_ks_table.tex")
-    orientation_kd_table.to_csv("orientation_ks_table.csv")
+    # for key in orientation.keys():
+    #     orientation[key] = np.sin(2 * orientation[key])
+    # orientation_tables = ks_table(orientation, boot=boot)
+    # orientation_kd_table = DataFrame(
+    #     orientation_tables[0], index=ordered_labels, columns=ordered_labels)
+    # # orientation_kd_table.to_latex("orientation_ks_table.tex")
+    # orientation_kd_table.to_csv("orientation_ks_table.csv")
 
-    orientation_kd_table = DataFrame(
-        orientation_tables[1], index=ordered_labels, columns=ordered_labels)
-    # orientation_kd_table.to_latex("orientation_ks_table_pvals.tex")
-    orientation_kd_table.to_csv("orientation_ks_table_pvals.csv")
+    # orientation_kd_table = DataFrame(
+    #     orientation_tables[1], index=ordered_labels, columns=ordered_labels)
+    # # orientation_kd_table.to_latex("orientation_ks_table_pvals.tex")
+    # orientation_kd_table.to_csv("orientation_ks_table_pvals.csv")
 
     # Curvature
     curvature_tables = ks_table(curvature, boot=boot)
 
-    curvature_kd_table = DataFrame(
-        curvature_tables[0], index=ordered_labels, columns=ordered_labels)
-    # curvature_kd_table.to_latex("curvature_ks_table.tex")
-    curvature_kd_table.to_csv("curvature_ks_table.csv")
+    # curvature_kd_table = DataFrame(
+    #     curvature_tables[0], index=ordered_labels, columns=ordered_labels)
+    # # curvature_kd_table.to_latex("curvature_ks_table.tex")
+    # curvature_kd_table.to_csv("curvature_ks_table.csv")
 
     curvature_kd_table = DataFrame(
         curvature_tables[1], index=ordered_labels, columns=ordered_labels)
@@ -383,17 +383,17 @@ if ks_tests:
     curvature_kd_table.to_csv("curvature_ks_table_pvals.csv")
 
     # Amplitudes
-    amplitude_tables = ks_table(amplitude, boot=boot)
+    # amplitude_tables = ks_table(amplitude, boot=boot)
 
-    amplitude_kd_table = DataFrame(
-        amplitude_tables[0], index=ordered_labels, columns=ordered_labels)
-    # amplitude_kd_table.to_latex("amplitude_ks_table.tex")
-    amplitude_kd_table.to_csv("amplitude_ks_table.csv")
+    # amplitude_kd_table = DataFrame(
+    #     amplitude_tables[0], index=ordered_labels, columns=ordered_labels)
+    # # amplitude_kd_table.to_latex("amplitude_ks_table.tex")
+    # amplitude_kd_table.to_csv("amplitude_ks_table.csv")
 
-    amplitude_kd_table = DataFrame(
-        amplitude_tables[1], index=ordered_labels, columns=ordered_labels)
-    # amplitude_kd_table.to_latex("amplitude_ks_table_pvals.tex")
-    amplitude_kd_table.to_csv("amplitude_ks_table_pvals.csv")
+    # amplitude_kd_table = DataFrame(
+    #     amplitude_tables[1], index=ordered_labels, columns=ordered_labels)
+    # # amplitude_kd_table.to_latex("amplitude_ks_table_pvals.tex")
+    # amplitude_kd_table.to_csv("amplitude_ks_table_pvals.csv")
 
 if covering_frac:
 
