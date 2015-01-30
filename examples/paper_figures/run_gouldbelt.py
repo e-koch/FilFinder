@@ -121,7 +121,7 @@ if __name__ == "__main__":
                "chamaeleonI-350.fits", "perseus04-350.fits", "taurusN3-350.fits", "ic5146-350.fits",
                "orionA-C-350.fits", "orionA-S-350.fits", "california_cntr-350.fits", "california_east-350.fits",
                "california_west-350.fits"]
-    distances = [145., 175., 260., 400., 150., 170., 235.,
+    distances = [145., 150., 260., 400., 150., 170., 235.,
                  140., 460., 400., 400., 450., 450., 450.]  # pc
 
     offsets = [31.697, 14.437, 85.452, 26.216, 9.330, -879.063, 23.698,
