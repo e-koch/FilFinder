@@ -67,7 +67,7 @@ def rht(mask, radius, ntheta=180, background_percentile=25, verbose=False):
         R = R[:-1]
         theta = theta[:-1]
     else:
-        raise ValueError("R(-pi/2) should equal R(1/2*pi). Check input.")
+        raise ValueError("R(-pi/2) should equal R(pi/2). Check input.")
 
     # You're likely to get a somewhat constant background, so subtract it out
     R = R - np.median(R[R <= scoreatpercentile(R, background_percentile)])
@@ -91,7 +91,7 @@ def rht(mask, radius, ntheta=180, background_percentile=25, verbose=False):
         p.plot([2*twofive]*2, [0, R.max()], "r")
         p.plot([2*sevenfive]*2, [0, R.max()], "r")
         p.subplot(1, 2, 2)
-        p.imshow(mask, cmap="binary")
+        p.imshow(mask, cmap="binary", origin='lower')
         p.show()
 
     return theta, R, quantiles
@@ -192,14 +192,12 @@ def circ_CI(theta, weights=None, u_ci=0.67, axis=0):
 
     theta_copy = np.roll(theta, diff_posn)
 
-    vec_length2 = np.sum(weights * np.cos(theta_copy), axis=axis) + \
-        np.sum(weights * np.sin(theta_copy), axis=axis)
+    vec_length2 = np.sum(weights * np.cos(theta_copy), axis=axis)**2. + \
+        np.sum(weights * np.sin(theta_copy), axis=axis)**2.
 
-    alpha = np.sum(weights * np.cos(2*theta_copy), axis=axis) / \
-        np.sum(weights, axis=axis)
+    alpha = np.sum(weights * np.cos(2*theta_copy), axis=axis)
 
-    var_w = np.sum(weights * (1 - alpha)) / \
-        (4 * np.sum(weights) * vec_length2)
+    var_w = (1 - alpha) / (4 * vec_length2)
 
     # Make sure the CI stays within the interval. Otherwise assign it to
     # pi/2 (largest possible on interval of pi)
