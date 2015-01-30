@@ -158,7 +158,8 @@ if scatter:
     p.xlabel("log$_{10}($L/ pc)", fontsize=18)
     p.ylabel("log$_{10}(I$/ MJy/sr)", fontsize=18)
     p.grid(True)
-    p.legend(loc="lower right", ncol=2, prop={"size": 12}, markerscale=0.75)
+    p.legend(loc="lower right", ncol=2, prop={"size": 12}, markerscale=0.75,
+             numpoints=1)
     p.ylim([-0.3, 1.55])
     p.xlim([0.1, 1.7])
     # fig.savefig("length_vs_amp_centroids.eps", format="eps", dpi=1000)

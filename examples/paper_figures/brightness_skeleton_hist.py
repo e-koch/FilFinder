@@ -10,9 +10,9 @@ from astropy.table import Table
 import os
 import numpy as np
 import matplotlib.pyplot as p
-import seaborn as sn
-sn.set_context('talk')
-sn.set_style("darkgrid")
+# import seaborn as sn
+# sn.set_context('talk')
+# sn.set_style("darkgrid")
 
 
 folders = [f for f in os.listdir("degrade_all") if os.path.isdir(f) and f[-3:] == '350']
@@ -118,15 +118,15 @@ for num, fol in enumerate(folders):
 
 all_points.reverse()
 
-p.subplot(111)
-# p.xlim([-50, 125])
-sn.violinplot(all_points,
-              names=[labels[key] for key in np.sort(labels.keys())[::-1]],
-              color=sn.color_palette("GnBu_d"), vert=False)
-p.xlabel(r" $\log_{10}$ Surface Brightness (MJy/sr)")
-p.tight_layout()
-p.xticks([-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0])
-p.show()
+# p.subplot(111)
+# # p.xlim([-50, 125])
+# sn.violinplot(all_points,
+#               names=[labels[key] for key in np.sort(labels.keys())[::-1]],
+#               color=sn.color_palette("GnBu_d"), vert=False)
+# p.xlabel(r" $\log_{10}$ Surface Brightness (MJy/sr)")
+# p.tight_layout()
+# p.xticks([-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0])
+# p.show()
 
 
 # SFR density versus filament brightness
@@ -179,32 +179,34 @@ df = DataFrame([Series(median_fil_bright), Series(sfr), Series(cfr)])
 symb_col = ["bD", "gD", "rD", "kD", "b^", "g^", "r^",
             "k^", "bo", "go", "ro", "ko", "bv", "gh", "rh", "kh"]
 
+# p.figure(figsize=())
 for i, key in enumerate(np.sort(sfr.keys())):
     p.plot(df.ix[0, i], df.ix[1, i], symb_col[i], label=labels[key],
            markersize=10, alpha=0.75)
-p.legend(loc="upper right", ncol=2, prop={"size": 12}, markerscale=0.75)
+p.legend(loc="upper right", ncol=2, prop={"size": 12}, markerscale=0.75,
+         numpoints=1)
 p.grid(True)
 p.xlabel('log$_{10}$ Median of Filament Surface Brightness / (MJy/sr)')
-p.ylabel(r'$\Sigma$(SFR) (Msol Myr$^{-1}$ pc$^{-2}$)')
+p.ylabel(r'$\Sigma$(SFR) (M$_{\odot}$ Myr$^{-1}$ pc$^{-2}$)')
 p.xlim([0.55, 1.6])
 p.ylim([-0.1, 4.0])
 
 # Drop chamaeleon from the fit
 
-del df['chamaeleonI-350']
+# del df['chamaeleonI-350']
 
-import statsmodels.api as sm
+# import statsmodels.api as sm
 
-mod = sm.OLS(df.ix[1], df.ix[0])
+# mod = sm.OLS(df.ix[1], df.ix[0])
 
-fit = mod.fit()
+# fit = mod.fit()
 
-x_pred = np.linspace(0.55, 1.6, 100)
-y_pred = np.empty_like(x_pred)
+# x_pred = np.linspace(0.55, 1.6, 100)
+# y_pred = np.empty_like(x_pred)
 
-for i, val in enumerate(x_pred):
-    y_pred[i] = fit.predict(val)
+# for i, val in enumerate(x_pred):
+#     y_pred[i] = fit.predict(val)
 
-p.plot(x_pred, y_pred, 'k--', linewidth=3)
+# p.plot(x_pred, y_pred, 'k--', linewidth=3)
 
 p.show()
