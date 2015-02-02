@@ -7,12 +7,14 @@ Make histogram of surface brightness along the filaments.
 from astropy.io.fits import getdata, getheader
 from astropy import convolution
 from astropy.table import Table
+from scipy.ndimage import distance_transform_edt
 import os
 import numpy as np
 import matplotlib.pyplot as p
-# import seaborn as sn
-# sn.set_context('talk')
-# sn.set_style("darkgrid")
+from pandas import DataFrame, Series
+import seaborn as sn
+sn.set_context('talk')
+sn.set_style("darkgrid")
 
 
 folders = [f for f in os.listdir("degrade_all") if os.path.isdir(f) and f[-3:] == '350']
@@ -62,10 +64,17 @@ offsets = {"pipeCenterB59-350": 31.697,
            "california_west-350": 14.678,
            "chamaeleonI-350": -879.063}
 
+
+def Mlin(I, del_x):
+    return 1.02 * I * del_x
+
 all_points = []
+
+mlin_points = []
 
 for num, fol in enumerate(folders):
     values = np.empty((0))
+    per_fil_values = np.empty((0))
 
     # Open the skeleton and the image
     skeleton = getdata("degrade_all/"+fol+"/"+fol+"_skeletons.fits")
@@ -76,6 +85,8 @@ for num, fol in enumerate(folders):
     img = getdata(fol+".fits") + offsets[fol]
     hdr = getheader(fol+".fits")
 
+    pix_size = np.abs(hdr['CDELT2']) * (np.pi/180.) * dists[fol]  # pc
+
     r = 460. / dists[fol]
     if r != 1.:
         conv = np.sqrt(r ** 2. - 1) * \
@@ -85,15 +96,26 @@ for num, fol in enumerate(folders):
             img = convolution.convolve(img, kernel, boundary='fill',
                                        fill_value=np.NaN)
 
+            pix_size = pix_size * r
+
     for lab in np.unique(skeleton[np.nonzero(skeleton)]):
 
-        skel_pts = np.where(skeleton == lab)
+        # skel_pts = np.where(skeleton == lab)
 
         bkg = data['Background'][lab-1]
         # amp = data['Amplitude'][lab-1]
 
         if np.isnan(bkg):
             continue
+
+        width = data['FWHM'][lab-1] / 2.
+        pix_width = width / pix_size
+
+        skel_arr = (skeleton == lab)
+
+        dist_trans = distance_transform_edt(np.logical_not(skel_arr))
+
+        skel_pts = np.where(dist_trans <= pix_width)
 
         points = img[skel_pts] - bkg
 
@@ -102,6 +124,9 @@ for num, fol in enumerate(folders):
 
         if points.shape == (0,):
             continue
+
+        m_lin = np.mean(Mlin(points, width)) * np.ones(int(points.shape[0]/10))
+        per_fil_values = np.append(per_fil_values, m_lin)
 
         points = np.log10(points)
         # per5 = points > np.percentile(points, 25)
@@ -112,22 +137,38 @@ for num, fol in enumerate(folders):
 
         values = np.append(values, points)
     all_points.append(values)
+    mlin_points.append(per_fil_values)
 
 # p.tight_layout()
 # p.show()
 
 all_points.reverse()
 
-# p.subplot(111)
-# # p.xlim([-50, 125])
-# sn.violinplot(all_points,
-#               names=[labels[key] for key in np.sort(labels.keys())[::-1]],
-#               color=sn.color_palette("GnBu_d"), vert=False)
-# p.xlabel(r" $\log_{10}$ Surface Brightness (MJy/sr)")
-# p.tight_layout()
-# p.xticks([-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0])
-# p.show()
+p.subplot(111)
+p.xlim([-50, 125])
+sn.violinplot(all_points,
+              names=[labels[key] for key in np.sort(labels.keys())[::-1]],
+              color=sn.color_palette("GnBu_d"), vert=False)
+p.xlabel(r" $\log_{10}$ Surface Brightness (MJy/sr)")
+p.tight_layout()
+p.xticks([-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0])
+p.show()
 
+# Mline of filaments
+
+mlin_points.reverse()
+
+p.subplot(111)
+p.xlim([0, 70])
+# p.xlim([-0.02, 0.02])
+sn.violinplot(mlin_points,
+              names=[labels[key] for key in np.sort(labels.keys())[::-1]],
+              color=sn.color_palette("GnBu_d"), vert=False, inner=None,
+              gridsize=500, bw=0.25)
+p.xlabel(r"M$_{\mathrm{line}}$ (M$_{\odot}/$pc)")
+p.tight_layout()
+p.plot([18.59]*2, [0, 30], 'k--')
+p.show()
 
 # SFR density versus filament brightness
 
@@ -172,24 +213,22 @@ cfr = {"aquilaM2-350": 0.340836,
        "taurusN3-350": 0.367821}
 
 
-from pandas import DataFrame, Series
-
 df = DataFrame([Series(median_fil_bright), Series(sfr), Series(cfr)])
 
 symb_col = ["bD", "gD", "rD", "kD", "b^", "g^", "r^",
             "k^", "bo", "go", "ro", "ko", "bv", "gh", "rh", "kh"]
 
 # p.figure(figsize=())
-for i, key in enumerate(np.sort(sfr.keys())):
-    p.plot(df.ix[0, i], df.ix[1, i], symb_col[i], label=labels[key],
-           markersize=10, alpha=0.75)
-p.legend(loc="upper right", ncol=2, prop={"size": 12}, markerscale=0.75,
-         numpoints=1)
-p.grid(True)
-p.xlabel('log$_{10}$ Median of Filament Surface Brightness / (MJy/sr)')
-p.ylabel(r'$\Sigma$(SFR) (M$_{\odot}$ Myr$^{-1}$ pc$^{-2}$)')
-p.xlim([0.55, 1.6])
-p.ylim([-0.1, 4.0])
+# for i, key in enumerate(np.sort(sfr.keys())):
+#     p.plot(df.ix[0, i], df.ix[1, i], symb_col[i], label=labels[key],
+#            markersize=10, alpha=0.75)
+# p.legend(loc="upper right", ncol=2, prop={"size": 12}, markerscale=0.75,
+#          numpoints=1)
+# p.grid(True)
+# p.xlabel('log$_{10}$ Median of Filament Surface Brightness / (MJy/sr)')
+# p.ylabel(r'$\Sigma$(SFR) (M$_{\odot}$ Myr$^{-1}$ pc$^{-2}$)')
+# p.xlim([0.55, 1.6])
+# p.ylim([-0.1, 4.0])
 
 # Drop chamaeleon from the fit
 
@@ -209,4 +248,4 @@ p.ylim([-0.1, 4.0])
 
 # p.plot(x_pred, y_pred, 'k--', linewidth=3)
 
-p.show()
+# p.show()
