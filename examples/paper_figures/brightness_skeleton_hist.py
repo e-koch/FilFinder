@@ -12,9 +12,9 @@ import os
 import numpy as np
 import matplotlib.pyplot as p
 from pandas import DataFrame, Series
-import seaborn as sn
-sn.set_context('talk')
-sn.set_style("darkgrid")
+# import seaborn as sn
+# sn.set_context('talk')
+# sn.set_style("darkgrid")
 
 
 folders = [f for f in os.listdir("degrade_all") if os.path.isdir(f) and f[-3:] == '350']
@@ -72,9 +72,12 @@ all_points = []
 
 mlin_points = []
 
+ratios = {}
+
 for num, fol in enumerate(folders):
     values = np.empty((0))
     per_fil_values = np.empty((0))
+    reg_ratios = []
 
     # Open the skeleton and the image
     skeleton = getdata("degrade_all/"+fol+"/"+fol+"_skeletons.fits")
@@ -90,7 +93,7 @@ for num, fol in enumerate(folders):
     r = 460. / dists[fol]
     if r != 1.:
         conv = np.sqrt(r ** 2. - 1) * \
-            (18.5 / np.sqrt(8*np.log(2)) / (np.abs(hdr["CDELT2"]) * 3600.))
+            (24.9 / np.sqrt(8*np.log(2)) / (np.abs(hdr["CDELT2"]) * 3600.))
         if conv > 1.0:
             kernel = convolution.Gaussian2DKernel(conv)
             img = convolution.convolve(img, kernel, boundary='fill',
@@ -100,7 +103,7 @@ for num, fol in enumerate(folders):
 
     for lab in np.unique(skeleton[np.nonzero(skeleton)]):
 
-        # skel_pts = np.where(skeleton == lab)
+        skel_pts = np.where(skeleton == lab)
 
         bkg = data['Background'][lab-1]
         # amp = data['Amplitude'][lab-1]
@@ -111,13 +114,14 @@ for num, fol in enumerate(folders):
         width = data['FWHM'][lab-1] / 2.
         pix_width = width / pix_size
 
-        skel_arr = (skeleton == lab)
+        # skel_arr = (skeleton == lab)
 
-        dist_trans = distance_transform_edt(np.logical_not(skel_arr))
+        # dist_trans = distance_transform_edt(np.logical_not(skel_arr))
 
-        skel_pts = np.where(dist_trans <= pix_width)
+        # skel_pts = np.where(dist_trans <= pix_width)
 
-        points = img[skel_pts] - bkg
+        # points = img[skel_pts] - bkg
+        points = img[skel_pts]
 
         points = points[np.isfinite(points)]
         points = points[points > 0]
@@ -125,8 +129,10 @@ for num, fol in enumerate(folders):
         if points.shape == (0,):
             continue
 
-        m_lin = np.mean(Mlin(points, width)) * np.ones(int(points.shape[0]/10))
-        per_fil_values = np.append(per_fil_values, m_lin)
+        reg_ratios.append(np.nanmean(points)/bkg)
+
+        # m_lin = np.mean(Mlin(points, width)) * np.ones(int(points.shape[0]/10))
+        # per_fil_values = np.append(per_fil_values, m_lin)
 
         points = np.log10(points)
         # per5 = points > np.percentile(points, 25)
@@ -138,37 +144,38 @@ for num, fol in enumerate(folders):
         values = np.append(values, points)
     all_points.append(values)
     mlin_points.append(per_fil_values)
+    ratios[fol] = reg_ratios
 
 # p.tight_layout()
 # p.show()
 
 all_points.reverse()
 
-p.subplot(111)
-p.xlim([-50, 125])
-sn.violinplot(all_points,
-              names=[labels[key] for key in np.sort(labels.keys())[::-1]],
-              color=sn.color_palette("GnBu_d"), vert=False)
-p.xlabel(r" $\log_{10}$ Surface Brightness (MJy/sr)")
-p.tight_layout()
-p.xticks([-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0])
-p.show()
+# p.subplot(111)
+# p.xlim([-50, 125])
+# sn.violinplot(all_points,
+#               names=[labels[key] for key in np.sort(labels.keys())[::-1]],
+#               color=sn.color_palette("GnBu_d"), vert=False)
+# p.xlabel(r" $\log_{10}$ Surface Brightness (MJy/sr)")
+# p.tight_layout()
+# p.xticks([-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0])
+# p.show()
 
 # Mline of filaments
 
-mlin_points.reverse()
+# mlin_points.reverse()
 
-p.subplot(111)
-p.xlim([0, 70])
-# p.xlim([-0.02, 0.02])
-sn.violinplot(mlin_points,
-              names=[labels[key] for key in np.sort(labels.keys())[::-1]],
-              color=sn.color_palette("GnBu_d"), vert=False, inner=None,
-              gridsize=500, bw=0.25)
-p.xlabel(r"M$_{\mathrm{line}}$ (M$_{\odot}/$pc)")
-p.tight_layout()
-p.plot([18.59]*2, [0, 30], 'k--')
-p.show()
+# p.subplot(111)
+# p.xlim([0, 70])
+# # p.xlim([-0.02, 0.02])
+# sn.violinplot(mlin_points,
+#               names=[labels[key] for key in np.sort(labels.keys())[::-1]],
+#               color=sn.color_palette("GnBu_d"), vert=False, inner=None,
+#               gridsize=500, bw=0.25)
+# p.xlabel(r"M$_{\mathrm{line}}$ (M$_{\odot}/$pc)")
+# p.tight_layout()
+# p.plot([18.59]*2, [0, 30], 'k--')
+# p.show()
 
 # SFR density versus filament brightness
 
@@ -226,7 +233,7 @@ symb_col = ["bD", "gD", "rD", "kD", "b^", "g^", "r^",
 #          numpoints=1)
 # p.grid(True)
 # p.xlabel('log$_{10}$ Median of Filament Surface Brightness / (MJy/sr)')
-# p.ylabel(r'$\Sigma$(SFR) (M$_{\odot}$ Myr$^{-1}$ pc$^{-2}$)')
+# p.ylabel(r'$\Sigma_{\text{SFR}}$ (M$_{\odot}$ Myr$^{-1}$ pc$^{-2}$)')
 # p.xlim([0.55, 1.6])
 # p.ylim([-0.1, 4.0])
 
@@ -249,3 +256,8 @@ symb_col = ["bD", "gD", "rD", "kD", "b^", "g^", "r^",
 # p.plot(x_pred, y_pred, 'k--', linewidth=3)
 
 # p.show()
+
+
+# Fil brightness vs. bkg ratios
+# for key in ratios.keys():
+#     print key, np.percentile(ratios[key], [50, 85, 99.5])

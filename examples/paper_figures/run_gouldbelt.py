@@ -34,7 +34,7 @@ def wrapper(filename, distance, beamwidth, offset):
         dist_used = distance
         if r != 1.:
             conv = np.sqrt(r ** 2. - 1) * \
-                (18.5 / np.sqrt(8*np.log(2)) / (np.abs(hdr["CDELT2"]) * 3600.))
+                (beamwidth / np.sqrt(8*np.log(2)) / (np.abs(hdr["CDELT2"]) * 3600.))
             if conv > 1.0:
                 kernel = convolution.Gaussian2DKernel(conv)
                 good_pixels = np.isfinite(img)
