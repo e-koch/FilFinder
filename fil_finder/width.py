@@ -176,7 +176,7 @@ def gauss_model(distance, rad_profile, weights, img_beam):
     deconv = (factor * fit[1]) ** 2. - img_beam ** 2.
     if deconv > 0:
         fit_errors = np.append(
-            fit_errors, (2.35 * fit[1] * fit_errors[1]) / np.sqrt(deconv))
+            fit_errors, (factor * fit[1] * fit_errors[1]) / np.sqrt(deconv))
         fit = np.append(fit, np.sqrt(deconv))
     else:  # Set to zero, can't be deconvolved
         fit = np.append(fit, 0.0)
@@ -419,7 +419,8 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
 
     # Find the width by looking for where the intensity drops to 1/e from the
     # peak
-    target_intensity = (peak_intens - bkg_intens) / np.exp(1) + bkg_intens
+    target_intensity = (peak_intens - bkg_intens) / \
+        (2 * np.sqrt(2 * np.log(2))) + bkg_intens
     width = interp_bins[
         np.where(interp_profile ==
                  find_nearest(interp_profile, target_intensity))][0]
@@ -439,7 +440,7 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
     deconv = (factor * width) ** 2. - img_beam ** 2.
     if deconv > 0:
         fwhm_width = np.sqrt(deconv)
-        fwhm_error = (2. * width * width_error) / fwhm_width
+        fwhm_error = (factor * width * width_error) / fwhm_width
     else:  # Set to zero, can't be deconvolved
         # If you can't devolve it, set it to minimum, which is the beam-size.
         fwhm_width = 0.0
