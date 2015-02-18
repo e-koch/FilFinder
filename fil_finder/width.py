@@ -258,9 +258,104 @@ def lorentzian_model(distance, rad_profile, img_beam):
     return fit, fit_errors, lorentzian, parameters, fail_flag
 
 
+def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
+                   img_beam, bkg_percent, peak_percent):
+    '''
+    Estimate the width and peak brightness of a filament non-parametrically.
+    The intensity at the peak and background is estimated. The profile is then
+    interpolated over in order to find the distance corresponding to these
+    intensities. The width is then estimated by finding the distance where
+    the intensity drops to 1/e.
+
+    Parameters
+    ----------
+    distance : list
+        Binned distances from the skeleton.
+    rad_profile : list
+        Binned intensity values from the image.
+    unbin_dist : list
+        Unbinned distances.
+    unbin_prof : list
+        Unbinned intensity values.
+    img_beam : float
+        FWHM of the beam size.
+    bkg_percent : float
+        Percentile of the data to estimate the background.
+    peak_percent : float
+        Percentile of the data to estimate the peak of the profile.
+
+    Returns
+    -------
+    params : numpy.ndarray
+        Estimated parameter values.
+    param_errors : numpy.ndarray
+        Estimated errors.
+    fail_flag : bool
+        Indicates whether the fit failed.
+    '''
+
+    fail_flag = False
+
+    # Find the intensities at the given percentiles
+    bkg_intens = scoreatpercentile(rad_profile, bkg_percent)
+    peak_intens = scoreatpercentile(rad_profile, peak_percent)
+
+    # Interpolate over the bins in distance
+    interp_bins = np.linspace(0.0, np.max(distance), 10 * len(distance))
+    interp_profile = np.interp(interp_bins, distance, rad_profile)
+
+    # Find the width by looking for where the intensity drops to 1/e from the
+    # peak
+    target_intensity = (peak_intens - bkg_intens) / \
+        (2 * np.sqrt(2 * np.log(2))) + bkg_intens
+    width = interp_bins[
+        np.where(interp_profile ==
+                 find_nearest(interp_profile, target_intensity))][0]
+
+    # Estimate the width error by looking +/-5 percentile around the target
+    # intensity
+    target_percentile = percentileofscore(rad_profile, target_intensity)
+    upper = scoreatpercentile(
+        rad_profile, np.min((100, target_percentile + 5)))
+    lower = scoreatpercentile(rad_profile, np.max((0, target_percentile - 5)))
+
+    width_error = np.max(unbin_dist[(unbin_prof > lower) * (unbin_prof < upper)]) -\
+        np.min(unbin_dist[(unbin_prof > lower) * (unbin_prof < upper)])
+
+    # Deconvolve the width with the beam size.
+    factor = 2 * np.sqrt(2 * np.log(2))  # FWHM factor
+    deconv = (factor * width) ** 2. - img_beam ** 2.
+    if deconv > 0:
+        fwhm_width = np.sqrt(deconv)
+        fwhm_error = (factor * width * width_error) / fwhm_width
+    else:  # Set to zero, can't be deconvolved
+        # If you can't devolve it, set it to minimum, which is the beam-size.
+        fwhm_width = 0.0
+        fwhm_error = 0.0
+
+    # Check where the "background" and "peak" are. If the peak distance is greater,
+    # we are simply looking at a bad radial profile.
+    bkg_dist = np.median(
+        interp_bins[np.where(interp_profile == find_nearest(interp_profile, bkg_intens))])
+    peak_dist = np.median(
+        interp_bins[np.where(interp_profile == find_nearest(interp_profile, peak_intens))])
+    bkg_error = np.std(
+        unbin_prof[unbin_dist >= find_nearest(unbin_dist, bkg_dist)])
+    peak_error = np.std(
+        unbin_prof[unbin_dist <= find_nearest(unbin_dist, peak_dist)])
+    if peak_dist > bkg_dist:
+        fail_flag = True
+
+    params = np.array([peak_intens, width, bkg_intens, fwhm_width])
+    param_errors = np.array([peak_error, width_error, bkg_error, fwhm_error])
+
+    return params, param_errors, fail_flag
+
+
 def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
                    img_scale, bins=None, bintype="linear", weighting="number",
-                   return_unbinned=True, pad_to_distance=0.15):
+                   return_unbinned=True, pad_to_distance=0.15,
+                   auto_cut=True):
     '''
     Fits the radial profiles to all filaments in the image.
 
@@ -363,6 +458,10 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
     bin_centers *= img_scale
     width_distance *= img_scale
 
+    if auto_cut:
+        bin_centers, radial_prof, weights = \
+            _smooth_and_cut(bin_centers, radial_prof, 0.1, weights)
+
     if return_unbinned:
         width_distance = width_distance[np.isfinite(width_value)]
         width_value = width_value[np.isfinite(width_value)]
@@ -371,95 +470,47 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
         return bin_centers, radial_prof, weights
 
 
-def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
-                   img_beam, bkg_percent, peak_percent):
+def _smooth_and_cut(bins, values, kern_size, weights, interp_factor=10):
     '''
-    Estimate the width and peak brightness of a filament non-parametrically.
-    The intensity at the peak and background is estimated. The profile is then
-    interpolated over in order to find the distance corresponding to these
-    intensities. The width is then estimated by finding the distance where
-    the intensity drops to 1/e.
-
-    Parameters
-    ----------
-    distance : list
-        Binned distances from the skeleton.
-    rad_profile : list
-        Binned intensity values from the image.
-    unbin_dist : list
-        Unbinned distances.
-    unbin_prof : list
-        Unbinned intensity values.
-    img_beam : float
-        FWHM of the beam size.
-    bkg_percent : float
-        Percentile of the data to estimate the background.
-    peak_percent : float
-        Percentile of the data to estimate the peak of the profile.
-
-    Returns
-    -------
-    params : numpy.ndarray
-        Estimated parameter values.
-    param_errors : numpy.ndarray
-        Estimated errors.
-    fail_flag : bool
-        Indicates whether the fit failed.
+    Smooth the radial profile and cut if it increases at increasing
+    distance.
     '''
 
-    fail_flag = False
+    from scipy.ndimage import gaussian_filter1d
 
-    # Find the intensities at the given percentiles
-    bkg_intens = scoreatpercentile(rad_profile, bkg_percent)
-    peak_intens = scoreatpercentile(rad_profile, peak_percent)
+    if kern_size < 1:
+        kern_size *= values.size
+        kern_size = round(kern_size)
 
-    # Interpolate over the bins in distance
-    interp_bins = np.linspace(0.0, np.max(distance), 10 * len(distance))
-    interp_profile = np.interp(interp_bins, distance, rad_profile)
+    smooth_val = gaussian_filter1d(values, kern_size)
 
-    # Find the width by looking for where the intensity drops to 1/e from the
-    # peak
-    target_intensity = (peak_intens - bkg_intens) / \
-        (2 * np.sqrt(2 * np.log(2))) + bkg_intens
-    width = interp_bins[
-        np.where(interp_profile ==
-                 find_nearest(interp_profile, target_intensity))][0]
+    smooth_bins = np.linspace(bins.min(), bins.max(), interp_factor*bins.size)
 
-    # Estimate the width error by looking +/-5 percentile around the target
-    # intensity
-    target_percentile = percentileofscore(rad_profile, target_intensity)
-    upper = scoreatpercentile(
-        rad_profile, np.min((100, target_percentile + 5)))
-    lower = scoreatpercentile(rad_profile, np.max((0, target_percentile - 5)))
+    smooth_val = np.interp(smooth_bins, bins, smooth_val)
 
-    width_error = np.max(unbin_dist[(unbin_prof > lower) * (unbin_prof < upper)]) -\
-        np.min(unbin_dist[(unbin_prof > lower) * (unbin_prof < upper)])
+    grad = np.gradient(smooth_val, smooth_bins[1]-smooth_bins[0])
 
-    # Deconvolve the width with the beam size.
-    factor = 2 * np.sqrt(2 * np.log(2))  # FWHM factor
-    deconv = (factor * width) ** 2. - img_beam ** 2.
-    if deconv > 0:
-        fwhm_width = np.sqrt(deconv)
-        fwhm_error = (factor * width * width_error) / fwhm_width
-    else:  # Set to zero, can't be deconvolved
-        # If you can't devolve it, set it to minimum, which is the beam-size.
-        fwhm_width = 0.0
-        fwhm_error = 0.0
+    cut = crossings_nonzero_all(grad)
 
-    # Check where the "background" and "peak" are. If the peak distance is greater,
-    # we are simply looking at a bad radial profile.
-    bkg_dist = np.median(
-        interp_bins[np.where(interp_profile == find_nearest(interp_profile, bkg_intens))])
-    peak_dist = np.median(
-        interp_bins[np.where(interp_profile == find_nearest(interp_profile, peak_intens))])
-    bkg_error = np.std(
-        unbin_prof[unbin_dist >= find_nearest(unbin_dist, bkg_dist)])
-    peak_error = np.std(
-        unbin_prof[unbin_dist <= find_nearest(unbin_dist, peak_dist)])
-    if peak_dist > bkg_dist:
-        fail_flag = True
+    if cut.size == 0:
+        return bins, values, weights
 
-    params = np.array([peak_intens, width, bkg_intens, fwhm_width])
-    param_errors = np.array([peak_error, width_error, bkg_error, fwhm_error])
+    else:
+        cut_posn = _nearest_idx(bins, smooth_bins[cut[0]])
 
-    return params, param_errors, fail_flag
+        cut_bins = bins[:cut_posn]
+        cut_vals = values[:cut_posn]
+        cut_weights = weights[:cut_posn]
+
+        return cut_bins, cut_vals, cut_weights
+
+
+def _nearest_idx(array, value):
+    return (np.abs(array-value)).argmin()
+
+
+def crossings_nonzero_all(data):
+    assert isinstance(data, np.ndarray)
+    pos = data > 0
+    npos = ~pos
+    return ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
