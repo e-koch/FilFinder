@@ -354,8 +354,8 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
 
 def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
                    img_scale, bins=None, bintype="linear", weighting="number",
-                   return_unbinned=True, pad_to_distance=0.15,
-                   auto_cut=True):
+                   return_unbinned=True, auto_cut=True,
+                   pad_to_distance=0.15, max_distance=0.3):
     '''
     Fits the radial profiles to all filaments in the image.
 
@@ -382,9 +382,13 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
         variance of the values in each bin. Default is "number".
     return_unbinned : bool
         If True, returns the unbinned data as well as the binned.
-    pad_to_distance : float
-        Pad the profile out to the specified distance (physical units).
+    auto_cut : bool, optional
+        Enables the auto cutting routines.
+    pad_to_distance : float, optional
+        Pad the profile out to the specified distance (in pc).
         If set to 0.0, the profile will not be padded.
+    max_distance : float, optional
+        Cuts the profile at the specified physical distance (in pc).
 
     Returns
     -------
@@ -423,6 +427,11 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
 
     width_value = np.asarray(width_value)
     width_distance = np.asarray(width_distance)
+
+    if max_distance is not None:
+        width_value = width_value[width_distance <= max_distance/img_scale]
+        width_distance = \
+            width_distance[width_distance <= max_distance/img_scale]
 
     # Binning
     if bins is None:
