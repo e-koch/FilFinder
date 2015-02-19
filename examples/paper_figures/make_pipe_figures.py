@@ -18,7 +18,7 @@ from astropy import convolution
 
 img, hdr = fits.getdata('pipeCenterB59-250.fits', header=True)
 
-filfind = fil_finder_2D(img, hdr, 18.2, 30, 15, 30, glob_thresh=20,
+filfind = fil_finder_2D(img, hdr, 18.5, 30, 15, 30, glob_thresh=20,
                         distance=145.)
 filfind.create_mask(size_thresh=400)
 filfind.medskel()
@@ -39,8 +39,8 @@ conv_img = convolution.convolve(img, kernel, boundary='fill',
 # Avoid edge effects from smoothing
 conv_img = conv_img * nan_pix
 
-filfind2 = fil_finder_2D(conv_img, hdr, 18.2, 30, 15, 30, glob_thresh=20,
-                         distance=460.)
+filfind2 = fil_finder_2D(conv_img, hdr, 18.5, 30, 15, 30, glob_thresh=20,
+                         distance=145.)
 filfind2.create_mask(size_thresh=400)
 filfind2.medskel()
 filfind2.analyze_skeletons()
@@ -70,35 +70,35 @@ fig.set_figwidth(4)
 # p.subplot(411)
 
 norm_fwhm = filfind.width_fits["Parameters"][:, -1]
-deg_fwhm = filfind2.width_fits["Parameters"][:, -1] / r
+deg_fwhm = filfind2.width_fits["Parameters"][:, -1]
 
-ax1.hist(deg_fwhm[np.isfinite(deg_fwhm)], bins=7,
+ax2.hist(deg_fwhm[np.isfinite(deg_fwhm)], bins=7,
        color="b", alpha=0.5, label="Degraded")
-ax1.hist(norm_fwhm[np.isfinite(norm_fwhm)], bins=7,
+ax2.hist(norm_fwhm[np.isfinite(norm_fwhm)], bins=7,
        color="g", alpha=0.5, label="Normal")
-ax1.legend()
-ax1.set_xlabel("Widths (pc)")
+ax2.set_xlabel("Width (pc)")
 # # Length
 
 # p.subplot(412)
 
 norm_length = filfind.lengths
-deg_length = filfind2.lengths / r
+deg_length = filfind2.lengths
 
-ax2.hist(deg_length[np.isfinite(deg_length)], bins=7,
+ax1.hist(deg_length[np.isfinite(deg_fwhm)], bins=7,
        color="b", alpha=0.5, label="Degraded")
-ax2.hist(norm_length[np.isfinite(norm_length)], bins=7,
+ax1.hist(norm_length[np.isfinite(norm_fwhm)], bins=7,
        color="g", alpha=0.5, label="Normal")
-ax2.set_xlabel("Lengths (pc)")
+ax1.set_xlabel("Lengths (pc)")
+ax1.legend()
 
 # p.subplot(413)
 
 norm_orient = np.asarray(filfind.rht_curvature['Median'])
 deg_orient = np.asarray(filfind2.rht_curvature['Median'])
 
-ax3.hist(deg_orient[np.isfinite(deg_orient)], bins=7,
+ax3.hist(deg_orient[np.isfinite(deg_fwhm)], bins=7,
        color="b", alpha=0.5, label="Degraded")
-ax3.hist(norm_orient[np.isfinite(norm_orient)], bins=7,
+ax3.hist(norm_orient[np.isfinite(norm_fwhm)], bins=7,
        color="g", alpha=0.5, label="Normal")
 ax3.set_xlim([-np.pi/2, np.pi/2])
 
@@ -109,11 +109,11 @@ ax3.set_xlabel("Orientation")
 norm_curv = np.asarray(filfind.rht_curvature['IQR'])
 deg_curv = np.asarray(filfind2.rht_curvature['IQR'])
 
-ax4.hist(deg_curv[np.isfinite(deg_curv)], bins=7,
+ax4.hist(deg_curv[np.isfinite(deg_fwhm)], bins=7,
        color="b", alpha=0.5, label="Degraded")
-ax4.hist(norm_curv[np.isfinite(norm_curv)], bins=7,
+ax4.hist(norm_curv[np.isfinite(norm_fwhm)], bins=7,
        color="g", alpha=0.5, label="Normal")
-ax4.set_xlim([0.3, 1.7])
+ax4.set_xlim([0.4, 1.3])
 ax4.set_xlabel("Curvature")
 
 p.tight_layout(h_pad=0.1)
