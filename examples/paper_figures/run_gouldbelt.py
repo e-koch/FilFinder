@@ -31,11 +31,10 @@ def wrapper(filename, distance, beamwidth, offset):
     convolve_to_common = True
     if convolve_to_common:
         r = 460. / float(distance)
-        dist_used = distance
         if r != 1.:
             conv = np.sqrt(r ** 2. - 1) * \
                 (beamwidth / np.sqrt(8*np.log(2)) / (np.abs(hdr["CDELT2"]) * 3600.))
-            if conv > 1.0:
+            if conv > 1.5:
                 kernel = convolution.Gaussian2DKernel(conv)
                 good_pixels = np.isfinite(img)
                 nan_pix = np.ones(img.shape)
@@ -45,11 +44,10 @@ def wrapper(filename, distance, beamwidth, offset):
                 # Avoid edge effects from smoothing
                 img = img * nan_pix
 
-                # Smoothed to 460 pc resolution, so use this as the distance
-                dist_used = 460.
+    print filename, distance
 
     filfind = fil_finder_2D(img, hdr, beamwidth, 30, 15, 30,
-                            distance=dist_used, glob_thresh=20)
+                            distance=distance, glob_thresh=20)
 
     save_name = filename[:-5]
 
