@@ -343,7 +343,7 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
         unbin_prof[unbin_dist >= find_nearest(unbin_dist, bkg_dist)])
     peak_error = np.std(
         unbin_prof[unbin_dist <= find_nearest(unbin_dist, peak_dist)])
-    if peak_dist > bkg_dist:
+    if peak_dist > bkg_dist or fwhm_error > fwhm_width:
         fail_flag = True
 
     params = np.array([peak_intens, width, bkg_intens, fwhm_width])
@@ -470,13 +470,34 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
         return bin_centers, radial_prof, weights
 
 
-def _smooth_and_cut(bins, values, kern_size, weights, interp_factor=10):
+def _smooth_and_cut(bins, values, kern_size, weights, interp_factor=10,
+                    pad_cut=5):
     '''
     Smooth the radial profile and cut if it increases at increasing
-    distance.
+    distance. Also checks for profiles with a plateau between two decreasing
+    profiles and cut out the last one (as it is not the local profile).
+
+    Parameters
+    ----------
+    bins : numpy.ndarray
+        Bins for the profile.
+    values : numpy.ndarray
+        Values in each bin.
+    kern_size : int or float
+        If >1, is the number of bins to use in the smoothing. If <1, takes
+        fraction of the data for smoothing.
+    weights : numpy.ndarray
+        Weights for each bin. These are only clipped to the same position as
+        the rest of the profile. Otherwise, no alteration is made.
+    interp_factor : int, optional
+        The factor to increase the number of bins by for interpolation.
+    pad_cut : int, optional
+        Add additional bins after the cut is found. The smoothing often cuts
+        out some bins which follow the desired profile.
     '''
 
     from scipy.ndimage import gaussian_filter1d
+    from scipy.signal import argrelmax, argrelmin
 
     if kern_size < 1:
         kern_size *= values.size
@@ -490,13 +511,75 @@ def _smooth_and_cut(bins, values, kern_size, weights, interp_factor=10):
 
     grad = np.gradient(smooth_val, smooth_bins[1]-smooth_bins[0])
 
+    grad = gaussian_filter1d(grad, kern_size)
+
     cut = crossings_nonzero_all(grad)
 
+    # Check for evidence of second drop-off
+    new_cut = None
+
+    # Look for local max and mins (must hold True for range of ~0.05 pc)
+    loc_mins = argrelmin(grad,
+                         order=int(0.05/(smooth_bins[1] - smooth_bins[0])))[0]
+    loc_maxs = argrelmax(grad,
+                         order=int(0.05/(smooth_bins[1] - smooth_bins[0])))[0]
+
+    # Discard below 0.1 pc.
+    loc_mins = loc_mins[smooth_bins[loc_mins] > 0.1]
+    loc_maxs = loc_maxs
+
+    if loc_mins.size > 0 and loc_maxs.size > 0:
+        i = 0
+        while True:
+            loc_min = loc_mins[i]
+
+            difference = loc_min - loc_maxs
+            if (difference > 0).any():
+                new_cut = loc_maxs[np.argmin(difference[difference > 0])]
+                if smooth_bins[new_cut] > 0.1:
+                    break
+
+            i += 1
+
+            if i == loc_mins.size:
+                break
+
+    if new_cut == 0:
+        new_cut = None
+
     if cut.size == 0:
-        return bins, values, weights
+        if new_cut is None:
+            return bins, values, weights
+        else:
+            cut_posn = _nearest_idx(bins, smooth_bins[new_cut])
+
+            end_diff = bins.size - cut_posn
+            if end_diff < pad_cut:
+                cut_posn += end_diff
+            else:
+                cut_posn += pad_cut
+
+            cut_bins = bins[:cut_posn]
+            cut_vals = values[:cut_posn]
+            cut_weights = weights[:cut_posn]
+
+            return cut_bins, cut_vals, cut_weights
 
     else:
-        cut_posn = _nearest_idx(bins, smooth_bins[cut[0]])
+        if new_cut is None:
+            cut_used = cut[0]
+        elif new_cut >= cut[0]:
+            cut_used = cut[0]
+        else:
+            cut_used = new_cut
+
+        cut_posn = _nearest_idx(bins, smooth_bins[cut_used])
+
+        end_diff = bins.size - cut_posn
+        if end_diff < pad_cut:
+            cut_posn += end_diff
+        else:
+            cut_posn += pad_cut
 
         cut_bins = bins[:cut_posn]
         cut_vals = values[:cut_posn]
