@@ -16,6 +16,7 @@ from matplotlib import rc
 # rc("font", **{"family": "sans-serif", "size": 16})
 # rc("text", usetex=True)
 from scipy.stats import scoreatpercentile
+import itertools
 
 widths = {}
 lengths = {}
@@ -24,6 +25,7 @@ amplitude = {}
 orientation = {}
 background = {}
 median_bright = {}
+branches = {}
 
 # Setup to work on noise. If using from repo, use ["."]
 # folders = ["."]
@@ -79,6 +81,8 @@ for folder in folders:
             median_bright[name] = data["Median Brightness"][
                 np.isfinite(data["FWHM"])]
 
+            branches[name] = data['Branch Length']
+
 # Make scatter plots
 scatter = sys.argv[1]
 if scatter == "T":
@@ -103,6 +107,14 @@ if covering_frac == "T":
     covering_frac = True
 else:
     covering_frac = False
+
+# Examine branch lengths
+bran_len = sys.argv[5]
+if bran_len == "T":
+    bran_len = True
+else:
+    bran_len = False
+
 
 # Scatter plots
 if scatter:
@@ -339,3 +351,29 @@ if covering_frac:
     print(df)
     df.to_latex("covering_fracs.tex")
     df.to_csv("covering_fracs.csv")
+
+if bran_len:
+    new_branches = {}
+
+    for key in branches.keys():
+        per_branch = []
+        for lis in branches[key]:
+            # Split out parts
+            str_list = lis[1:-1].split(',')
+            float_list = []
+            for string in str_list:
+                float_list.append(float(string))
+            per_branch.append(float_list)
+        new_branches[key] = per_branch
+
+    for i, key in enumerate(new_branches.keys()):
+        all_branches = list(itertools.chain(*new_branches[key]))
+        num_bin = np.sqrt(len(all_branches))
+
+        p.subplot(2, 7, i+1)
+        p.title(labels[key])
+        p.hist(all_branches, bins=num_bin)
+
+        print labels[key], np.percentile(all_branches, [15, 50, 85])
+
+    p.show()
