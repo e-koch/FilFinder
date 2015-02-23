@@ -233,7 +233,7 @@ a better estimate for the image as a whole.
     fils.exec_rht(verbose=True)
 
 
-.. image:: images/fil_finder_26_13.png
+.. image:: images/fil_finder_26_6.png
 
 Widths
 ------
@@ -274,9 +274,9 @@ appear to be overestimated.
 .. parsed-literal::
 
     # Order: [Amplitude, Half-width, Background, Deconvolved FWHM]
-    Fit Parameters: [ 0.19037385  0.09057394  0.02852461  0.20715061]
-    Fit Errors: [ 0.04603811  0.09476529  0.07063716  0.0828698 ]
-    Fit Type: nonparam
+    Fit Parameters: [ 1.16529367  0.0204884   0.2051582   0.03459079]
+    Fit Errors: [ 0.00441983  0.00040846  0.00871116  0.00056972]
+    Fit Type: gaussian
 
 
 Further Methods and Properties
