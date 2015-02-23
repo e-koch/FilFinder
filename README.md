@@ -1,16 +1,16 @@
-fil_finder
-==========
+FilFinder
+=========
 
 [![Documentation Status](https://readthedocs.org/projects/fil-finder/badge/?version=latest)](https://readthedocs.org/projects/fil-finder/?badge=latest)
 
-See tutorial here! [fil_finder Tutorial](http://nbviewer.ipython.org/github/e-koch/fil_finder/blob/master/examples/fil_finder%20Tutorial.ipynb)
+See tutorial here! [fil_finder Tutorial](http://nbviewer.ipython.org/github/e-koch/FilFinder/blob/master/examples/fil_finder%20Tutorial.ipynb)
 
 Brief Description
 -----------------
 
-fil_finder is a module for extraction and analysis of filamentary structure in molecular clouds. In particular, the algorithm is capable of uniformly extracting structure over a large dynamical range in intensity (see images below).
+FilFinder is a module for extraction and analysis of filamentary structure in molecular clouds. In particular, the algorithm is capable of uniformly extracting structure over a large dynamical range in intensity (see images below).
 
-fil_finder segments filamentary structure in an integrated intensity image using adaptive thresholding.
+FilFinder segments filamentary structure in an integrated intensity image using adaptive thresholding.
 Detected regions are reduced to a skeleton using a Medial Axis Transform.
 Pixels within each skeleton are classified by the number of connecting pixels.
 A pixel can be a body point, end point, or intersection point.

@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-fil_finder
-==========
+FilFinder
+=========
 
 fil_finder is a module for extraction and analysis of filamentary structure in molecular clouds.
 

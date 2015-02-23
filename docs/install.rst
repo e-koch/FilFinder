@@ -13,3 +13,7 @@ fil_finder has several dependent packages:
 To install the package, run:
 
 >>> python setup.py install
+
+The package can also be installed via pip:
+
+>>> pip install FilFinder

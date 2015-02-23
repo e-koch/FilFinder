@@ -1,6 +1,6 @@
 
-fil\_finder Tutorial
-====================
+FilFinder Tutorial
+===================
 
 **For brevity, only a few example output images are shown.
 The entire set can be found in the Ipython notebook in the examples folder.**
