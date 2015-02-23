@@ -16,7 +16,6 @@ Contents:
    :maxdepth: 2
 
    install.rst
-   algorithm.rst
    tutorial.rst
    fil_finder_2d.rst
    length.rst
