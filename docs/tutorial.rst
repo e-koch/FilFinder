@@ -221,7 +221,7 @@ the orientation of the filaments (median of transform) and their
 curvature (IQR of transform).
 
 The polar plots shown plot :math:`2\theta`. The transform itself is
-limited to :math:`(0, \pi)`. The first plot shows the transform
+limited to :math:`(-\pi/2, \pi/2)`. The first plot shows the transform
 distribution for that filament. Beside it is the CDF of that
 distribution. By default, the transform is applied on the longest path
 of the skeleton. It can also be applied on a per-branch basis. This
@@ -233,7 +233,7 @@ a better estimate for the image as a whole.
     fils.exec_rht(verbose=True)
 
 
-.. image:: images/fil_finder_26_6.png
+.. image:: images/fil_finder_26_13.png
 
 Widths
 ------
@@ -268,7 +268,7 @@ appear to be overestimated.
     fils.find_widths(verbose=True)
 
 
-.. image:: images/fil_finder_28_15.png
+.. image:: images/fil_finder_28_13.png
 
 
 .. parsed-literal::
@@ -315,10 +315,10 @@ image. This fraction is computed by the function
 .. code:: python
 
     fils.find_covering_fraction()
-    print fils.covering_fraction  # 0.529317467425
+    print fils.covering_fraction  # 0.593953590473
 
 
-Approximately 52% of the total intensity in the image is coming from the
+Approximately 60% of the total intensity in the image is coming from the
 filamentary network. This seems reasonable, as the algorithm inherently
 ignores compact features, whose intensities generally greatly exceed
 that of the filaments.
