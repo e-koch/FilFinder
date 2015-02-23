@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
     # check_dependencies()
 
-    setup(name='fil_finder',
+    setup(name='FilFinder',
           version='1.0',
           description='Python package for analysis of filamentary structure in molecular clouds.',
           author='Eric Koch and Erik Rosolowsky',
