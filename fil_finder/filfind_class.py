@@ -70,11 +70,8 @@ class fil_finder_2D(object):
     size_thresh : int, optional
         This sets the lower threshold on the size of objects found in the
         adaptive thresholding. If None, the value is set at
-        ~0.1*pi*(0.5 pc)*(0.75*0.1 pc) which is 0.1* area of ellipse with
-        a length 0.5 pc and 0.75(1/10) pc width, which represent the
-        approximate smallest size of a filament. Multiplying by 0.1 is meant
-        to take into account an extremely curvy filament, likely more than is
-        physically realizable. Any region smaller than this threshold may be
+        :math:`5\pi (0.1 \text(pc))^2` which is the area of the minimum dimensions
+        expected for a filament. Any region smaller than this threshold may be
         safely labeled as an artifact of the thresholding.
     glob_thresh : float, optional
         This is the percentile to cut off searching for filamentary structure.
