@@ -594,14 +594,12 @@ class fil_finder_2D(object):
         Implements the Rolling Hough Transform (Clark et al., 2013).
         The orientation of each filament is denoted by the mean value of the
         RHT, which from directional statistics can be defined as:
-        .. math::
-            \langle\theta \rangle = \frac{1}{2} \tan^{-1}\left(\frac{\Sigma_i w_i\sin2\theta_i}{\Sigma_i w_i\cos2\theta_i}\right)
+        :math:`\langle\theta \rangle = \frac{1}{2} \tan^{-1}\left(\frac{\Sigma_i w_i\sin2\theta_i}{\Sigma_i w_i\cos2\theta_i}\right)`
         where :math:`w_i` is the normalized value of the RHT at
         :math:`\theta_i$`. This definition assumes that :math:`\Sigma_iw_i=1`.
         :math:`\theta` is defined on :math:`\left[-\pi/2, \pi/2\right)`.
         "Curvature" is represented by the IQR confidence interval about the mean,
-        .. math::
-            \langle\theta \rangle \pm \sin^{-1} \left( u_{\alpha} \sqrt{ \frac{1-\alpha}{2R^2} } \right)
+        :math:\langle\theta \rangle \pm \sin^{-1} \left( u_{\alpha} \sqrt{ \frac{1-\alpha}{2R^2} } \right)`
         where :math:`u_{\alpha}` is the z-score of the two-tail probability,
         :math:`\alpha=\Sigma_i\cos{\left[2w_i\left(\theta_i-\langle\theta\rangle\right)\right]}`
         is the estimated weighted second trigonometric moment and
