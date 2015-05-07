@@ -29,6 +29,7 @@ def wrapper(filename, distance, beamwidth, offset):
 
     # Convolve to the distance of IC-5146 (460 pc)
     convolve_to_common = True
+    regrid_to_common = True
     if convolve_to_common:
         r = 460. / float(distance)
         if r != 1.:
@@ -44,9 +45,21 @@ def wrapper(filename, distance, beamwidth, offset):
                 # Avoid edge effects from smoothing
                 img = img * nan_pix
 
+                beamwidth *= conv
+
+                # if not regrid_to_common:
+                #     continue
+
+                # img[np.isnan(img)] = 0.0
+                # regrid_conv_img = zoom(img, 1/r)
+
+                # regrid_conv_img = zoom(regrid_conv_img, r)
+                # img = regrid_conv_img[:-1, :-1] * nan_pix
+
+
     print filename, distance
 
-    filfind = fil_finder_2D(img, hdr, beamwidth, 30, 15, 30,
+    filfind = fil_finder_2D(img, hdr, beamwidth,
                             distance=distance, glob_thresh=20)
 
     save_name = filename[:-5]
@@ -70,15 +83,15 @@ def wrapper(filename, distance, beamwidth, offset):
     filfind.exec_rht(branches=False)
     filfind.find_widths()
     filfind.save_table(save_name=save_name, table_type="fits")
-    filfind.save_table(save_name=save_name, table_type="csv")
+    # filfind.save_table(save_name=save_name, table_type="csv")
     filfind.save_fits(save_name=save_name, stamps=False)
 
     # filfind.run(verbose=False, save_name=filename[:-5], save_plots=False)
     # Move the table
-    try:
-        move(filename[:-5] + "_table.csv", filename[:-5])
-    except:
-        pass
+    # try:
+    #     move(filename[:-5] + "_table.csv", filename[:-5])
+    # except:
+    #     pass
     try:
         move(filename[:-5] + "_table.fits", filename[:-5])
     except:
@@ -137,20 +150,7 @@ if __name__ == "__main__":
 
     if not MULTICORE:
         for i, filename in enumerate(fits_files):
-            print "Running " + filename + " at " + str(datetime.now())
-            # hdu = fits.open(filename)
-            # img = hdu[-1].data
-            # hdr = hdu[-1].header
-            img, hdr = fits.getdata("../"+filename, header=True)
-            if not os.path.exists(filename[:-5]):
-                os.makedirs(filename[:-5])
-            os.chdir(filename[:-5])
-            filfind = fil_finder_2D(
-                img, hdr, beamwidths[i], 30, 15, 30, distance=distances[i], glob_thresh=20)
-            filfind.run(
-                verbose=False, save_name=filename[:-5], save_plots=False)
-            os.chdir("..")
-            del img, hdr, filfind
+            wrapper(filename, distances[i], beamwidths[i], offsets[i])
 
     else:
         pool = Pool(processes=NCORES)
