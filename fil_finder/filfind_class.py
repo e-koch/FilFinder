@@ -530,7 +530,8 @@ class fil_finder_2D(object):
 
         # Set the skeleton length threshold to some factor of the beam width
         if self.skel_thresh is None:
-            self.skel_thresh = self.beamwidth * nbeam_lengths
+            self.skel_thresh = \
+                round( self.beamwidth * nbeam_lengths / self.imgscale)
         elif skel_thresh is not None:
             self.skel_thresh = skel_thresh
 
