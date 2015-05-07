@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as p
 from astropy.io import fits as fits
 from astropy.table import Table
+from scipy.ndimage import zoom
 
 
 # pipe_norm = Table.read("pipeCenterB59-250/pipeCenterB59-250_table.csv")
@@ -16,11 +17,13 @@ from astropy.table import Table
 from fil_finder import fil_finder_2D
 from astropy import convolution
 
-img, hdr = fits.getdata('pipeCenterB59-250.fits', header=True)
+img, hdr = fits.getdata('pipeCenterB59-350.fits', header=True)
 
-filfind = fil_finder_2D(img, hdr, 18.5, 30, 15, 30, glob_thresh=20,
+img = img + 31.697
+
+filfind = fil_finder_2D(img, hdr, 24.9, 30, 15, 30, glob_thresh=20,
                         distance=145.)
-filfind.create_mask(size_thresh=400)
+filfind.create_mask()#size_thresh=400)
 filfind.medskel()
 filfind.analyze_skeletons()
 filfind.exec_rht()
@@ -28,7 +31,7 @@ filfind.find_widths()
 
 r = 460. / 145.
 conv = np.sqrt(r ** 2. - 1) * \
-    (18.5 / np.sqrt(8*np.log(2)) / (np.abs(hdr["CDELT2"]) * 3600.))
+    (24.9 / np.sqrt(8*np.log(2)) / (np.abs(hdr["CDELT2"]) * 3600.))
 
 kernel = convolution.Gaussian2DKernel(conv)
 good_pixels = np.isfinite(img)
@@ -36,12 +39,26 @@ nan_pix = np.ones(img.shape)
 nan_pix[good_pixels == 0] = np.NaN
 conv_img = convolution.convolve(img, kernel, boundary='fill',
                                 fill_value=np.NaN)
+
 # Avoid edge effects from smoothing
 conv_img = conv_img * nan_pix
 
-filfind2 = fil_finder_2D(conv_img, hdr, 18.5, 30, 15, 30, glob_thresh=20,
-                         distance=145.)
-filfind2.create_mask(size_thresh=400)
+# Regrid to same physical scale
+
+good_pixels = np.isfinite(img)
+good_pixels = zoom(good_pixels, 1/r, order=0)
+
+conv_img[np.isnan(conv_img)] = 0.0
+conv_img = zoom(conv_img, 1/r)
+
+nan_pix = np.ones(conv_img.shape)
+nan_pix[good_pixels == 0] = np.NaN
+
+regrid_conv_img = conv_img * nan_pix
+
+filfind2 = fil_finder_2D(regrid_conv_img, hdr, 24.9, 10, 5, 10, glob_thresh=20,
+                         distance=460.)
+filfind2.create_mask()#size_thresh=190)
 filfind2.medskel()
 filfind2.analyze_skeletons()
 filfind2.exec_rht()
