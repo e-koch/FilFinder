@@ -493,7 +493,7 @@ class fil_finder_2D(object):
             Relative intensity threshold for pruning. Sets the importance
             a branch must have in intensity relative to all other branches
             in the skeleton. Must be between (0.0, 1.0].
-        nbeam_lengths : int, optional
+        nbeam_lengths : float or int, optional
             Sets the minimum skeleton length based on the number of beam
             sizes specified.
         skel_thresh : float, optional
