@@ -449,7 +449,8 @@ class fil_finder_2D(object):
 
         return self
 
-    def analyze_skeletons(self, relintens_thresh=0.2, verbose=False):
+    def analyze_skeletons(self, relintens_thresh=0.2, nbeam_lengths=3,
+                          skel_thresh=None, verbose=False):
         '''
 
         This function wraps most of the skeleton analysis. Several steps are
@@ -492,6 +493,12 @@ class fil_finder_2D(object):
             Relative intensity threshold for pruning. Sets the importance
             a branch must have in intensity relative to all other branches
             in the skeleton. Must be between (0.0, 1.0].
+        nbeam_lengths : int, optional
+            Sets the minimum skeleton length based on the number of beam
+            sizes specified.
+        skel_thresh : float, optional
+            Manually set the minimum skeleton threshold. Overrides all
+            previous settings.
 
         Returns
         -------
@@ -520,6 +527,12 @@ class fil_finder_2D(object):
         if relintens_thresh > 1.0 or relintens_thresh <= 0.0:
             raise ValueError(
                 "relintens_thresh must be set between (0.0, 1.0].")
+
+        # Set the skeleton length threshold to some factor of the beam width
+        if self.skel_thresh is None:
+            self.skel_thresh = self.beamwidth * nbeam_lengths
+        elif skel_thresh is not None:
+            self.skel_thresh = skel_thresh
 
         isolated_filaments, num, offsets = \
             isolateregions(self.skeleton, size_threshold=self.skel_thresh,
