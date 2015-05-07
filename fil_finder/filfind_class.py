@@ -116,10 +116,11 @@ class fil_finder_2D(object):
 
     """
 
-    def __init__(self, image, hdr, beamwidth, skel_thresh, branch_thresh,
-                 pad_size, flatten_thresh=None, smooth_size=None,
-                 size_thresh=None, glob_thresh=None, adapt_thresh=None,
-                 distance=None, region_slice=None, mask=None, freq=None):
+    def __init__(self, image, hdr, beamwidth, skel_thresh=None,
+                 branch_thresh=None, pad_size=10, flatten_thresh=None,
+                 smooth_size=None, size_thresh=None, glob_thresh=None,
+                 adapt_thresh=None, distance=None, region_slice=None,
+                 mask=None, freq=None):
 
         img_dim = len(image.shape)
         if img_dim < 2 or img_dim > 2:
@@ -228,7 +229,6 @@ class fil_finder_2D(object):
             Enables plotting.
         test_mode : bool, optional
             Plot each masking step.
-
         zero_border : bool, optional
             Replaces the NaN border with zeros for the adaptive thresholding.
             This is useful when emission continues to the edge of the image.
