@@ -450,7 +450,8 @@ class fil_finder_2D(object):
         return self
 
     def analyze_skeletons(self, relintens_thresh=0.2, nbeam_lengths=3,
-                          skel_thresh=None, verbose=False):
+                          skel_thresh=None, branch_thresh=None,
+                          verbose=False):
         '''
 
         This function wraps most of the skeleton analysis. Several steps are
@@ -499,6 +500,9 @@ class fil_finder_2D(object):
         skel_thresh : float, optional
             Manually set the minimum skeleton threshold. Overrides all
             previous settings.
+        branch_thresh : float, optional
+            Manually set the minimum branch length threshold. Overrides all
+            previous settings.
 
         Returns
         -------
@@ -534,6 +538,13 @@ class fil_finder_2D(object):
                 round( self.beamwidth * nbeam_lengths / self.imgscale)
         elif skel_thresh is not None:
             self.skel_thresh = skel_thresh
+
+        # Set the minimum branch length to be the beam size.
+        if self.branch_thresh is None:
+            self.branch_thresh = \
+                round( self.beamwidth / self.imgscale)
+        elif branch_thresh is not None:
+            self.branch_thresh = branch_thresh
 
         isolated_filaments, num, offsets = \
             isolateregions(self.skeleton, size_threshold=self.skel_thresh,
