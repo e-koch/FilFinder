@@ -63,14 +63,16 @@ offsets = {"pipeCenterB59-350": 31.697,
            "chamaeleonI-350": -879.063}
 
 for folder in folders:
-    csv = [f for f in os.listdir(folder) if f[-3:] == "csv" and not "rht" in f
-           and not "deg" in f]
+    # csv = [f for f in os.listdir(folder) if f[-3:] == "csv" and not "rht" in f
+    #        and not "deg" in f]
+    csv = [f for f in os.listdir(folder) if f[-4:] == "fits" and 'table' in f]
+
     if csv == []:
         print "No csv file in %s" % (folder)
     else:
         for fil in csv:
             data = Table.read(folder + "/" + fil)
-            name = fil[:-10]
+            name = fil[:-11]
 
             widths[name] = data["FWHM"][np.isfinite(data["FWHM"])]
             amplitude[name] = data["Amplitude"][np.isfinite(data["Amplitude"])]
@@ -81,7 +83,7 @@ for folder in folders:
             median_bright[name] = data["Median Brightness"][
                 np.isfinite(data["FWHM"])]
 
-            branches[name] = data['Branch Length']
+            # branches[name] = data['Branch Length']
 
 # Make scatter plots
 scatter = sys.argv[1]
@@ -214,7 +216,7 @@ if triangle_plot:
     figure = triangle.corner(data.T, labels=["log$_{10}$(W/ pc)",
                                              "log$_{10}$($I$/ MJy/sr)",
                                              "log$_{10}$(L/ pc)", r"$\delta$$\theta$", "$\theta$"],
-                             quantiles=[0.15, 0.50, 0.85, 0.995], bins=9,
+                             quantiles=[0.50, 0.85, 0.995], bins=9,
                              show_titles=False, title_args={"fontsize": 18})
     # figure.savefig('hgbs_scatter_hists.pdf', format='pdf', dpi=1000)
     p.show()

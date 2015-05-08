@@ -116,10 +116,11 @@ class fil_finder_2D(object):
 
     """
 
-    def __init__(self, image, hdr, beamwidth, skel_thresh, branch_thresh,
-                 pad_size, flatten_thresh=None, smooth_size=None,
-                 size_thresh=None, glob_thresh=None, adapt_thresh=None,
-                 distance=None, region_slice=None, mask=None, freq=None):
+    def __init__(self, image, hdr, beamwidth, skel_thresh=None,
+                 branch_thresh=None, pad_size=10, flatten_thresh=None,
+                 smooth_size=None, size_thresh=None, glob_thresh=None,
+                 adapt_thresh=None, distance=None, region_slice=None,
+                 mask=None, freq=None):
 
         img_dim = len(image.shape)
         if img_dim < 2 or img_dim > 2:
@@ -228,7 +229,6 @@ class fil_finder_2D(object):
             Enables plotting.
         test_mode : bool, optional
             Plot each masking step.
-
         zero_border : bool, optional
             Replaces the NaN border with zeros for the adaptive thresholding.
             This is useful when emission continues to the edge of the image.
@@ -449,7 +449,9 @@ class fil_finder_2D(object):
 
         return self
 
-    def analyze_skeletons(self, relintens_thresh=0.2, verbose=False):
+    def analyze_skeletons(self, relintens_thresh=0.2, nbeam_lengths=3,
+                          skel_thresh=None, branch_thresh=None,
+                          verbose=False):
         '''
 
         This function wraps most of the skeleton analysis. Several steps are
@@ -492,6 +494,15 @@ class fil_finder_2D(object):
             Relative intensity threshold for pruning. Sets the importance
             a branch must have in intensity relative to all other branches
             in the skeleton. Must be between (0.0, 1.0].
+        nbeam_lengths : float or int, optional
+            Sets the minimum skeleton length based on the number of beam
+            sizes specified.
+        skel_thresh : float, optional
+            Manually set the minimum skeleton threshold. Overrides all
+            previous settings.
+        branch_thresh : float, optional
+            Manually set the minimum branch length threshold. Overrides all
+            previous settings.
 
         Returns
         -------
@@ -520,6 +531,20 @@ class fil_finder_2D(object):
         if relintens_thresh > 1.0 or relintens_thresh <= 0.0:
             raise ValueError(
                 "relintens_thresh must be set between (0.0, 1.0].")
+
+        # Set the skeleton length threshold to some factor of the beam width
+        if self.skel_thresh is None:
+            self.skel_thresh = \
+                round( self.beamwidth * nbeam_lengths / self.imgscale)
+        elif skel_thresh is not None:
+            self.skel_thresh = skel_thresh
+
+        # Set the minimum branch length to be the beam size.
+        if self.branch_thresh is None:
+            self.branch_thresh = \
+                round( self.beamwidth / self.imgscale)
+        elif branch_thresh is not None:
+            self.branch_thresh = branch_thresh
 
         isolated_filaments, num, offsets = \
             isolateregions(self.skeleton, size_threshold=self.skel_thresh,

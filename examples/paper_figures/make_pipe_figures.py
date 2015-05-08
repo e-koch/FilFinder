@@ -18,20 +18,20 @@ from fil_finder import fil_finder_2D
 from astropy import convolution
 
 img, hdr = fits.getdata('pipeCenterB59-350.fits', header=True)
-
+beam = 24.9
 img = img + 31.697
 
-filfind = fil_finder_2D(img, hdr, 24.9, 30, 15, 30, glob_thresh=20,
+filfind = fil_finder_2D(img, hdr, beam, glob_thresh=20,
                         distance=145.)
 filfind.create_mask()#size_thresh=400)
 filfind.medskel()
 filfind.analyze_skeletons()
 filfind.exec_rht()
-filfind.find_widths()
+filfind.find_widths(verbose=False)
 
 r = 460. / 145.
 conv = np.sqrt(r ** 2. - 1) * \
-    (24.9 / np.sqrt(8*np.log(2)) / (np.abs(hdr["CDELT2"]) * 3600.))
+    (beam / np.sqrt(8*np.log(2)) / (np.abs(hdr["CDELT2"]) * 3600.))
 
 kernel = convolution.Gaussian2DKernel(conv)
 good_pixels = np.isfinite(img)
@@ -43,35 +43,49 @@ conv_img = convolution.convolve(img, kernel, boundary='fill',
 # Avoid edge effects from smoothing
 conv_img = conv_img * nan_pix
 
+filfind2 = fil_finder_2D(conv_img, hdr, conv*beam, glob_thresh=20,
+                         distance=145.)
+filfind2.create_mask()#size_thresh=190)
+filfind2.medskel()
+filfind2.analyze_skeletons()
+filfind2.exec_rht()
+filfind2.find_widths(verbose=False)
+
 # Regrid to same physical scale
 
 good_pixels = np.isfinite(img)
 good_pixels = zoom(good_pixels, 1/r, order=0)
 
 conv_img[np.isnan(conv_img)] = 0.0
-conv_img = zoom(conv_img, 1/r)
+regrid_conv_img = zoom(conv_img, 1/r)
 
-nan_pix = np.ones(conv_img.shape)
-nan_pix[good_pixels == 0] = np.NaN
+regrid_conv_img = zoom(regrid_conv_img, r)
 
-regrid_conv_img = conv_img * nan_pix
+# nan_pix = np.ones(regrid_conv_img.shape)
+# nan_pix[good_pixels == 0] = np.NaN
 
-filfind2 = fil_finder_2D(regrid_conv_img, hdr, 24.9, 10, 5, 10, glob_thresh=20,
-                         distance=460.)
-filfind2.create_mask()#size_thresh=190)
-filfind2.medskel()
-filfind2.analyze_skeletons()
-filfind2.exec_rht()
-filfind2.find_widths()
+regrid_conv_img = regrid_conv_img[:-1, :-1] * nan_pix
+# regrid_conv_img = regrid_conv_img * nan_pix
 
+filfind3 = fil_finder_2D(regrid_conv_img, hdr, conv*beam, glob_thresh=20,
+                         distance=145.)
+filfind3.create_mask()#size_thresh=190)
+filfind3.medskel()
+filfind3.analyze_skeletons()
+filfind3.exec_rht()
+filfind3.find_widths(verbose=False)
 
-# p.imshow(filfind.flat_img, interpolation='nearest', cmap='binary',
+# Show flattened image with contour.
+
+# p.imshow(filfind2.flat_img, interpolation='nearest', cmap='binary',
 #          origin='lower')
 # p.contour(filfind.skeleton, colors='g', label="Normal", linewidths=6)
-# p.contour(filfind2.skeleton, colors='b', label='Degraded')
+# p.contour(filfind2.skeleton, colors='b', label='Degraded', linewidths=2)
+# p.contour(filfind3.skeleton, colors='r', label='Regridded')
 # p.plot(None, None, label='Normal', color='g', linewidth=6)
 # p.plot(None, None, label='Degraded', color='b')
-# p.legend(prop={'size': 20})
+# p.plot(None, None, label='Regridded', color='r')
+# p.legend(loc=2, prop={'size': 20})
 # p.xticks([])
 # p.yticks([])
 # p.show()
@@ -84,53 +98,75 @@ fig.set_figheight(12)
 fig.set_figwidth(4)
 
 # FWHM
-# p.subplot(411)
-
 norm_fwhm = filfind.width_fits["Parameters"][:, -1]
 deg_fwhm = filfind2.width_fits["Parameters"][:, -1]
+reg_fwhm = filfind3.width_fits["Parameters"][:, -1]
 
-ax2.hist(deg_fwhm[np.isfinite(deg_fwhm)], bins=7,
-       color="b", alpha=0.5, label="Degraded")
-ax2.hist(norm_fwhm[np.isfinite(norm_fwhm)], bins=7,
-       color="g", alpha=0.5, label="Normal")
+w_max = np.max([np.nanmax(norm_fwhm), np.nanmax(deg_fwhm), np.nanmax(reg_fwhm)])
+w_min = np.min([np.nanmin(norm_fwhm), np.nanmin(deg_fwhm), np.nanmin(reg_fwhm)])
+w_bins = np.linspace(w_min, w_max, 7)
+w_bins = np.insert(w_bins, 1, 0.01)
+
+ax2.hist(deg_fwhm[np.isfinite(deg_fwhm)], bins=w_bins,
+       color="b", label="Degraded", histtype='step')
+ax2.hist(norm_fwhm[np.isfinite(norm_fwhm)], bins=w_bins,
+       color="g", label="Normal", histtype='step')
+ax2.hist(reg_fwhm[np.isfinite(reg_fwhm)], bins=w_bins,
+       color="r", label="Regrid", histtype='step')
 ax2.set_xlabel("Width (pc)")
-# # Length
 
-# p.subplot(412)
+# Length
 
 norm_length = filfind.lengths
 deg_length = filfind2.lengths
+reg_length = filfind3.lengths
 
-ax1.hist(deg_length[np.isfinite(deg_fwhm)], bins=7,
-       color="b", alpha=0.5, label="Degraded")
-ax1.hist(norm_length[np.isfinite(norm_fwhm)], bins=7,
-       color="g", alpha=0.5, label="Normal")
+l_max = np.max([np.nanmax(norm_length), np.nanmax(deg_length), np.nanmax(reg_length)])
+l_min = np.min([np.nanmin(norm_length), np.nanmin(deg_length), np.nanmin(reg_length)])
+l_bins = np.linspace(l_min, l_max, 7)
+
+ax1.hist(deg_length[np.isfinite(deg_fwhm)], bins=l_bins,
+       color="b", label="Degraded", histtype='step')
+ax1.hist(norm_length[np.isfinite(norm_fwhm)], bins=l_bins,
+       color="g", label="Normal", histtype='step')
+ax1.hist(reg_length[np.isfinite(reg_fwhm)], bins=l_bins,
+       color="r", label="Regrid", histtype='step')
 ax1.set_xlabel("Lengths (pc)")
 ax1.legend()
 
-# p.subplot(413)
+# Orientation
 
 norm_orient = np.asarray(filfind.rht_curvature['Median'])
 deg_orient = np.asarray(filfind2.rht_curvature['Median'])
+reg_orient = np.asarray(filfind3.rht_curvature['Median'])
 
-ax3.hist(deg_orient[np.isfinite(deg_fwhm)], bins=7,
-       color="b", alpha=0.5, label="Degraded")
-ax3.hist(norm_orient[np.isfinite(norm_fwhm)], bins=7,
-       color="g", alpha=0.5, label="Normal")
+o_bins = np.linspace(-np.pi/2, np.pi/2, 7)
+
+ax3.hist(deg_orient[np.isfinite(deg_fwhm)], bins=o_bins,
+       color="b", label="Degraded", histtype='step')
+ax3.hist(norm_orient[np.isfinite(norm_fwhm)], bins=o_bins,
+       color="g", label="Normal", histtype='step')
+ax3.hist(reg_orient[np.isfinite(reg_fwhm)], bins=o_bins,
+       color="r", label="Regrid", histtype='step')
 ax3.set_xlim([-np.pi/2, np.pi/2])
 
 ax3.set_xlabel("Orientation")
 
-# p.subplot(414)
-
 norm_curv = np.asarray(filfind.rht_curvature['IQR'])
 deg_curv = np.asarray(filfind2.rht_curvature['IQR'])
+reg_curv = np.asarray(filfind3.rht_curvature['IQR'])
 
-ax4.hist(deg_curv[np.isfinite(deg_fwhm)], bins=7,
-       color="b", alpha=0.5, label="Degraded")
-ax4.hist(norm_curv[np.isfinite(norm_fwhm)], bins=7,
-       color="g", alpha=0.5, label="Normal")
-ax4.set_xlim([0.4, 1.3])
+curv_max = np.max([np.nanmax(norm_curv), np.nanmax(deg_curv), np.nanmax(reg_curv)])
+curv_min = np.min([np.nanmin(norm_curv), np.nanmin(deg_curv), np.nanmin(reg_curv)])
+curv_bins = np.linspace(curv_min, curv_max, 7)
+
+ax4.hist(deg_curv[np.isfinite(deg_fwhm)], bins=curv_bins,
+       color="b", label="Degraded", histtype='step')
+ax4.hist(norm_curv[np.isfinite(norm_fwhm)], bins=curv_bins,
+       color="g", label="Normal", histtype='step')
+ax4.hist(reg_curv[np.isfinite(reg_fwhm)], bins=curv_bins,
+       color="r", label="Regrid", histtype='step')
+# ax4.set_xlim([0.4, 1.3])
 ax4.set_xlabel("Curvature")
 
 p.tight_layout(h_pad=0.1)
