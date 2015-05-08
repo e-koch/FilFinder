@@ -904,7 +904,7 @@ class fil_finder_2D(object):
                 img_slice = self.image[xlow + self.pad_size:xhigh - self.pad_size,
                                        ylow + self.pad_size:yhigh - self.pad_size]
                 vmin = scoreatpercentile(img_slice[np.isfinite(img_slice)], 10)
-                p.imshow(img_slice, interpolation=None, vmin=vmin)
+                p.imshow(img_slice, interpolation=None, vmin=vmin, origin='lower')
                 p.colorbar()
                 p.show()
 
