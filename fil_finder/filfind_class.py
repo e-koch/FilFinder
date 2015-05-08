@@ -192,7 +192,7 @@ class fil_finder_2D(object):
     def create_mask(self, glob_thresh=None, adapt_thresh=None,
                     smooth_size=None, size_thresh=None, verbose=False,
                     test_mode=False, regrid=True, border_masking=True,
-                    zero_border=False):
+                    zero_border=False, fill_hole_size=None):
         '''
 
         This runs the complete segmentation process and returns a mask of the
@@ -232,6 +232,11 @@ class fil_finder_2D(object):
         zero_border : bool, optional
             Replaces the NaN border with zeros for the adaptive thresholding.
             This is useful when emission continues to the edge of the image.
+        fill_hole_size : int or float, optional
+            Sets the maximum hole size to fill in the skeletons. If <1,
+            maximum is that proportion of the total number of pixels in
+            skeleton. Otherwise, it sets the maximum number of pixels.
+            Defaults to a square area with length of the beamwidth.
 
         Returns
         -------
@@ -347,8 +352,12 @@ class fil_finder_2D(object):
             remove_small_objects(opening, min_size=self.size_thresh)
 
         # Remove small holes within the object
+
+        if fill_hole_size is None:
+            fill_hole_size = round((self.beamwidth/self.imgscale)**2)
+
         mask_objs, num, corners = \
-            isolateregions(cleaned, fill_hole=True, rel_size=10,
+            isolateregions(cleaned, fill_hole=True, rel_size=fill_hole_size,
                            morph_smooth=True)
         self.mask = recombine_skeletons(mask_objs,
                                         corners, self.image.shape,
