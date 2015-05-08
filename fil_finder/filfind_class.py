@@ -192,7 +192,7 @@ class fil_finder_2D(object):
     def create_mask(self, glob_thresh=None, adapt_thresh=None,
                     smooth_size=None, size_thresh=None, verbose=False,
                     test_mode=False, regrid=True, border_masking=True,
-                    zero_border=False):
+                    zero_border=False, fill_hole_size=0.05):
         '''
 
         This runs the complete segmentation process and returns a mask of the
@@ -348,7 +348,7 @@ class fil_finder_2D(object):
 
         # Remove small holes within the object
         mask_objs, num, corners = \
-            isolateregions(cleaned, fill_hole=True, rel_size=10,
+            isolateregions(cleaned, fill_hole=True, rel_size=rel_size,
                            morph_smooth=True)
         self.mask = recombine_skeletons(mask_objs,
                                         corners, self.image.shape,
