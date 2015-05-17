@@ -8,6 +8,7 @@ from datetime import datetime
 from pandas import DataFrame
 from scipy.ndimage import zoom
 import warnings
+from itertools import izip
 
 from fil_finder import fil_finder_2D
 
@@ -128,43 +129,77 @@ class FilFinder_Comparison(object):
         Run FilFinder
         '''
 
-        self.rht_branches = {}
+        if pool is None:
+            for key in self.data.keys():
 
-        for key in self.data.keys():
+                img = self.data[key]
+                hdr = self.headers[key]
+                beamwidth = self.beamwidths[key]
+                distance = self.distances[key]
+                save_name = self.fits_dict[key][:-5]
 
-            img = self.data[key]
-            hdr = self.headers[key]
-            beamwidth = self.beamwidths[key]
-            distance = self.distances[key]
-            save_name = self.fits_dict[key][:-5]
+                filfind = _compute_filfinder(img, hdr, beamwidth, distance)[1]
 
-            filfind = fil_finder_2D(img, hdr, beamwidth,
-                                    distance=distance, glob_thresh=20)
+                if save:
+                    self.rht_branches[key].to_csv(filename[:-5] +
+                                                  "_rht_branches.csv")
+                    filfind.save_table(save_name=save_name, table_type="fits")
+                    filfind.save_fits(save_name=save_name, stamps=False)
 
-            filfind.create_mask()
-            filfind.medskel(verbose=verbose)
+        else:
+            print "Running in parallel."
 
-            filfind.analyze_skeletons()
-            filfind.compute_filament_brightness()
-            filfind.exec_rht(branches=True)
-            # Save the branches output separately
-            for i in range(len(filfind.rht_curvature["Median"])):
-                keys = filfind.rht_curvature.keys()
-                vals = np.vstack([filfind.rht_curvature[key][i] for key in keys]).T
-                if i == 0:
-                    branches_rht = vals
-                else:
-                    branches_rht = np.vstack((branches_rht, vals))
-            self.rht_branches[key] = \
-                DataFrame(branches_rht, columns=filfind.rht_curvature.keys())
+            filfinder_results = \
+                pool.map(_single_input,
+                         izip(self.data.keys(), self.data.values(),
+                              self.headers.values(), self.beamwidths.values(),
+                              self.distances.values()))
 
-            filfind.exec_rht(branches=False)
-            filfind.find_widths(verbose=verbose)
+            for output in filfinder_results:
 
-            if save:
-                self.rht_branches[key].to_csv(filename[:-5] +
-                                              "_rht_branches.csv")
-                filfind.save_table(save_name=save_name, table_type="fits")
-                filfind.save_fits(save_name=save_name, stamps=False)
+                key, filfind, rht_branches = filfinder_results
+
+                save_name = self.fits_dict[key][:-5]
+
+                if save:
+                    rht_branches.to_csv(save_name + "_rht_branches.csv")
+                    filfind.save_table(save_name=save_name, table_type="fits")
+                    filfind.save_fits(save_name=save_name, stamps=False)
+
 
         return self
+
+
+def _compute_filfinder(key, img, hdr, beamwith, distance):
+    '''
+    Helper function for running FilFinder
+    '''
+
+    filfind = fil_finder_2D(img, hdr, beamwidth,
+                            distance=distance, glob_thresh=20)
+
+    filfind.create_mask()
+    filfind.medskel(verbose=verbose)
+
+    filfind.analyze_skeletons()
+    filfind.compute_filament_brightness()
+    filfind.exec_rht(branches=True)
+    # Save the branches output separately
+    for i in range(len(filfind.rht_curvature["Median"])):
+        keys = filfind.rht_curvature.keys()
+        vals = np.vstack([filfind.rht_curvature[key][i] for key in keys]).T
+        if i == 0:
+            branches_rht = vals
+        else:
+            branches_rht = np.vstack((branches_rht, vals))
+    rht_branches = \
+        DataFrame(branches_rht, columns=filfind.rht_curvature.keys())
+
+    filfind.exec_rht(branches=False)
+    filfind.find_widths(verbose=verbose)
+
+    return key, filfind, rht_branches
+
+
+def _single_input(a):
+    return _compute_filfinder(*a)
