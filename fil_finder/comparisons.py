@@ -123,9 +123,48 @@ class FilFinder_Comparison(object):
 
         return self
 
-    def compute_FilFinder(self):
+    def compute_FilFinder(self, verbose=False, pool=None):
         '''
         Run FilFinder
         '''
+
+        self.rht_branches = {}
+
+        for key in self.data.keys():
+
+            img = self.data[key]
+            hdr = self.headers[key]
+            beamwidth = self.beamwidths[key]
+            distance = self.distances[key]
+            save_name = self.fits_dict[key][:-5]
+
+            filfind = fil_finder_2D(img, hdr, beamwidth,
+                                    distance=distance, glob_thresh=20)
+
+            filfind.create_mask()
+            filfind.medskel(verbose=verbose)
+
+            filfind.analyze_skeletons()
+            filfind.compute_filament_brightness()
+            filfind.exec_rht(branches=True)
+            # Save the branches output separately
+            for i in range(len(filfind.rht_curvature["Median"])):
+                keys = filfind.rht_curvature.keys()
+                vals = np.vstack([filfind.rht_curvature[key][i] for key in keys]).T
+                if i == 0:
+                    branches_rht = vals
+                else:
+                    branches_rht = np.vstack((branches_rht, vals))
+            self.rht_branches[key] = \
+                DataFrame(branches_rht, columns=filfind.rht_curvature.keys())
+
+            filfind.exec_rht(branches=False)
+            filfind.find_widths(verbose=verbose)
+
+            if save:
+                self.rht_branches[key].to_csv(filename[:-5] +
+                                              "_rht_branches.csv")
+                filfind.save_table(save_name=save_name, table_type="fits")
+                filfind.save_fits(save_name=save_name, stamps=False)
 
         return self
