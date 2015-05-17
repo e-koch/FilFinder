@@ -53,9 +53,9 @@ class FilFinder_Comparison(object):
         max_dist = self.distances.values().max()
         # max_angres = self.ang_res.max()
 
-        r = max_dist / float(distance)
-
         for key in self.data.keys():
+
+            r = max_dist / float(self.distance[key])
 
             img = self.data[key]
             header = self.header[key]
@@ -63,8 +63,8 @@ class FilFinder_Comparison(object):
             # Skip if the data is at the maximum distance
             if r != 1.:
                 conv = np.sqrt(r ** 2. - 1) * \
-                    (beamwidth / np.sqrt(8*np.log(2)) /
-                     (np.abs(header["CDELT2"]) * 3600.))
+                    (self.beamwidths[key] / np.sqrt(8*np.log(2)) /
+                     (np.abs(header["CDELT2"]) * 3600.))  # assume CDELT2 in deg
                 # Only convolve if Nyquist sampling can be met
                 if conv > 1.5:
                     kernel = convolution.Gaussian2DKernel(conv)
@@ -76,10 +76,9 @@ class FilFinder_Comparison(object):
                     # Avoid edge effects from smoothing
                     img = img * nan_pix
 
-                    beamwidth *= conv
+                    self.beamwidth[key] *= conv
 
                     self.data[key] = img
-                    self.header[key] = header
 
                 else:
                     warnings.warn("Nyquist sampling not met for %s."
@@ -91,6 +90,36 @@ class FilFinder_Comparison(object):
         '''
         Regrid to the shortest distance,
         '''
+
+        min_dist = self.distances.values().min()
+
+        for key in self.data.keys():
+
+            r = float(distance[key]) / min_dist
+
+            img = self.data[key]
+
+            if r != 1:
+
+                good_pixels = np.isfinite(img)
+                good_pixels = zoom(good_pixels, round(r, 3),
+                                   order=0)
+
+                img[np.isnan(img)] = 0.0
+                regrid_conv_img = zoom(img, round(r, 3))
+
+
+                nan_pix = np.ones(regrid_conv_img.shape)
+                nan_pix[good_pixels == 0] = np.NaN
+
+
+                img = regrid_conv_img * nan_pix
+
+                self.distances = min_dist
+
+                self.headers[key]['CDELT2'] /= r
+
+                self.data[key] = img
 
         return self
 
