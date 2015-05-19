@@ -1,11 +1,5 @@
 # Licensed under an MIT open source license - see LICENSE
 
-'''
-
-Make histograms for sets of data
-
-'''
-
 import os
 from astropy.table import Table
 import numpy as np
@@ -116,6 +110,13 @@ if bran_len == "T":
     bran_len = True
 else:
     bran_len = False
+
+# Return numbers of unresolved widths and non param usage
+width_stats = sys.argv[6]
+if width_stats == "T":
+    width_stats = True
+else:
+    width_stats = False
 
 
 # Scatter plots
@@ -379,3 +380,39 @@ if bran_len:
         print labels[key], np.percentile(all_branches, [15, 50, 85])
 
     p.show()
+
+if width_stats:
+
+    from astropy.table import Table
+
+    csv = []
+
+    for folder in folders:
+        test = [f for f in os.listdir(folder) if f[-4:] == 'fits' and 'table' in f]
+        try:
+            csv.append(test[0])
+        except:
+            print "Not found for " + folder
+
+    fail_frac = np.empty((len(csv), ))
+    unres_frac = np.empty((len(csv), ))
+    nonparam_frac = np.empty((len(csv), ))
+
+    for i, (fil, fold) in enumerate(zip(csv, folders)):
+        t = Table.read(fold+"/"+fil)
+
+        # Failed fits
+        fail_frac[i, ] = sum(np.isnan(t['FWHM'])) / float(t['FWHM'].shape[0])
+
+        # Unresolved widths
+        fwhm = t['FWHM']
+        fwhm = fwhm[np.isfinite(fwhm)]
+        unres_frac[i, ] = sum(fwhm > 0)/ float(t['FWHM'].shape[0])
+
+        # Number that use non-param fits
+        nonparam_frac[i, ] = sum(t['Fit Type'] == 'n') / float(t['FWHM'].shape[0])
+
+    df = Table(np.vstack([csv, fail_frac, unres_frac, nonparam_frac]).T,
+                   names=['Names', 'Fail', 'Resolved', 'Nonparam'])
+
+    print(df)

@@ -308,7 +308,7 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
     # peak
     target_intensity = (peak_intens - bkg_intens) / \
         (2 * np.sqrt(2 * np.log(2))) + bkg_intens
-    width = interp_bins[
+    fwhm_width = interp_bins[
         np.where(interp_profile ==
                  find_nearest(interp_profile, target_intensity))][0]
 
@@ -319,12 +319,16 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
         rad_profile, np.min((100, target_percentile + 5)))
     lower = scoreatpercentile(rad_profile, np.max((0, target_percentile - 5)))
 
-    width_error = np.max(unbin_dist[(unbin_prof > lower) * (unbin_prof < upper)]) -\
+    fwhm_error = np.max(unbin_dist[(unbin_prof > lower) * (unbin_prof < upper)]) -\
         np.min(unbin_dist[(unbin_prof > lower) * (unbin_prof < upper)])
 
     # Deconvolve the width with the beam size.
     factor = 2 * np.sqrt(2 * np.log(2))  # FWHM factor
-    deconv = (factor * width) ** 2. - img_beam ** 2.
+
+    width = fwhm_width / factor
+    width_error = fwhm_error / factor
+
+    deconv = fwhm_width ** 2. - img_beam ** 2.
     if deconv > 0:
         fwhm_width = np.sqrt(deconv)
         fwhm_error = (factor * width * width_error) / fwhm_width
