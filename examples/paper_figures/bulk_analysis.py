@@ -397,22 +397,34 @@ if width_stats:
     fail_frac = np.empty((len(csv), ))
     unres_frac = np.empty((len(csv), ))
     nonparam_frac = np.empty((len(csv), ))
+    nonparam_success = np.empty((len(csv), ))
+    num_fils = np.empty((len(csv), ))
 
     for i, (fil, fold) in enumerate(zip(csv, folders)):
         t = Table.read(fold+"/"+fil)
 
         # Failed fits
-        fail_frac[i, ] = sum(np.isnan(t['FWHM'])) / float(t['FWHM'].shape[0])
+        fail_frac[i, ] = sum(np.isnan(t['FWHM'])) #/ float(t['FWHM'].shape[0])
 
         # Unresolved widths
         fwhm = t['FWHM']
         fwhm = fwhm[np.isfinite(fwhm)]
-        unres_frac[i, ] = sum(fwhm > 0)/ float(t['FWHM'].shape[0])
+        unres_frac[i, ] = sum(fwhm > 0) #/ float(t['FWHM'].shape[0])
 
         # Number that use non-param fits
-        nonparam_frac[i, ] = sum(t['Fit Type'] == 'n') / float(t['FWHM'].shape[0])
+        nonparam_frac[i, ] = sum(t['Fit Type'] == 'n') #/ float(t['FWHM'].shape[0])
 
-    df = Table(np.vstack([csv, fail_frac, unres_frac, nonparam_frac]).T,
-                   names=['Names', 'Fail', 'Resolved', 'Nonparam'])
+        # Number of successful nonparam fits
+        nonparam_success[i, ] = sum(np.logical_and(t['Fit Type'] == 'n', ~np.isnan(t['FWHM'])))
+
+        # Number of filaments
+        num_fils[i, ] = t['FWHM'].shape[0]
+
+    df = Table(np.vstack([csv, num_fils, fail_frac, unres_frac,
+                          nonparam_frac, nonparam_success]).T,
+                   names=['Names', "Number", 'Fail', 'Resolved',
+                          'Nonparam', 'Nonparam Success'])
 
     print(df)
+
+    print sum(num_fils)
