@@ -50,6 +50,7 @@ def wrapper(filename, distance, beamwidth, offset, verbose=False):
 
     if regrid_to_common:
 
+        # Regrid to nearest distance, which for this data set is Taurus at 140 pc
         r = float(distance) / 140.
 
         if r != 1:
