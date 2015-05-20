@@ -45,7 +45,7 @@ if med_sb_plot or mline_plot:
     sn.set_context('talk')
     sn.set_style("darkgrid")
 
-folders = [f for f in os.listdir("degrade_all") if os.path.isdir(f) and
+folders = [f for f in os.listdir(".") if os.path.isdir(f) and
            f[-3:] == '350']
 
 dists = {"pipeCenterB59-350": 145.,
@@ -109,13 +109,13 @@ for num, fol in enumerate(folders):
     reg_ratios = []
 
     # Open the skeleton and the image
-    skeleton = getdata("degrade_all/"+fol+"/"+fol+"_skeletons.fits")
+    skeleton = getdata(fol+"/"+fol+"_skeletons.fits")
 
-    data = Table.read("degrade_all/"+fol+"/"+fol+"_table.fits")
+    data = Table.read(fol+"/"+fol+"_table.fits")
     # skeleton[skeleton > 1] = 1
 
-    img = getdata(fol+".fits") + offsets[fol]
-    hdr = getheader(fol+".fits")
+    img = getdata("../"+fol+".fits") + offsets[fol]
+    hdr = getheader("../"+fol+".fits")
 
     pix_size = np.abs(hdr['CDELT2']) * (np.pi/180.) * dists[fol]  # pc
 
