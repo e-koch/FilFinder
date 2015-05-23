@@ -347,7 +347,7 @@ class fil_finder_2D(object):
             glob = flat_copy > thresh_value
             adapt = glob * adapt
 
-        opening = nd.binary_opening(adapt, structure=np.ones((3, 3)))
+        opening = adapt # nd.binary_opening(adapt, structure=np.ones((3, 3)))
         cleaned = \
             remove_small_objects(opening, min_size=self.size_thresh)
 
@@ -1180,7 +1180,7 @@ class fil_finder_2D(object):
 
         # Save mask
         fits.writeto(
-            "".join([save_name, "_mask.fits"]), mask.astype("float"), new_hdr)
+            "".join([save_name, "_mask.fits"]), mask.astype(">i2"), new_hdr)
 
         # Save skeletons. Includes final skeletons and the longest paths.
         new_hdr.update("BUNIT", value="int", comment="")
