@@ -74,6 +74,18 @@ def wrapper(filename, distance, beamwidth, offset, verbose=False):
             hdr['CDELT2'] /= r
 
 
+    # Toggle saving of the exact maps used in the algorithm
+    save_regrid_convolve = True
+    if save_regrid_convolve:
+        hdr['NAXIS1'] = img.shape[1]
+        hdr['NAXIS2'] = img.shape[0]
+
+        hdu = fits.PrimaryHDU(img.astype(">f4"), header=hdr)
+
+        hdu.writeto(filename[:-5]+"/"+filename[:-5]+"_regrid_convolved.fits")
+
+    return
+
     print filename, distance
 
     filfind = fil_finder_2D(img, hdr, beamwidth,
