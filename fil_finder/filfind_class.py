@@ -1175,8 +1175,8 @@ class fil_finder_2D(object):
         new_hdr["COMMENT"] = "Original file name: " + filename
 
         # Remove padding
-        mask = self.mask[
-            self.pad_size:-self.pad_size, self.pad_size:-self.pad_size]
+        mask = self.mask[self.pad_size:-self.pad_size,
+                         self.pad_size:-self.pad_size]
 
         # Save mask
         fits.writeto(
@@ -1200,11 +1200,11 @@ class fil_finder_2D(object):
                                                self.pad_size:-self.pad_size]
 
         labels = nd.label(skeleton, eight_con())[0]
-        hdu_skel.append(fits.PrimaryHDU(labels, header=new_hdr))
+        hdu_skel.append(fits.PrimaryHDU(labels.astype(">i2"), header=new_hdr))
 
         # Longest Paths
         labels_lp = nd.label(skeleton_long, eight_con())[0]
-        hdu_skel.append(fits.PrimaryHDU(labels_lp, header=new_hdr))
+        hdu_skel.append(fits.PrimaryHDU(labels_lp.astype(">i2"), header=new_hdr))
 
         hdu_skel.writeto("".join([save_name, "_skeletons.fits"]))
 
@@ -1243,15 +1243,18 @@ class fil_finder_2D(object):
 
                 hdu = fits.HDUList()
                 # Image stamp
-                hdu.append(fits.PrimaryHDU(img_stamp, header=prim_hdr))
+                hdu.append(fits.PrimaryHDU(img_stamp.astype(">f4"),
+                           header=prim_hdr))
                 # Stamp of final skeleton
                 prim_hdr.update("BUNIT", value="bool", comment="")
-                hdu.append(fits.PrimaryHDU(skel_arr, header=prim_hdr))
+                hdu.append(fits.PrimaryHDU(skel_arr.astype(">i2"),
+                           header=prim_hdr))
                 # Stamp of longest path
-                hdu.append(fits.PrimaryHDU(lp_arr, header=prim_hdr))
+                hdu.append(fits.PrimaryHDU(lp_arr.astype(">i2"),
+                           header=prim_hdr))
 
-                hdu.writeto(
-                    "stamps_" + save_name + "/" + save_name + "_object_" + str(n + 1) + ".fits")
+                hdu.writeto("stamps_"+save_name+"/"+save_name+\
+                            "_object_"+str(n+1)+".fits")
 
         if model_save:
             model = self.filament_model()
@@ -1264,7 +1267,7 @@ class fil_finder_2D(object):
 
             model_hdr.update('BUNIT', value=self.header['BUNIT'], comment="")
 
-            model_hdu = fits.PrimaryHDU(model, header=model_hdr)
+            model_hdu = fits.PrimaryHDU(model.astype(">f4"), header=model_hdr)
 
             model_hdu.writeto("".join([save_name, "_filament_model.fits"]))
 
