@@ -84,8 +84,6 @@ def wrapper(filename, distance, beamwidth, offset, verbose=False):
 
         hdu.writeto(filename[:-5]+"/"+filename[:-5]+"_regrid_convolved.fits")
 
-    return
-
     print filename, distance
 
     filfind = fil_finder_2D(img, hdr, beamwidth,
