@@ -77,18 +77,18 @@ filfind3.find_widths(verbose=False)
 
 # Show flattened image with contour.
 
-# p.imshow(filfind2.flat_img, interpolation='nearest', cmap='binary',
-#          origin='lower')
-# p.contour(filfind.skeleton, colors='g', label="Normal", linewidths=6)
-# p.contour(filfind2.skeleton, colors='b', label='Degraded', linewidths=2)
-# p.contour(filfind3.skeleton, colors='r', label='Regridded')
-# p.plot(None, None, label='Normal', color='g', linewidth=6)
-# p.plot(None, None, label='Degraded', color='b')
-# p.plot(None, None, label='Regridded', color='r')
-# p.legend(loc=2, prop={'size': 20})
-# p.xticks([])
-# p.yticks([])
-# p.show()
+p.imshow(filfind.flat_img, interpolation='nearest', cmap='binary',
+         origin='lower', vmax=1.0)
+p.contour(filfind.skeleton, colors='g', label="Normal", linewidths=3)
+p.contour(filfind2.skeleton, colors='b', label='Convolved', linewidths=2)
+p.contour(filfind3.skeleton, colors='r', label='Regridded')
+p.plot(None, None, label='Normal', color='g', linewidth=6)
+p.plot(None, None, label='Convolved', color='b')
+p.plot(None, None, label='Regridded', color='r')
+p.legend(loc=2, prop={'size': 20})
+p.xticks([])
+p.yticks([])
+p.show()
 
 # Histograms plot
 
@@ -107,12 +107,12 @@ w_min = np.min([np.nanmin(norm_fwhm), np.nanmin(deg_fwhm), np.nanmin(reg_fwhm)])
 w_bins = np.linspace(w_min, w_max, 7)
 w_bins = np.insert(w_bins, 1, 0.01)
 
-ax2.hist(deg_fwhm[np.isfinite(deg_fwhm)], bins=w_bins,
-       color="b", label="Degraded", histtype='step')
 ax2.hist(norm_fwhm[np.isfinite(norm_fwhm)], bins=w_bins,
-       color="g", label="Normal", histtype='step')
+       color="g", label="Normal", histtype='step', linewidth=3)
+ax2.hist(deg_fwhm[np.isfinite(deg_fwhm)], bins=w_bins,
+       color="b", label="Convolved", histtype='step', linewidth=3)
 ax2.hist(reg_fwhm[np.isfinite(reg_fwhm)], bins=w_bins,
-       color="r", label="Regrid", histtype='step')
+       color="r", label="Regrid", histtype='step', linewidth=3)
 ax2.set_xlabel("Width (pc)")
 
 # Length
@@ -125,12 +125,12 @@ l_max = np.max([np.nanmax(norm_length), np.nanmax(deg_length), np.nanmax(reg_len
 l_min = np.min([np.nanmin(norm_length), np.nanmin(deg_length), np.nanmin(reg_length)])
 l_bins = np.linspace(l_min, l_max, 7)
 
-ax1.hist(deg_length[np.isfinite(deg_fwhm)], bins=l_bins,
-       color="b", label="Degraded", histtype='step')
 ax1.hist(norm_length[np.isfinite(norm_fwhm)], bins=l_bins,
-       color="g", label="Normal", histtype='step')
+       color="g", label="Normal", histtype='step', linewidth=3)
+ax1.hist(deg_length[np.isfinite(deg_fwhm)], bins=l_bins,
+       color="b", label="Convolved", histtype='step', linewidth=3)
 ax1.hist(reg_length[np.isfinite(reg_fwhm)], bins=l_bins,
-       color="r", label="Regrid", histtype='step')
+       color="r", label="Regrid", histtype='step', linewidth=3)
 ax1.set_xlabel("Lengths (pc)")
 ax1.legend()
 
@@ -143,11 +143,11 @@ reg_orient = np.asarray(filfind3.rht_curvature['Median'])
 o_bins = np.linspace(-np.pi/2, np.pi/2, 7)
 
 ax3.hist(deg_orient[np.isfinite(deg_fwhm)], bins=o_bins,
-       color="b", label="Degraded", histtype='step')
+       color="b", label="Convolved", histtype='step', linewidth=3)
 ax3.hist(norm_orient[np.isfinite(norm_fwhm)], bins=o_bins,
-       color="g", label="Normal", histtype='step')
+       color="g", label="Normal", histtype='step', linewidth=3)
 ax3.hist(reg_orient[np.isfinite(reg_fwhm)], bins=o_bins,
-       color="r", label="Regrid", histtype='step')
+       color="r", label="Regrid", histtype='step', linewidth=3)
 ax3.set_xlim([-np.pi/2, np.pi/2])
 
 ax3.set_xlabel("Orientation")
@@ -161,11 +161,11 @@ curv_min = np.min([np.nanmin(norm_curv), np.nanmin(deg_curv), np.nanmin(reg_curv
 curv_bins = np.linspace(curv_min, curv_max, 7)
 
 ax4.hist(deg_curv[np.isfinite(deg_fwhm)], bins=curv_bins,
-       color="b", label="Degraded", histtype='step')
+       color="b", label="Convolved", histtype='step', linewidth=3)
 ax4.hist(norm_curv[np.isfinite(norm_fwhm)], bins=curv_bins,
-       color="g", label="Normal", histtype='step')
+       color="g", label="Normal", histtype='step', linewidth=3)
 ax4.hist(reg_curv[np.isfinite(reg_fwhm)], bins=curv_bins,
-       color="r", label="Regrid", histtype='step')
+       color="r", label="Regrid", histtype='step', linewidth=3)
 # ax4.set_xlim([0.4, 1.3])
 ax4.set_xlabel("Curvature")
 
