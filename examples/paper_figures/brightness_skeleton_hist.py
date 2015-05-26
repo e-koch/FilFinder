@@ -16,25 +16,31 @@ from pandas import DataFrame, Series
 
 
 # Inputs
-med_sb_plot = sys.argv[1]
+use_regrid = sys.argv[1]
+if use_regrid == "T":
+    use_regrid = True
+else:
+    use_regrid = False
+
+med_sb_plot = sys.argv[2]
 if med_sb_plot == "T":
     med_sb_plot = True
 else:
     med_sb_plot = False
 
-mline_plot = sys.argv[2]
+mline_plot = sys.argv[3]
 if mline_plot == "T":
     mline_plot = True
 else:
     mline_plot = False
 
-sfr_plot = sys.argv[3]
+sfr_plot = sys.argv[4]
 if sfr_plot == "T":
     sfr_plot = True
 else:
     sfr_plot = False
 
-sb_bkg_ratio = sys.argv[4]
+sb_bkg_ratio = sys.argv[5]
 if sb_bkg_ratio == "T":
     sb_bkg_ratio = True
 else:
@@ -97,7 +103,7 @@ offsets = {"pipeCenterB59-350": 31.697,
 def Mlin(I, del_x):
     return 1.234567 * I * del_x
 
-all_points = []
+all_points = {}
 
 mlin_points = []
 
@@ -114,21 +120,17 @@ for num, fol in enumerate(folders):
     data = Table.read(fol+"/"+fol+"_table.fits")
     # skeleton[skeleton > 1] = 1
 
-    img = getdata("../"+fol+".fits") + offsets[fol]
-    hdr = getheader("../"+fol+".fits")
+    if use_regrid:
+        img, hdr = getdata(fol+"/"+fol+"_regrid_convolved.fits", header=True)
 
-    pix_size = np.abs(hdr['CDELT2']) * (np.pi/180.) * dists[fol]  # pc
+        # Defaults to the common distance in this case (140 pc).
+        pix_size = np.abs(hdr['CDELT2']) * (np.pi/180.) * 140  # pc
 
-    r = 460. / dists[fol]
-    if r != 1.:
-        conv = np.sqrt(r ** 2. - 1) * \
-            (24.9 / np.sqrt(8*np.log(2)) / (np.abs(hdr["CDELT2"]) * 3600.))
-        if conv > 1.0:
-            kernel = convolution.Gaussian2DKernel(conv)
-            img = convolution.convolve(img, kernel, boundary='fill',
-                                       fill_value=np.NaN)
+    else:
+        img = getdata("../"+fol+".fits") + offsets[fol]
+        hdr = getheader("../"+fol+".fits")
 
-            pix_size = pix_size * r
+        pix_size = np.abs(hdr['CDELT2']) * (np.pi/180.) * dists[fol]  # pc
 
     for lab in np.unique(skeleton[np.nonzero(skeleton)]):
 
@@ -138,6 +140,8 @@ for num, fol in enumerate(folders):
             continue
 
         width = data['FWHM'][lab-1]
+        if np.isnan(width) or width == 0.0:
+            continue
         pix_width = width / pix_size
 
         if med_sb_plot or sfr_plot:
@@ -145,11 +149,13 @@ for num, fol in enumerate(folders):
             points = img[skel_pts] - bkg
 
         elif mline_plot:
-            skel_arr = (skeleton == lab)
+            # skel_arr = (skeleton == lab)
 
-            dist_trans = distance_transform_edt(np.logical_not(skel_arr))
+            # dist_trans = distance_transform_edt(np.logical_not(skel_arr))
 
-            skel_pts = np.where(dist_trans <= pix_width)
+            # skel_pts = np.where(dist_trans <= pix_width)
+
+            skel_pts = np.where(skeleton == lab)
 
             points = img[skel_pts] - bkg
         elif sb_bkg_ratio:
@@ -178,17 +184,21 @@ for num, fol in enumerate(folders):
             points = points[np.logical_and(per5, per95)]
 
         values = np.append(values, points)
-    all_points.append(values)
+    all_points[fol] = values
     mlin_points.append(per_fil_values)
     ratios[fol] = reg_ratios
 
 
 if med_sb_plot:
-    all_points.reverse()
+
+    # Turn into list
+    list_all_pts = all_points.values()
+
+    list_all_points.reverse()
 
     p.subplot(111)
     p.xlim([-50, 125])
-    sn.violinplot(all_points,
+    sn.violinplot(list_all_points,
                   names=[labels[key] for key in np.sort(labels.keys())[::-1]],
                   color=sn.color_palette("GnBu_d"), vert=False)
     p.xlabel(r" $\log_{10}$ Surface Brightness (MJy/sr)")
@@ -202,11 +212,11 @@ if mline_plot:
     mlin_points.reverse()
 
     p.subplot(111)
-    p.xlim([0, 30])
+    p.xlim([0, 32])
     sn.violinplot(mlin_points,
                   names=[labels[key] for key in np.sort(labels.keys())[::-1]],
                   color=sn.color_palette("GnBu_d"), vert=False, inner=None,
-                  gridsize=500, bw=0.25)
+                  gridsize=1000, bw=0.25)
     p.xlabel(r"M$_{\mathrm{line}}$ (M$_{\odot}/$pc)")
     p.tight_layout()
     p.plot([16.0]*2, [0, 30], 'k--')
@@ -233,27 +243,9 @@ if sfr_plot:
 
     for i, fold in enumerate(folders):
         if fold in sfr.keys():
-            median_fil_bright[fold] = np.nanmedian(all_points[-i-1])
+            median_fil_bright[fold] = np.nanmedian(all_points[fold])
 
-    # Covering fraction
-
-    cfr = {"aquilaM2-350": 0.340836,
-           "california_cntr-350": 0.274288,
-           "california_east-350": 0.305174,
-           "california_west-350": 0.230324,
-           "chamaeleonI-350": 0.377073,
-           "ic5146-350": 0.323163,
-           "lupusI-350": 0.395093,
-           "orionA-C-350": 0.682826,
-           "orionA-S-350": 0.439604,
-           "orionB-350": 0.374889,
-           "perseus04-350": 0.360365,
-           "pipeCenterB59-350": 0.159801,
-           # "polaris-350": 0.319689,
-           "taurusN3-350": 0.367821}
-
-
-    df = DataFrame([Series(median_fil_bright), Series(sfr), Series(cfr)])
+    df = DataFrame([Series(median_fil_bright), Series(sfr)])
 
     symb_col = ["bD", "gD", "rD", "kD", "b^", "g^", "r^",
                 "k^", "bo", "go", "ro", "ko", "bv", "gh", "rh", "kh"]
@@ -266,9 +258,9 @@ if sfr_plot:
              numpoints=1)
     p.grid(True)
     p.xlabel('log$_{10}$ Median of Filament Surface Brightness / (MJy/sr)')
-    p.ylabel(r'$\Sigma_{\text{SFR}}$ (M$_{\odot}$ Myr$^{-1}$ pc$^{-2}$)')
-    # p.xlim([0.55, 1.6])
-    # p.ylim([-0.1, 4.0])
+    p.ylabel(r'$\Sigma_{{SFR}}$ (M$_{\odot}$ Myr$^{-1}$ pc$^{-2}$)')
+    p.xlim([0.55, 1.6])
+    p.ylim([-0.1, 4.0])
 
     p.show()
 
