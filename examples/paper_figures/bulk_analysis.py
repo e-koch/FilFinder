@@ -217,7 +217,7 @@ if triangle_plot:
     figure = triangle.corner(data.T, labels=["log$_{10}$(W/ pc)",
                                              "log$_{10}$($I$/ MJy/sr)",
                                              "log$_{10}$(L/ pc)", r"$\delta$$\theta$", "$\theta$"],
-                             quantiles=[0.50, 0.85, 0.995], bins=9,
+                             quantiles=[0.50, 0.85, 0.995], bins=6,
                              show_titles=False, title_args={"fontsize": 18})
     # figure.savefig('hgbs_scatter_hists.pdf', format='pdf', dpi=1000)
     p.show()
@@ -352,7 +352,7 @@ if covering_frac:
         ordered_labels.append(labels[name])
     df = DataFrame(cf, index=ordered_labels, columns=["Covering Fraction"])
     print(df)
-    df.to_latex("covering_fracs.tex")
+    # df.to_latex("covering_fracs.tex")
     df.to_csv("covering_fracs.csv")
 
 if bran_len:
