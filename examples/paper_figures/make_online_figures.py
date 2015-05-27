@@ -160,9 +160,9 @@ if __name__ == "__main__":
         print "Regridded Skeleton: {}".format(regridded_path+big_skel)
         print "Normal Skeleton: {}".format(norm_path+norm_skel)
 
+        image_name = img.split("/")[-1]
+
         overlap_skeletons(norm_path+img, regridded_path+big_skel,
                           norm_path+norm_skel,
-                          save_name=img[:-5]+"_online_fig",
+                          save_name=image_name[:-5]+"_online_fig",
                           output_file_type="png")
-
-        break
