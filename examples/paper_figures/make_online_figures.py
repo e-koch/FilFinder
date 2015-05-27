@@ -81,9 +81,12 @@ def overlap_skeletons(image, big_skel, norm_skel, aplpy_plot=True,
 
         # fig.add_grid()
 
-        fig.show_contour(norm_skel_hdu, colors="red", linewidths=2)
+        # NOTE! - rasterization will only work with my fork of aplpy!
+        # git@github.com:e-koch/aplpy.git on branch 'rasterize_contours'
+        fig.show_contour(norm_skel_hdu, colors="red", linewidths=2,
+                         rasterize=True)
 
-        fig.show_contour(big_skel_hdu, colors="blue")
+        fig.show_contour(big_skel_hdu, colors="blue", rasterize=True)
 
         fig.show_colorbar()
         fig.colorbar.set_label_properties(size='large', weight='medium',
