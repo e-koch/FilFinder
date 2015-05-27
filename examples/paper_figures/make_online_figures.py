@@ -25,8 +25,10 @@ def overlap_skeletons(image, big_skel, norm_skel, aplpy_plot=True,
     image, hdr = fits.getdata(image, header=True)
 
     norm_skel = fits.getdata(norm_skel)
+    norm_skel = norm_skel > 0
 
     big_skel, big_skel_hdr = fits.getdata(big_skel, header=True)
+    big_skel = big_skel > 0
 
     # The original image and the normal skeleton should have the same
     # dimensions.
