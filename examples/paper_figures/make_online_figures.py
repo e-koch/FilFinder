@@ -29,8 +29,10 @@ def overlap_skeletons(image, big_skel, norm_skel, aplpy_plot=True,
     norm_skel = fits.getdata(norm_skel)
     norm_skel = (norm_skel > 0).astype(int)
 
-    big_skel, big_skel_hdr = fits.getdata(big_skel, header=True)
+    big_skel = fits.getdata(big_skel)
     big_skel = (big_skel > 0).astype(int)
+
+    big_skel_hdu = fits.PrimaryHDU(big_skel, header=hdr)
 
     # The original image and the normal skeleton should have the same
     # dimensions.
@@ -81,7 +83,7 @@ def overlap_skeletons(image, big_skel, norm_skel, aplpy_plot=True,
 
         fig.show_contour(norm_skel_hdu, colors="red", linewidths=2)
 
-        # fig.show_contour(big_skel, colors="blue")
+        fig.show_contour(big_skel_hdu, colors="blue")
 
         fig.show_colorbar()
         fig.colorbar.set_label_properties(size='large', weight='medium',
