@@ -14,7 +14,7 @@ p.ion()
 
 def overlap_skeletons(image, big_skel, norm_skel, aplpy_plot=True,
                       save_figure=True, save_name="skeletons",
-                      output_file_type="png"):
+                      output_file_type="png", rasterized=True):
     '''
     Make a nice aplpy plot of the different skeletons. The original image
     should be passed, and it will be expanded to match the dimensions of the
@@ -113,7 +113,7 @@ def overlap_skeletons(image, big_skel, norm_skel, aplpy_plot=True,
         p.contour(big_skel, colors='b', linewidths=1)
 
         if save_figure:
-            p.save(save_name+"."+output_file_type)
+            p.save(save_name+"."+output_file_type, rasterized=rasterized)
             p.close()
         else:
             p.show(block=True)
@@ -165,4 +165,4 @@ if __name__ == "__main__":
         overlap_skeletons(norm_path+img, regridded_path+big_skel,
                           norm_path+norm_skel,
                           save_name=image_name[:-5]+"_online_fig",
-                          output_file_type="png")
+                          output_file_type="pdf")
