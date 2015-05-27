@@ -4,6 +4,7 @@ Creates figures of the skeletons used in the analysis (convolved+regridded),
 and those on the original data.
 '''
 
+import numpy as np
 from astropy.io import fits
 from scipy.ndimage import zoom
 import matplotlib.pyplot as p
@@ -23,12 +24,13 @@ def overlap_skeletons(image, big_skel, norm_skel, aplpy_plot=True,
     # Load files in
 
     image, hdr = fits.getdata(image, header=True)
+    image[np.isnan(image)] = 0.0
 
     norm_skel = fits.getdata(norm_skel)
-    norm_skel = norm_skel > 0
+    norm_skel = (norm_skel > 0).astype(int)
 
     big_skel, big_skel_hdr = fits.getdata(big_skel, header=True)
-    big_skel = big_skel > 0
+    big_skel = (big_skel > 0).astype(int)
 
     # The original image and the normal skeleton should have the same
     # dimensions.
@@ -45,12 +47,13 @@ def overlap_skeletons(image, big_skel, norm_skel, aplpy_plot=True,
     image_hdu = fits.PrimaryHDU(image, header=hdr)
 
     norm_skel_zoom = \
-        zoom(image, [i/j for j, i in zip(norm_skel.shape, big_skel.shape)],
+        zoom(norm_skel,
+             [i/float(j) for j, i in zip(norm_skel.shape, big_skel.shape)],
              order=0)
 
     assert norm_skel_zoom.shape == big_skel.shape
 
-    norm_skel_hdu = fits.PrimaryHDU(image, header=big_skel_hdr)
+    norm_skel_hdu = fits.PrimaryHDU(norm_skel_zoom, header=hdr)
 
     if aplpy_plot:
 
@@ -78,7 +81,7 @@ def overlap_skeletons(image, big_skel, norm_skel, aplpy_plot=True,
 
         fig.show_contour(norm_skel_hdu, colors="red", linewidths=2)
 
-        fig.show_contour(big_skel, colors="blue")
+        # fig.show_contour(big_skel, colors="blue")
 
         fig.show_colorbar()
         fig.colorbar.set_label_properties(size='large', weight='medium',
