@@ -32,7 +32,8 @@ def overlap_skeletons(image, big_skel, norm_skel, aplpy_plot=True,
     # dimensions.
     assert image.shape == norm_skel.shape
 
-    image = zoom(image, [i/j for j, i in zip(image.shape, big_skel.shape)])
+    image = zoom(image,
+                 [i/float(j) for j, i in zip(image.shape, big_skel.shape)])
 
     assert image.shape == big_skel.shape
 
@@ -42,7 +43,8 @@ def overlap_skeletons(image, big_skel, norm_skel, aplpy_plot=True,
     image_hdu = fits.PrimaryHDU(image, header=hdr)
 
     norm_skel_zoom = \
-        zoom(image, [i/j for j, i in zip(norm_skel.shape, big_skel.shape)])
+        zoom(image, [i/j for j, i in zip(norm_skel.shape, big_skel.shape)],
+             order=0)
 
     assert norm_skel_zoom.shape == big_skel.shape
 
