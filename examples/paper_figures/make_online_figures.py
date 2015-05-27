@@ -112,7 +112,48 @@ def overlap_skeletons(image, big_skel, norm_skel, aplpy_plot=True,
 if __name__ == "__main__":
 
     import sys
+    import os
 
     # Paths
     regridded_path = sys.argv[1]
     norm_path = sys.argv[2]
+
+    regrid_skels = [f+"/"+f+"_skeletons.fits" for f in
+                    os.listdir(regridded_path) if
+                    os.path.isdir(os.path.join(regridded_path, f))]
+    norm_skels = [f+"/"+f+"_skeletons.fits" for f in
+                  os.listdir(norm_path) if
+                  os.path.isdir(os.path.join(norm_path, f))]
+
+    regrid_skels.sort()
+    norm_skels.sort()
+
+    # The folders should match in each directory
+
+    for f_reg in regrid_skels:
+        if f_reg not in norm_skels:
+            print regrid_skels
+            print norm_skels
+            raise Warning("Folder lists must match. Check inputted paths.")
+            break
+        else:
+            pass
+
+    images = [f+"/"+f+"_regrid_convolved.fits" for f in os.listdir(norm_path)
+              if os.path.isdir(os.path.join(norm_path, f))]
+
+    images.sort()
+
+    # Now create the images
+    for img, big_skel, norm_skel in zip(images, regrid_skels, norm_skels):
+
+        print "Image: {}".format(norm_path+img)
+        print "Regridded Skeleton: {}".format(regridded_path+big_skel)
+        print "Normal Skeleton: {}".format(norm_path+norm_skel)
+
+        overlap_skeletons(norm_path+img, regridded_path+big_skel,
+                          norm_path+norm_skel,
+                          save_name=img[:-5]+"_online_fig",
+                          output_file_type="png")
+
+        break
