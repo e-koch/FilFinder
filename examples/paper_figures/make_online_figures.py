@@ -14,7 +14,8 @@ p.ion()
 
 def overlap_skeletons(image, big_skel, norm_skel, aplpy_plot=True,
                       save_figure=True, save_name="skeletons",
-                      output_file_type="png", rasterized=True):
+                      output_file_type="png", rasterized=True,
+                      vmin=None, vmax=None):
     '''
     Make a nice aplpy plot of the different skeletons. The original image
     should be passed, and it will be expanded to match the dimensions of the
@@ -66,7 +67,8 @@ def overlap_skeletons(image, big_skel, norm_skel, aplpy_plot=True,
 
         fig = aplpy.FITSFigure(image_hdu)
 
-        fig.show_grayscale(invert=True, stretch="arcsinh")
+        fig.show_grayscale(invert=True, stretch="arcsinh", vmin=vmin,
+                           vmax=vmax)
 
         fig.tick_labels.set_xformat('hh:mm')
         fig.tick_labels.set_yformat('dd:mm')
@@ -83,7 +85,7 @@ def overlap_skeletons(image, big_skel, norm_skel, aplpy_plot=True,
 
         # NOTE! - rasterization will only work with my fork of aplpy!
         # git@github.com:e-koch/aplpy.git on branch 'rasterize_contours'
-        fig.show_contour(norm_skel_hdu, colors="red", linewidths=2,
+        fig.show_contour(norm_skel_hdu, colors="red", linewidths=1.5,
                          rasterize=True)
 
         fig.show_contour(big_skel_hdu, colors="blue", rasterize=True)
@@ -156,8 +158,10 @@ if __name__ == "__main__":
 
     images.sort()
 
+    vmins = [60, 15, 15, 18, 10, 15, 10, 25, 20, 25, 15, 22, 4, 10]
+
     # Now create the images
-    for img, big_skel, norm_skel in zip(images, regrid_skels, norm_skels):
+    for img, big_skel, norm_skel, vmin in zip(images, regrid_skels, norm_skels, vmins):
 
         print "Image: {}".format(norm_path+img)
         print "Regridded Skeleton: {}".format(regridded_path+big_skel)
@@ -166,6 +170,6 @@ if __name__ == "__main__":
         image_name = img.split("/")[-1]
 
         overlap_skeletons(norm_path+img, regridded_path+big_skel,
-                          norm_path+norm_skel,
+                          norm_path+norm_skel, save_figure=True,
                           save_name=image_name[:-5]+"_online_fig",
-                          output_file_type="pdf")
+                          output_file_type="pdf", vmin=vmin)
