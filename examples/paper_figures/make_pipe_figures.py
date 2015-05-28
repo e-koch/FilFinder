@@ -9,6 +9,8 @@ import matplotlib.pyplot as p
 from astropy.io import fits as fits
 from astropy.table import Table
 from scipy.ndimage import zoom
+from matplotlib.collections import Collection
+from matplotlib.artist import allow_rasterization
 
 
 # pipe_norm = Table.read("pipeCenterB59-250/pipeCenterB59-250_table.csv")
@@ -16,6 +18,33 @@ from scipy.ndimage import zoom
 
 from fil_finder import fil_finder_2D
 from astropy import convolution
+
+
+class ListCollection(Collection):
+    def __init__(self, collections, **kwargs):
+        Collection.__init__(self, **kwargs)
+        self.set_collections(collections)
+
+    def set_collections(self, collections):
+        self._collections = collections
+
+    def get_collections(self):
+        return self._collections
+
+    @allow_rasterization
+    def draw(self, renderer):
+        for _c in self._collections:
+            _c.draw(renderer)
+
+
+def insert_rasterized_contour_plot(c, ax):
+    collections = c.collections
+    for _c in collections:
+        _c.remove()
+    cc = ListCollection(collections, rasterized=True)
+    ax.add_artist(cc)
+    return cc
+
 
 img, hdr = fits.getdata('pipeCenterB59-350.fits', header=True)
 beam = 24.9
@@ -45,7 +74,7 @@ conv_img = conv_img * nan_pix
 
 filfind2 = fil_finder_2D(conv_img, hdr, conv*beam, glob_thresh=20,
                          distance=145.)
-filfind2.create_mask()#size_thresh=190)
+filfind2.create_mask()
 filfind2.medskel()
 filfind2.analyze_skeletons()
 filfind2.exec_rht()
@@ -69,7 +98,7 @@ regrid_conv_img = regrid_conv_img[:-1, :-1] * nan_pix
 
 filfind3 = fil_finder_2D(regrid_conv_img, hdr, conv*beam, glob_thresh=20,
                          distance=145.)
-filfind3.create_mask()#size_thresh=190)
+filfind3.create_mask()
 filfind3.medskel()
 filfind3.analyze_skeletons()
 filfind3.exec_rht()
@@ -77,18 +106,24 @@ filfind3.find_widths(verbose=False)
 
 # Show flattened image with contour.
 
-p.imshow(filfind.flat_img, interpolation='nearest', cmap='binary',
-         origin='lower', vmax=1.0)
-p.contour(filfind.skeleton, colors='g', label="Normal", linewidths=3)
-p.contour(filfind2.skeleton, colors='b', label='Convolved', linewidths=2)
-p.contour(filfind3.skeleton, colors='r', label='Regridded')
-p.plot(None, None, label='Normal', color='g', linewidth=6)
-p.plot(None, None, label='Convolved', color='b')
-p.plot(None, None, label='Regridded', color='r')
-p.legend(loc=2, prop={'size': 20})
-p.xticks([])
-p.yticks([])
-p.show()
+fig, ax = p.subplots(1)
+
+ax.imshow(filfind.flat_img, interpolation='nearest', cmap='binary',
+          origin='lower', vmax=1.0)
+norm = ax.contour(filfind.skeleton, colors='g', label="Normal", linewidths=3)
+conv = ax.contour(filfind2.skeleton, colors='b', label='Convolved',
+                  linewidths=2)
+reg = ax.contour(filfind3.skeleton, colors='r', label='Regridded')
+insert_rasterized_contour_plot(norm, ax)
+insert_rasterized_contour_plot(conv, ax)
+insert_rasterized_contour_plot(reg, ax)
+ax.plot(None, None, label='Normal', color='g', linewidth=6)
+ax.plot(None, None, label='Convolved', color='b')
+ax.plot(None, None, label='Regridded', color='r')
+ax.legend(loc=2, prop={'size': 20})
+ax.set_xticks([])
+ax.set_yticks([])
+fig.show()
 
 # Histograms plot
 
