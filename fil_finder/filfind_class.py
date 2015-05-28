@@ -174,7 +174,7 @@ class fil_finder_2D(object):
             self.imgscale = (hdr['CDELT2'] * (np.pi / 180.0) * distance)  # pc
             self.beamwidth = (
                 beamwidth / np.sqrt(8 * np.log(2.))) * \
-                (2 * np.pi / 206265.) * distance
+                (1 / 206265.) * distance
             self.pixel_unit_flag = False
 
         # Angular conversion (sr/pixel^2)
