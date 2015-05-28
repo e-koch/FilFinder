@@ -147,7 +147,7 @@ ax2.hist(norm_fwhm[np.isfinite(norm_fwhm)], bins=w_bins,
 ax2.hist(deg_fwhm[np.isfinite(deg_fwhm)], bins=w_bins,
        color="b", label="Convolved", histtype='step', linewidth=3)
 ax2.hist(reg_fwhm[np.isfinite(reg_fwhm)], bins=w_bins,
-       color="r", label="Regrid", histtype='step', linewidth=3)
+       color="r", label="Regridded", histtype='step', linewidth=3)
 ax2.set_xlabel("Width (pc)")
 
 # Length
@@ -165,7 +165,7 @@ ax1.hist(norm_length[np.isfinite(norm_fwhm)], bins=l_bins,
 ax1.hist(deg_length[np.isfinite(deg_fwhm)], bins=l_bins,
        color="b", label="Convolved", histtype='step', linewidth=3)
 ax1.hist(reg_length[np.isfinite(reg_fwhm)], bins=l_bins,
-       color="r", label="Regrid", histtype='step', linewidth=3)
+       color="r", label="Regridded", histtype='step', linewidth=3)
 ax1.set_xlabel("Lengths (pc)")
 ax1.legend()
 
@@ -182,7 +182,7 @@ ax3.hist(deg_orient[np.isfinite(deg_fwhm)], bins=o_bins,
 ax3.hist(norm_orient[np.isfinite(norm_fwhm)], bins=o_bins,
        color="g", label="Normal", histtype='step', linewidth=3)
 ax3.hist(reg_orient[np.isfinite(reg_fwhm)], bins=o_bins,
-       color="r", label="Regrid", histtype='step', linewidth=3)
+       color="r", label="Regridded", histtype='step', linewidth=3)
 ax3.set_xlim([-np.pi/2, np.pi/2])
 
 ax3.set_xlabel("Orientation")
@@ -200,7 +200,7 @@ ax4.hist(deg_curv[np.isfinite(deg_fwhm)], bins=curv_bins,
 ax4.hist(norm_curv[np.isfinite(norm_fwhm)], bins=curv_bins,
        color="g", label="Normal", histtype='step', linewidth=3)
 ax4.hist(reg_curv[np.isfinite(reg_fwhm)], bins=curv_bins,
-       color="r", label="Regrid", histtype='step', linewidth=3)
+       color="r", label="Regridded", histtype='step', linewidth=3)
 # ax4.set_xlim([0.4, 1.3])
 ax4.set_xlabel("Curvature")
 
