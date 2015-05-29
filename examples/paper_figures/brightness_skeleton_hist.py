@@ -255,12 +255,10 @@ if sfr_plot:
     p.grid(True)
     p.xlabel('log$_{10}$ Median of Filament Surface Brightness / (MJy/sr)')
     p.ylabel(r'$\Sigma_{{SFR}}$ (M$_{\odot}$ Myr$^{-1}$ pc$^{-2}$)')
-    p.xlim([0.55, 1.6])
+    p.xlim([0.5, 1.6])
     p.ylim([-0.1, 4.0])
 
     p.show()
-
-
 
 # Fil brightness vs. bkg ratios
 if sb_bkg_ratio:
