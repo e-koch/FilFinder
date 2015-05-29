@@ -354,7 +354,7 @@ class fil_finder_2D(object):
         # Remove small holes within the object
 
         if fill_hole_size is None:
-            fill_hole_size = round((self.beamwidth/self.imgscale)**2)
+            fill_hole_size = round(np.pi*(self.beamwidth/self.imgscale)**2)
 
         mask_objs, num, corners = \
             isolateregions(cleaned, fill_hole=True, rel_size=fill_hole_size,
@@ -458,7 +458,8 @@ class fil_finder_2D(object):
 
         return self
 
-    def analyze_skeletons(self, relintens_thresh=0.2, nbeam_lengths=3,
+    def analyze_skeletons(self, relintens_thresh=0.2, nbeam_lengths=5,
+                          branch_nbeam_lengths=3,
                           skel_thresh=None, branch_thresh=None,
                           verbose=False):
         '''
@@ -543,15 +544,15 @@ class fil_finder_2D(object):
 
         # Set the skeleton length threshold to some factor of the beam width
         if self.skel_thresh is None:
-            self.skel_thresh = \
-                round( self.beamwidth * nbeam_lengths / self.imgscale)
+            self.skel_thresh = round(0.3 / self.imgscale)
+                # round( self.beamwidth * nbeam_lengths / self.imgscale)
         elif skel_thresh is not None:
             self.skel_thresh = skel_thresh
 
         # Set the minimum branch length to be the beam size.
         if self.branch_thresh is None:
             self.branch_thresh = \
-                round( self.beamwidth / self.imgscale)
+                round(branch_nbeam_lengths * self.beamwidth / self.imgscale)
         elif branch_thresh is not None:
             self.branch_thresh = branch_thresh
 

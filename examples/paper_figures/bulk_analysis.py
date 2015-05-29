@@ -213,12 +213,15 @@ if triangle_plot:
             data = np.hstack([data, np.asarray([np.log10(widths[key][(widths[key] > 0.0)]), np.log10(amplitude[key][(widths[key] > 0.0)]),
                                                 np.log10(lengths[key][(widths[key] > 0.0)]), curvature[key][(widths[key] > 0.0)]])])
 
+    truths = np.array([-1.26, np.NaN, np.NaN, np.NaN])
+
         # Plot it.
     figure = triangle.corner(data.T, labels=["log$_{10}$(W/ pc)",
                                              "log$_{10}$($I$/ MJy/sr)",
                                              "log$_{10}$(L/ pc)", r"$\delta$$\theta$", "$\theta$"],
-                             quantiles=[0.50, 0.85, 0.995], bins=6,
-                             show_titles=False, title_args={"fontsize": 18})
+                             quantiles=[0.50, 0.85, 0.995], bins=7,
+                             show_titles=False, title_args={"fontsize": 18},
+                             truths=truths, truth_color='r')
     # figure.savefig('hgbs_scatter_hists.pdf', format='pdf', dpi=1000)
     p.show()
 

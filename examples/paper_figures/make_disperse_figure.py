@@ -51,7 +51,7 @@ fig.axis_labels.set_font(size='large', weight='medium', \
 fig.show_contour("chamaeleonI-350.fits_c12.up.NDskl.TRIM.S006.BRK.fits",
                  colors="red", linewidths=2, rasterize=True)
 
-fig.show_contour("/Volumes/RAIDers_of_the_lost_ark/HGBS/degrade_all/chamaeleonI-350/chamaeleonI-350_skeletons.fits",
+fig.show_contour("/Volumes/RAIDers_of_the_lost_ark/HGBS/degrade_all_regrid/chamaeleonI-350/chamaeleonI-350_skeletons.fits",
                  colors="blue", rasterize=True)
 
 fig.show_colorbar()

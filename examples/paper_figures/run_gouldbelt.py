@@ -46,7 +46,7 @@ def wrapper(filename, distance, beamwidth, offset, verbose=False):
                 # Avoid edge effects from smoothing
                 img = img * nan_pix
 
-                beamwidth *= conv
+                beamwidth *= r
 
     if regrid_to_common:
 
