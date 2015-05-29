@@ -33,9 +33,7 @@ p.imshow(widths_arr, origin='lower', cmap='binary', interpolation='nearest')
 p.xticks(np.arange(0, 14), [], rotation=90)
 p.yticks(np.arange(0, 14), widths.columns)
 
-p.annotate("a)", xy=(-0.5, 1), xytext=(-0.5, 1), va='top',
-           xycoords='axes fraction',
-           textcoords='offset points', fontsize=20)
+p.figtext(0.05, 0.95, "a)", fontsize=20)
 
 cb = p.colorbar()
 cb.set_label(r'$-\log_{10}$ p-value')
@@ -63,9 +61,7 @@ p.imshow(curve_arr, interpolation='nearest', origin='lower', cmap='binary')
 p.xticks(np.arange(0, 14), curve.columns, rotation=90)
 p.yticks(np.arange(0, 14), curve.columns)
 
-p.annotate("b)", xy=(-0.5, 1), xytext=(-0.5, 1), va='top',
-           xycoords='axes fraction',
-           textcoords='offset points', fontsize=20)
+p.figtext(0.05, 0.55, "b)", fontsize=20)
 
 cb = p.colorbar()
 cb.set_label(r'$-\log_{10}$ p-value')
