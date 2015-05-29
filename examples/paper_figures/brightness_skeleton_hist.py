@@ -192,13 +192,9 @@ for num, fol in enumerate(folders):
 if med_sb_plot:
 
     # Turn into list
-    list_all_pts = all_points.values()
-
-    list_all_points.reverse()
-
     p.subplot(111)
     p.xlim([-50, 125])
-    sn.violinplot(list_all_points,
+    sn.violinplot([all_points[key] for key in np.sort(labels.keys())[::-1]],
                   names=[labels[key] for key in np.sort(labels.keys())[::-1]],
                   color=sn.color_palette("GnBu_d"), vert=False)
     p.xlabel(r" $\log_{10}$ Surface Brightness (MJy/sr)")
