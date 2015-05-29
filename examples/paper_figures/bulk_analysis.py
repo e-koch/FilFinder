@@ -219,7 +219,7 @@ if triangle_plot:
     figure = triangle.corner(data.T, labels=["log$_{10}$(W/ pc)",
                                              "log$_{10}$($I$/ MJy/sr)",
                                              "log$_{10}$(L/ pc)", r"$\delta$$\theta$", "$\theta$"],
-                             quantiles=[0.50, 0.85, 0.995], bins=7,
+                             quantiles=[0.15, 0.50, 0.85, 0.995], bins=7,
                              show_titles=False, title_args={"fontsize": 18},
                              truths=truths, truth_color='r')
     # figure.savefig('hgbs_scatter_hists.pdf', format='pdf', dpi=1000)
@@ -340,22 +340,15 @@ if covering_frac:
     from pandas import DataFrame
     from astropy.io.fits import getdata
 
-    dist = [145., 175., 260., 400., 150., 170., 235.,
-            460., 400., 400., 450., 450., 450.]  # pc
-
-    ordered_labels = []
-    cf = np.empty((len(labels), ))
-    print widths.keys()
+    cf = dict.fromkeys(widths.keys())
     for i, name in enumerate(np.sort(widths.keys())):
         # Load the image in
-        img, head = getdata("../" + name + ".fits", header=True)
-        img = img + offsets[name]
+        img = getdata(name + "/" + name + "_regrid_convolved.fits")
         model = getdata(name + "/" + name + "_filament_model.fits")
-        cf[i] = np.nansum(model) / np.nansum(img)
-        ordered_labels.append(labels[name])
-    df = DataFrame(cf, index=ordered_labels, columns=["Covering Fraction"])
+        cf[name] = np.nansum(model) / np.nansum(img)
+    df = DataFrame(cf.values(), index=cf.keys(), columns=["Covering Fraction"])
+    df = df.sort()
     print(df)
-    # df.to_latex("covering_fracs.tex")
     df.to_csv("covering_fracs.csv")
 
 if bran_len:
