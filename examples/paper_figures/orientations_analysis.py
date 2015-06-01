@@ -6,7 +6,7 @@ Examine the orientation distributions of the Gould Belt data
 
 import numpy as np
 from scipy.stats import gaussian_kde
-from pandas import read_csv
+from pandas import read_csv, DataFrame
 import matplotlib.pyplot as p
 import os
 
@@ -18,13 +18,31 @@ def make_kde(y):
     cont_data = np.append(y + np.pi, cont_data)
 
     kde = gaussian_kde(cont_data)
-    kde.covariance_factor = lambda : .05
+    kde.covariance_factor = lambda: .05
     kde._compute_covariance()
     return kde
 
 
-files = [f for f in os.listdir(".") if os.path.isfile(f) and f[-3:] == "csv"
-         and f[3:] != "deg"]
+labels = {"pipeCenterB59-350": "Pipe",
+          "polaris-350": "Polaris",
+          "ic5146-350": "IC-5146",
+          "orionA-S-350": "Orion-A South",
+          "lupusI-350": "Lupus",
+          "orionB-350": "Orion-B",
+          "taurusN3-350": "Taurus",
+          "aquilaM2-350": "Aquila",
+          "orionA-C-350": "Orion-A Center",
+          "perseus04-350": "Perseus",
+          "california_cntr-350": "California Center",
+          "california_east-350": "California East",
+          "california_west-350": "California West",
+          "chamaeleonI-350": "Chamaeleon"}
+
+# files = [f for f in os.listdir(".") if os.path.isfile(f) and f[-3:] == "csv"
+#          and f[3:] != "deg"]
+
+files = [f+"/"+f+"_rht_branches.csv" for f in os.listdir(".")
+         if os.path.isdir(f)]
 
 x = np.linspace(-np.pi/2, np.pi/2, 1000)
 cols = ["k-", "b-", "g-", "r-", "c-", "m-",
@@ -43,12 +61,12 @@ for i, (f, col) in enumerate(zip(np.sort(keepers.keys()), cols)):
     print f
     t = read_csv(f)
 
-    kde = make_kde(t["Median"])
     lengths = np.asarray(t["Length"][np.isfinite(t["Intensity"])])
     med = np.asarray(t["Median"][np.isfinite(t["Intensity"])])
-    med = med[lengths > 5]
+    med = med[lengths > 10]
     intens = np.asarray(t["Intensity"][np.isfinite(t["Intensity"])])
-    intens = intens[lengths > 5]
+    intens = intens[lengths > 10]
+    kde = make_kde(med)
 
     ax = p.subplot(3, 2, i+1)
     p.title(keepers[f], fontsize=15)
@@ -68,5 +86,50 @@ for i, (f, col) in enumerate(zip(np.sort(keepers.keys()), cols)):
 p.show()
 
 
-# p.legend()
-# p.show()
+# Examine the curvature distributions
+
+def ks_table(param_dict):
+    '''
+    '''
+
+    from scipy.stats import ks_2samp
+
+    pvals = np.zeros((len(param_dict.keys()), len(param_dict.keys())))
+    stats = np.zeros((len(param_dict.keys()), len(param_dict.keys())))
+
+    for i, key in enumerate(np.sort(param_dict.keys())[::-1]):
+        print key
+        for j, key2 in enumerate(np.sort(param_dict.keys())[::-1]):
+            if i == j:
+                pvals[i, j] = 0
+                stats[i, j] = 0
+            else:
+                values = ks_2samp(param_dict[key], param_dict[key2])
+                pvals[i, j] = values[1]
+                stats[i, j] = values[0]
+
+    return stats, pvals
+
+
+curvature = {}
+
+for fil in files:
+
+    t = read_csv(fil)
+    key = fil.split("/")[0]
+    curvature[key] = np.asarray(t['IQR'][t['Length'] > 10])
+
+    # print key
+    # p.hist(curvature[key], bins=50)
+    # p.show()
+
+ordered_labels = []
+for key in np.sort(curvature.keys())[::-1]:
+    ordered_labels.append(labels[key])
+
+curv_kstest = ks_table(curvature)
+
+curv_df = DataFrame(curv_kstest[1], index=ordered_labels,
+                    columns=ordered_labels)
+
+curv_df.to_csv('curvature_branches_ks_table_pvals.csv')
