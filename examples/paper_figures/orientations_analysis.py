@@ -38,6 +38,21 @@ labels = {"pipeCenterB59-350": "Pipe",
           "california_west-350": "California West",
           "chamaeleonI-350": "Chamaeleon"}
 
+dists = {"pipeCenterB59-350": 145.,
+         "polaris-350": 150.,
+         "ic5146-350": 460.,
+         "orionA-S-350": 400.,
+         "lupusI-350": 150.,
+         "orionB-350": 400.,
+         "taurusN3-350": 140.,
+         "aquilaM2-350": 260.,
+         "orionA-C-350": 400.,
+         "perseus04-350": 235.,
+         "california_cntr-350": 450.,
+         "california_east-350": 450.,
+         "california_west-350": 450.,
+         "chamaeleonI-350": 170.}
+
 # files = [f for f in os.listdir(".") if os.path.isfile(f) and f[-3:] == "csv"
 #          and f[3:] != "deg"]
 
@@ -104,7 +119,19 @@ def ks_table(param_dict):
                 pvals[i, j] = 0
                 stats[i, j] = 0
             else:
-                values = ks_2samp(param_dict[key], param_dict[key2])
+                shape1 = param_dict[key].shape[0]
+                shape2 = param_dict[key2].shape[0]
+
+                samps1 = param_dict[key]
+                samps2 = param_dict[key2]
+
+                if shape1 != shape2:
+                    if shape1 > shape2:
+                        samps1 = np.random.choice(samps1, shape2)
+                    else:
+                        samps2 = np.random.choice(samps2, shape1)
+
+                values = ks_2samp(samps1, samps2)
                 pvals[i, j] = values[1]
                 stats[i, j] = values[0]
 
@@ -117,7 +144,7 @@ for fil in files:
 
     t = read_csv(fil)
     key = fil.split("/")[0]
-    curvature[key] = np.asarray(t['IQR'])#[t['Length'] > 10])
+    curvature[key] = np.asarray(t['IQR'])
 
     # print key
     # p.hist(curvature[key], bins=50)
