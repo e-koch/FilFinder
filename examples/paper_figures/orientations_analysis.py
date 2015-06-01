@@ -117,7 +117,7 @@ for fil in files:
 
     t = read_csv(fil)
     key = fil.split("/")[0]
-    curvature[key] = np.asarray(t['IQR'][t['Length'] > 10])
+    curvature[key] = np.asarray(t['IQR'])#[t['Length'] > 10])
 
     # print key
     # p.hist(curvature[key], bins=50)
