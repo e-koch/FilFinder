@@ -38,12 +38,12 @@ p.figtext(0.05, 0.95, "a)", fontsize=20)
 cb = p.colorbar()
 cb.set_label(r'$-\log_{10}$ p-value')
 cb.solids.set_edgecolor("face")
-# p.tight_layout()
+p.tight_layout()
 
-# p.show()
+p.show()
 # Curvature
 
-curve = read_csv("curvature_ks_table_pvals.csv")
+curve = read_csv("curvature_branches_ks_table_pvals.csv")
 
 curve.index = curve["Unnamed: 0"]
 del curve["Unnamed: 0"]
