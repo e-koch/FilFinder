@@ -229,7 +229,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'fil_finder', u'fil_finder Documentation',
+    ('index', 'fil_finder', u'FilFinder Documentation',
      [u'Eric Koch & Erik Rosolowsky'], 1)
 ]
 
