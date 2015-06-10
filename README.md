@@ -1,6 +1,8 @@
 FilFinder
 =========
 
+[![DOI](https://zenodo.org/badge/9172/e-koch/FilFinder.svg)](http://dx.doi.org/10.5281/zenodo.18463)
+
 [![Documentation Status](https://readthedocs.org/projects/fil-finder/badge/?version=latest)](https://readthedocs.org/projects/fil-finder/?badge=latest)
 
 See tutorial here! [fil_finder Tutorial](http://nbviewer.ipython.org/github/e-koch/FilFinder/blob/master/examples/fil_finder%20Tutorial.ipynb)
