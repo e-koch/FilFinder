@@ -262,5 +262,10 @@ if sfr_plot:
 
 # Fil brightness vs. bkg ratios
 if sb_bkg_ratio:
-    for key in ratios.keys():
-        print key, np.percentile(ratios[key], [50, 85, 99.5])
+    percents = np.empty((len(ratios), 4))
+
+    for i, key in enumerate(np.sort(ratios.keys())):
+        percents[i, :] = np.percentile(ratios[key], [15, 50, 85, 99.5])
+        print key, percents[i, :]
+
+    print np.mean(percents, axis=0)
