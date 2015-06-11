@@ -5,7 +5,9 @@ FilFinder
 
 [![Documentation Status](https://readthedocs.org/projects/fil-finder/badge/?version=latest)](https://readthedocs.org/projects/fil-finder/?badge=latest)
 
-See tutorial here! [fil_finder Tutorial](http://nbviewer.ipython.org/github/e-koch/FilFinder/blob/master/examples/fil_finder%20Tutorial.ipynb)
+**See tutorial here! [fil_finder Tutorial](http://nbviewer.ipython.org/github/e-koch/FilFinder/blob/master/examples/fil_finder%20Tutorial.ipynb)**
+
+**Check out our gallery page: [FilFinder Gallery](http://e-koch.github.io/FilFinder_Results/)**
 
 Brief Description
 -----------------
@@ -26,6 +28,7 @@ This method returns the direction of the filament on the plane (median of the RH
 
 Example Images
 --------------
+**Want to see more results and examples? Check out our gallery page: [FilFinder Gallery](http://e-koch.github.io/FilFinder_Results/)**
 
 Data shown below is from the Herschel Gould Belt Survey (Andre et al. 2010).
 
