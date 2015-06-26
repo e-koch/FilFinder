@@ -3,9 +3,13 @@
 import numpy as np
 from scipy.stats import nanmean, nanmedian, nanstd
 from astropy.table import Table
-import aplpy
 from matplotlib.ticker import MaxNLocator
 import matplotlib.pyplot as p
+
+try:
+  import aplpy
+except ImportError:
+  print("aplpy could not be imported.")
 
 class Analysis(object):
     """
