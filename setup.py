@@ -7,59 +7,73 @@ use_setuptools()
 
 from setuptools import setup, find_packages
 from pkg_resources import parse_version
+from setuptools.command.build_ext import build_ext as _build_ext
 
+class build_ext(_build_ext):
+    def finalize_options(self):
+        _build_ext.finalize_options(self)
+        # Prevent numpy from thinking it is still in its setup process:
+        __builtins__.__NUMPY_SETUP__ = False
+        import numpy
+        self.include_dirs.append(numpy.get_include())
 
-def check_dependencies():
+class check_deps(_build_ext):
+    """docstring for check_deps"""
+    def finalize_options(self):
+        _build_ext.finalize_options(self)
+        self.check_dependencies()
 
-    try:
-        import matplotlib
-        mpl_version = matplotlib.__version__
-        if parse_version(mpl_version) < parse_version('1.2'):
-            print("***Before installing, upgrade matplotlib to 1.2***")
-            raise ImportError
-    except:
-        raise ImportError(
-            "Install or upgrade matplotlib before installing fil_finder.")
+    def check_dependencies(self):
 
-    try:
-        from numpy.version import version as np_version
-        if parse_version(np_version) < parse_version('1.7'):
-            print("***Before installing, upgrade numpy to 1.7***")
-            raise ImportError
-    except:
-        raise ImportError(
-            "Install or upgrade numpy before installing fil_finder.")
+        try:
+            from numpy.version import version as np_version
+            if parse_version(np_version) < parse_version('1.7'):
+                print("***Before installing, upgrade numpy to 1.7***")
+                raise ImportError
+        except:
+            raise ImportError(
+                "Install or upgrade numpy before installing fil_finder.")
 
-    try:
-        from scipy.version import version as sc_version
-        if parse_version(sc_version) < parse_version('0.12'):
-            print("***Before installing, upgrade scipy to 0.12***")
-            raise ImportError
-    except:
-        raise ImportError(
-            "Install or upgrade scipy before installing fil_finder.")
+        try:
+            from scipy.version import version as sc_version
+            if parse_version(sc_version) < parse_version('0.12'):
+                print("***Before installing, upgrade scipy to 0.12***")
+                raise ImportError
+        except:
+            raise ImportError(
+                "Install or upgrade scipy before installing fil_finder.")
 
-    try:
-        from astropy.version import version as ast_version
-        if parse_version(ast_version[:3]) < parse_version('0.2'):
-            print(("""***Before installing, upgrade astropy to 0.2.
-                    NOTE: This is the dev version as of 17/06/14.***"""))
-            raise ImportError("")
-    except:
-        raise ImportError(
-            "Install or upgrade astropy before installing fil_finder.")
+        try:
+            import matplotlib
+            mpl_version = matplotlib.__version__
+            if parse_version(mpl_version) < parse_version('1.2'):
+                print("***Before installing, upgrade matplotlib to 1.2***")
+                raise ImportError
+        except:
+            raise ImportError(
+                "Install or upgrade matplotlib before installing fil_finder.")
 
-    try:
-        from networkx.version import version as nx_version
-    except:
-        raise ImportError(
-            "Install networkx before installing fil_finder.")
+        try:
+            from astropy.version import version as ast_version
+            if parse_version(ast_version[:3]) < parse_version('0.2'):
+                print(("""***Before installing, upgrade astropy to 0.2.
+                        NOTE: This is the dev version as of 17/06/14.***"""))
+                raise ImportError("")
+        except:
+            raise ImportError(
+                "Install or upgrade astropy before installing fil_finder.")
 
-    try:
-        import skimage
-    except:
-        raise ImportError(
-            "Install or upgrade skimage before installing fil_finder.")
+        try:
+            from networkx.version import version as nx_version
+        except:
+            raise ImportError(
+                "Install networkx before installing fil_finder.")
+
+        try:
+            import skimage
+        except:
+            raise ImportError(
+                "Install or upgrade skimage before installing fil_finder.")
 
 if __name__ == "__main__":
 
@@ -72,11 +86,8 @@ if __name__ == "__main__":
           author_email='koch.eric.w@gmail.com',
           url='http://github.com/e-koch/fil_finder',
           packages=['fil_finder'],
-          requires=['numpy','astropy','scipy','skimage','networkx', 'matplotlib'],
-          # setup_requires=['numpy>=1.7'],
-          # install_requires=['matplotlib>=1.2',
-          #                   'astropy>=0.2',
-          #                   'networkx',
-          #                   'scikit-image',
-          #                   'scipy>=0.13']
+          # requires=['numpy','astropy','scipy','skimage','networkx', 'matplotlib'],
+          cmdclass={'check_deps': check_deps},
+          setup_requires=[],
+          install_requires=[]
          )
