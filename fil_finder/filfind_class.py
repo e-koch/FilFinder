@@ -13,7 +13,7 @@ import matplotlib.pyplot as p
 import scipy.ndimage as nd
 from scipy.stats import lognorm
 from scipy.ndimage import distance_transform_edt
-from skimage.filter import threshold_adaptive
+from skimage.filters import threshold_adaptive
 from skimage.morphology import remove_small_objects, medial_axis
 from scipy.stats import scoreatpercentile
 from astropy.io import fits
