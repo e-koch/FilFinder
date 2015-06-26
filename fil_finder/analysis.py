@@ -9,7 +9,7 @@ import matplotlib.pyplot as p
 try:
   import aplpy
 except ImportError:
-  print("aplpy could not be imported.")
+  print("Optional package aplpy could not be imported.")
 
 class Analysis(object):
     """
