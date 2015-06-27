@@ -25,7 +25,7 @@ class install(SetuptoolsInstall):
     boolean_options = SetuptoolsInstall.boolean_options[:]
 
     def finalize_options(self):
-        check_dependencies()
+        # check_dependencies()
         SetuptoolsInstall.finalize_options(self)
 
 class check_deps(_build_ext):
