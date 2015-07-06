@@ -110,20 +110,24 @@ fig, ax = p.subplots(1)
 
 ax.imshow(filfind.flat_img, interpolation='nearest', cmap='binary',
           origin='lower', vmax=1.0)
-norm = ax.contour(filfind.skeleton, colors='g', label="Normal", linewidths=3)
+norm = ax.contour(filfind.skeleton, colors='g', label="Normal", linewidths=3,
+                  linestyles='-')
 conv = ax.contour(filfind2.skeleton, colors='b', label='Convolved',
-                  linewidths=2)
-reg = ax.contour(filfind3.skeleton, colors='r', label='Regridded')
+                  linewidths=1.5, linestyles='--')
+reg = ax.contour(filfind3.skeleton, colors='r', label='Regridded',
+                 linestyles=':')
 insert_rasterized_contour_plot(norm, ax)
 insert_rasterized_contour_plot(conv, ax)
 insert_rasterized_contour_plot(reg, ax)
-ax.plot(None, None, label='Normal', color='g', linewidth=6)
-ax.plot(None, None, label='Convolved', color='b')
-ax.plot(None, None, label='Regridded', color='r')
+ax.plot(None, None, label='Normal', color='g', linewidth=6, linestyle="-")
+ax.plot(None, None, label='Convolved', color='b', linestyle="--")
+ax.plot(None, None, label='Regridded', color='r', linestyle=":")
 ax.legend(loc=2, prop={'size': 20})
 ax.set_xticks([])
 ax.set_yticks([])
 fig.show()
+
+raw_input("BLARG: ")
 
 # Histograms plot
 
@@ -143,11 +147,14 @@ w_bins = np.linspace(w_min, w_max, 7)
 w_bins = np.insert(w_bins, 1, 0.01)
 
 ax2.hist(norm_fwhm[np.isfinite(norm_fwhm)], bins=w_bins,
-       color="g", label="Normal", histtype='step', linewidth=3)
+       color="g", label="Normal", histtype='step', linewidth=3,
+       linestyle='solid')
 ax2.hist(deg_fwhm[np.isfinite(deg_fwhm)], bins=w_bins,
-       color="b", label="Convolved", histtype='step', linewidth=3)
+       color="b", label="Convolved", histtype='step', linewidth=3,
+       linestyle='dashed')
 ax2.hist(reg_fwhm[np.isfinite(reg_fwhm)], bins=w_bins,
-       color="r", label="Regridded", histtype='step', linewidth=3)
+       color="r", label="Regridded", histtype='step', linewidth=3,
+       linestyle='dotted')
 ax2.set_xlabel("Width (pc)")
 
 # Length
@@ -161,11 +168,14 @@ l_min = np.min([np.nanmin(norm_length), np.nanmin(deg_length), np.nanmin(reg_len
 l_bins = np.linspace(l_min, l_max, 7)
 
 ax1.hist(norm_length[np.isfinite(norm_fwhm)], bins=l_bins,
-       color="g", label="Normal", histtype='step', linewidth=3)
+       color="g", label="Normal", histtype='step', linewidth=3,
+       linestyle='solid')
 ax1.hist(deg_length[np.isfinite(deg_fwhm)], bins=l_bins,
-       color="b", label="Convolved", histtype='step', linewidth=3)
+       color="b", label="Convolved", histtype='step', linewidth=3,
+       linestyle='dashed')
 ax1.hist(reg_length[np.isfinite(reg_fwhm)], bins=l_bins,
-       color="r", label="Regridded", histtype='step', linewidth=3)
+       color="r", label="Regridded", histtype='step', linewidth=3,
+       linestyle='dotted')
 ax1.set_xlabel("Lengths (pc)")
 ax1.legend()
 
@@ -178,11 +188,14 @@ reg_orient = np.asarray(filfind3.rht_curvature['Median'])
 o_bins = np.linspace(-np.pi/2, np.pi/2, 7)
 
 ax3.hist(deg_orient[np.isfinite(deg_fwhm)], bins=o_bins,
-       color="b", label="Convolved", histtype='step', linewidth=3)
+       color="b", label="Convolved", histtype='step', linewidth=3,
+       linestyle='dashed')
 ax3.hist(norm_orient[np.isfinite(norm_fwhm)], bins=o_bins,
-       color="g", label="Normal", histtype='step', linewidth=3)
+       color="g", label="Normal", histtype='step', linewidth=3,
+       linestyle='solid')
 ax3.hist(reg_orient[np.isfinite(reg_fwhm)], bins=o_bins,
-       color="r", label="Regridded", histtype='step', linewidth=3)
+       color="r", label="Regridded", histtype='step', linewidth=3,
+       linestyle='dotted')
 ax3.set_xlim([-np.pi/2, np.pi/2])
 
 ax3.set_xlabel("Orientation")
@@ -196,11 +209,14 @@ curv_min = np.min([np.nanmin(norm_curv), np.nanmin(deg_curv), np.nanmin(reg_curv
 curv_bins = np.linspace(curv_min, curv_max, 7)
 
 ax4.hist(deg_curv[np.isfinite(deg_fwhm)], bins=curv_bins,
-       color="b", label="Convolved", histtype='step', linewidth=3)
+       color="b", label="Convolved", histtype='step', linewidth=3,
+       linestyle='dashed')
 ax4.hist(norm_curv[np.isfinite(norm_fwhm)], bins=curv_bins,
-       color="g", label="Normal", histtype='step', linewidth=3)
+       color="g", label="Normal", histtype='step', linewidth=3,
+       linestyle='solid')
 ax4.hist(reg_curv[np.isfinite(reg_fwhm)], bins=curv_bins,
-       color="r", label="Regridded", histtype='step', linewidth=3)
+       color="r", label="Regridded", histtype='step', linewidth=3,
+       linestyle='dotted')
 # ax4.set_xlim([0.4, 1.3])
 ax4.set_xlabel("Curvature")
 
