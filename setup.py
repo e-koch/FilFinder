@@ -83,8 +83,6 @@ def check_dependencies():
 
 if __name__ == "__main__":
 
-    # check_dependencies()
-
     setup(name='FilFinder',
           version='1.0',
           description='Python package for analysis of filamentary structure in molecular clouds.',
