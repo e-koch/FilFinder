@@ -92,8 +92,7 @@ if __name__ == "__main__":
           author_email='koch.eric.w@gmail.com',
           url='http://github.com/e-koch/fil_finder',
           packages=['fil_finder'],
-          # requires=['numpy','astropy','scipy','skimage','networkx', 'matplotlib'],
-          cmdclass={'install': install, 'check_deps': check_deps},
+          cmdclass={'check_deps': check_deps},
           setup_requires=[],
           install_requires=[]
          )
