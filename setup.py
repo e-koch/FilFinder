@@ -9,27 +9,8 @@ from setuptools import setup, find_packages
 from pkg_resources import parse_version
 from setuptools.command.build_ext import build_ext as _build_ext
 
-class build_ext(_build_ext):
-    def finalize_options(self):
-        _build_ext.finalize_options(self)
-        # Prevent numpy from thinking it is still in its setup process:
-        __builtins__.__NUMPY_SETUP__ = False
-        import numpy
-        self.include_dirs.append(numpy.get_include())
-
-from setuptools.command.install import install as SetuptoolsInstall
-
-
-class install(SetuptoolsInstall):
-    user_options = SetuptoolsInstall.user_options[:]
-    boolean_options = SetuptoolsInstall.boolean_options[:]
-
-    def finalize_options(self):
-        # check_dependencies()
-        SetuptoolsInstall.finalize_options(self)
-
 class check_deps(_build_ext):
-    """docstring for check_deps"""
+    """Check if package dependencies are installed."""
     def finalize_options(self):
         _build_ext.finalize_options(self)
         check_dependencies()
