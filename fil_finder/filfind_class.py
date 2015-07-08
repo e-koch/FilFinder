@@ -360,7 +360,7 @@ class fil_finder_2D(object):
         # Remove small holes within the object
 
         if fill_hole_size is None:
-            fill_hole_size = round(np.pi*(self.beamwidth/self.imgscale)**2)
+            fill_hole_size = np.pi*(self.beamwidth/self.imgscale)**2
 
         mask_objs, num, corners = \
             isolateregions(cleaned, fill_hole=True, rel_size=fill_hole_size,
