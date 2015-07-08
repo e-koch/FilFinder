@@ -47,19 +47,25 @@ class fil_finder_2D(object):
     beamwidth : float
         The FWHM beamwidth (in arcseconds) of the instrument used to
         take the data.
-    skel_thresh : float
-        Below this cut off, skeletons with less pixels will be deleted
-    branch_thresh : float
+    skel_thresh : float, optional
+        Given in pixel units.Below this cut off, skeletons with less pixels
+        will be deleted. The default value is 0.3 pc converted to pixels.
+    branch_thresh : float, optional
         Any branches shorter than this length (in pixels) will be labeled as
-        extraneous and pruned off.
-    pad_size :  int
+        extraneous and pruned off. The default value is 3 times the FWHM
+        beamwidth.
+    pad_size :  int, optional
         The size of the pad (in pixels) used to pad the individual
-        filament arrays.
-        This is necessary to build the radial intensity profile.
-    flatten_thresh : int
-        The percentile of the data used in the normalization of the arctan
-        transform. If the data contains regions of a much higher intensity
-        than the mean, it is recommended this be set >95 percentile.
+        filament arrays. The default is set to 10 pixels. The amount of
+        padding can effect extent of the radial intensity profile as well
+        as ensuring that useful data is not cut off during adaptive
+        thresholding.
+    flatten_thresh : int, optional
+        The percentile of the data (0-100) to set the normalization of the arctan
+        transform. By default, a log-normal distribution is fit and the
+        threshold is set to :math:`\mu + 2\sigma`. If the data contains regions
+        of a much higher intensity than the mean, it is recommended this
+        be set >95 percentile.
     smooth_size : int, optional
         The patch size (in pixels) used to smooth the flatten image before
         adaptive thresholding is performed. Smoothing is necessary to ensure
@@ -74,8 +80,8 @@ class fil_finder_2D(object):
         expected for a filament. Any region smaller than this threshold may be
         safely labeled as an artifact of the thresholding.
     glob_thresh : float, optional
-        This is the percentile to cut off searching for filamentary structure.
-        Any regions with intensities below this percentile are ignored.
+        This is the percentile of the data to mask off. All intensities below
+        are cut off from being included in the filamentary structure.
     adapt_thresh : int, optional
         This is the size of the patch used in the adaptive thresholding.
         Bright structure is not very sensitive to the choice of patch size,
