@@ -198,7 +198,8 @@ class fil_finder_2D(object):
     def create_mask(self, glob_thresh=None, adapt_thresh=None,
                     smooth_size=None, size_thresh=None, verbose=False,
                     test_mode=False, regrid=True, border_masking=True,
-                    zero_border=False, fill_hole_size=None):
+                    zero_border=False, fill_hole_size=None,
+                    use_existing_mask=False):
         '''
 
         This runs the complete segmentation process and returns a mask of the
@@ -243,6 +244,9 @@ class fil_finder_2D(object):
             maximum is that proportion of the total number of pixels in
             skeleton. Otherwise, it sets the maximum number of pixels.
             Defaults to a square area with length of the beamwidth.
+        use_existing_mask : bool, optional
+            If ```self.mask``` is already specified, enabling this skips
+            recomputing the mask.
 
         Returns
         -------
@@ -251,7 +255,7 @@ class fil_finder_2D(object):
 
         '''
 
-        if self.mask is not None:
+        if self.mask is not None and not use_existing_mask:
             warnings.warn("Using inputted mask. Skipping creation of a new mask.")
             return self  # Skip if pre-made mask given
 
