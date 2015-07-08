@@ -255,7 +255,7 @@ class fil_finder_2D(object):
 
         '''
 
-        if self.mask is not None and not use_existing_mask:
+        if self.mask is not None and use_existing_mask:
             warnings.warn("Using inputted mask. Skipping creation of a new mask.")
             return self  # Skip if pre-made mask given
 
