@@ -378,34 +378,35 @@ class fil_finder_2D(object):
         self.image[np.where((self.mask * self.image) < 0.0)] = 0
 
         if test_mode:
-            # p.subplot(3,3,1)
-            p.imshow(np.log10(self.image), origin="lower", interpolation=None)
+            p.imshow(np.log10(self.image), origin="lower", interpolation=None,
+                     cmap='binary')
             p.colorbar()
             p.show()
-            # p.subplot(3,3,2)
-            p.imshow(masking_img, origin="lower", interpolation=None)
+            p.imshow(masking_img, origin="lower", interpolation=None,
+                     cmap='binary')
             p.colorbar()
             p.show()
-            # p.subplot(3,3,3)
-            p.imshow(smooth_img, origin="lower", interpolation=None)
+            p.imshow(smooth_img, origin="lower", interpolation=None,
+                     cmap='binary')
             p.colorbar()
             p.show()
-            # p.subplot(3,3,4)
-            p.imshow(adapt, origin="lower", interpolation=None)
+            p.imshow(adapt, origin="lower", interpolation=None,
+                     cmap='binary')
             p.show()
-            # p.subplot(3,3,5)
-            p.imshow(opening, origin="lower", interpolation=None)
+            p.imshow(opening, origin="lower", interpolation=None,
+                     cmap='binary')
             p.show()
-            # p.subplot(3,3,6)
-            p.imshow(cleaned, origin="lower", interpolation=None)
+            p.imshow(cleaned, origin="lower", interpolation=None,
+                     cmap='binary')
             p.show()
-            # p.subplot(3,3,7)
-            p.imshow(self.mask, origin="lower", interpolation=None)
+            p.imshow(self.mask, origin="lower", interpolation=None,
+                     cmap='binary')
             p.show()
 
         if verbose:
-            p.imshow(self.flat_img, interpolation=None, origin="lower")
-            p.contour(self.mask, colors="k")
+            p.imshow(self.flat_img, interpolation=None, origin="lower",
+                     cmap='binary')
+            p.contour(self.mask, colors="r")
             p.title("Mask on Flattened Image.")
             p.show()
 
@@ -462,8 +463,9 @@ class fil_finder_2D(object):
             self.medial_axis_skeleton = None
 
         if verbose:  # For examining results of skeleton
-            p.imshow(self.flat_img, interpolation=None, origin="lower")
-            p.contour(self.skeleton, colors="k")
+            p.imshow(self.flat_img, interpolation=None, origin="lower",
+                     cmap='binary')
+            p.contour(self.skeleton, colors="r")
             p.show()
 
         return self
@@ -920,11 +922,12 @@ class fil_finder_2D(object):
                 shape = (xhigh - xlow, yhigh - ylow)
                 p.contour(self.filament_arrays["final"][n]
                           [self.pad_size:shape[0] - self.pad_size,
-                           self.pad_size:shape[1] - self.pad_size], colors="k")
+                           self.pad_size:shape[1] - self.pad_size], colors="r")
                 img_slice = self.image[xlow + self.pad_size:xhigh - self.pad_size,
                                        ylow + self.pad_size:yhigh - self.pad_size]
                 vmin = scoreatpercentile(img_slice[np.isfinite(img_slice)], 10)
-                p.imshow(img_slice, interpolation=None, vmin=vmin, origin='lower')
+                p.imshow(img_slice, interpolation=None, vmin=vmin, origin='lower',
+                         cmap='binary')
                 p.colorbar()
                 p.show()
 
@@ -1034,7 +1037,7 @@ class fil_finder_2D(object):
             Passed to :method:`filament_model`
         '''
 
-        fil_model = self.filament_model(max_radius=25)
+        fil_model = self.filament_model(max_radius=max_radius)
 
         self.covering_fraction = np.nansum(fil_model) / np.nansum(self.image)
 
@@ -1301,13 +1304,13 @@ class fil_finder_2D(object):
 
         Parameters
         ----------
-        verbose : bool
+        verbose : bool, optional
             Enables the verbose option for each of the steps.
-        save_plots : bool
-            Enables the saving of the output plots.
-        save_name : str
+        save_name : str, optional
             The prefix for the saved file.
             If None, the name from the header is used.
+        save_plots : bool, optional
+            Enables the saving of the output plots.
 
         '''
 
@@ -1332,8 +1335,8 @@ class fil_finder_2D(object):
         if verbose:
             self.__str__()
 
-        if save_plots:
-            Analysis(self.dataframe, save_name=save_name).make_hists()
+        # if save_plots:
+            # Analysis(self.dataframe, save_name=save_name).make_hists()
             # ImageAnalysis(self.image, self.mask, skeleton=self.skeleton, save_name=save_name)
 
         return self
