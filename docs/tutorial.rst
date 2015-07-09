@@ -55,35 +55,35 @@ from other sources. A full explanation can be found in `the
 docs <http://fil-finder.readthedocs.org/en/latest/fil_finder_2d.html>`__
 and a shortened version of some of the parameters is given here:
 * ``skel_thresh`` - a threshold (given in pixel units) for the minimum
-pixels a skeleton must contain to be considered (default 0.3 pc)
+  pixels a skeleton must contain to be considered (default 0.3 pc)
 * ``branch_thresh`` - the minimum length (in pixels) that a branch should
-have (default 3 :math:`\times` FWHM beamwidth). This sets one of the
-skeleton pruning criteria. If the intensity along it is significant to
-the filament, or if its deletion will change the graph connectivity, it
-will still be kept.
+  have (default 3 :math:`\times` FWHM beamwidth). This sets one of the
+  skeleton pruning criteria. If the intensity along it is significant to
+  the filament, or if its deletion will change the graph connectivity, it
+  will still be kept.
 * ``size_thresh`` - the minimum pixel area a region
-in the mask should have to be considered a real feature (default
-:math:`5\pi (0.1\mathrm{pc})^2)`. Previous usage of the algorithm has
-shown the real features tend to be a part of a network and will have
-large areas that deviate greatly from the elliptical areas. **This
-parameter likely needs to be altered from the default!**
+  in the mask should have to be considered a real feature (default
+  :math:`5\pi (0.1\mathrm{pc})^2)`. Previous usage of the algorithm has
+  shown the real features tend to be a part of a network and will have
+  large areas that deviate greatly from the elliptical areas. **This
+  parameter likely needs to be altered from the default!**
 * ``pad_size`` - number of pixels to pad around each filament (default 10 pixels). This
-serves 2 purposes: to provide padding along the edges of the image while
-performing adaptive thresholding and to increase the maximum extent of
-the radial profiles for each of the filaments. If the size of the
-adaptive thresholding patch is large, this may need to be increased.
+  serves 2 purposes: to provide padding along the edges of the image while
+  performing adaptive thresholding and to increase the maximum extent of
+  the radial profiles for each of the filaments. If the size of the
+  adaptive thresholding patch is large, this may need to be increased.
 * ``flatten_thresh`` - the flattening threshold that sets the
-normalization to use in the arctan transform (flattens bright, compact
-regions). When specified, it corresponds to the percentile of the
-intensity distribution (0-100). This parameter is set automatically by
-fitting a log-normal distribution to the intensities in the images and
-setting the threshold to :math:`\mu + 2\sigma`. The simulated image
-presented here doesn't follow a log-normal very well and we seem to get
-better results by setting it to the 95% percentile.
+  normalization to use in the arctan transform (flattens bright, compact
+  regions). When specified, it corresponds to the percentile of the
+  intensity distribution (0-100). This parameter is set automatically by
+  fitting a log-normal distribution to the intensities in the images and
+  setting the threshold to :math:`\mu + 2\sigma`. The simulated image
+  presented here doesn't follow a log-normal very well and we seem to get
+  better results by setting it to the 95% percentile.
 * ``glob_thresh`` - a global threshold that sets the percentile of data to ignore. This is
-intended to remove noisy regions of the data. If no value is given, the
-algorithm does not apply any global thresholding and used the entire
-image. For this tutorial, the 20% percentile is used as the cutoff.
+  intended to remove noisy regions of the data. If no value is given, the
+  algorithm does not apply any global thresholding and used the entire
+  image. For this tutorial, the 20% percentile is used as the cutoff.
 
 .. code:: python
 
