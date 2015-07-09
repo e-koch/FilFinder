@@ -1,157 +1,159 @@
 
 FilFinder Tutorial
-===================
+==================
 
-**For brevity, only a few example output images are shown.
-The entire set can be found in the Ipython notebook in the examples folder.**
+The main FilFinder algorithm is implemented in the ``fil_finder_2D``
+class. This tutorial goes through the steps to run the entire algorithm.
 
-Load in the algorithm and the usual suspects.
+**NOTE: The example image is simulated data and has a continuous
+boundary. FilFinder can not yet deal with this case and so the results
+shown below do not include joining what should be continuous regions.**
+
+Load in the algorithm and along with astropy to read in the FITS file.
 
 .. code:: python
 
-    from astropy.io.fits import getdata
+    from astropy.io import fits
     from fil_finder import fil_finder_2D
-    img, hdr = getdata("filaments_updatedhdr.fits", header=True)
+    import matplotlib.pylab as pylab
+    pylab.rcParams['figure.figsize'] = (20.0, 16.0)
+    import matplotlib.pyplot as p
+    %matplotlib inline
 
+
+Load in the FITS file containing the simulated image. FilFinder expects
+a numpy array as an input, along with the image header.
+
+.. code:: python
+
+    img, hdr = fits.getdata("filaments_updatedhdr.fits", header=True)
+Alternatively, the data can be read in using:
+
+.. code:: python
+
+    fits_hdu = fits.open("filaments_updatedhdr.fits")[0]
+    img, hdr = fits_hdu.data, fits_hdu.header
 Next we initialize the fil\_finder\_2D object.
 
-The algorithm requires a few inputs to begin (other than the image and
-header):
-* ``beamwidth`` - in arcseconds (set to 15.1 arcsec, though this is a
-  simulated image, a none zero value is needed as it sets the minimum size
-  a filament can be).
-* ``skel_thresh`` - minimum pixels a skeleton
-  must contain to be considered (= 30 pixels)
-* ``branch_thresh`` -
-  minimum length for a branch. This sets one of the skeleton pruning
-  criteria. If the intensity along it is significant to the filament, or
-  if its deletion will change the graph connectivity, it will still be
-  kept. (= 5 pixels)
-* ``pad_size`` - number of pixels to pad around each
-  filament. This ensures the adaptive thresholding can reach the edges of
-  the image. Must be at least 1 pixel. (= 10 pixels, about the size of the
-  patch used).
-* ``distance`` - distance to the region in parsecs. This is
-  used to set the size of the adaptive thresholding patch. The input is
-  optional. If no distance is provided, results remain in pixel units (=
-  260 pc, distance set for the simulation).
-* ``glob_threshold`` - sets the
-  percentile of data to ignore. This is intended to remove noisy regions
-  of the data. (= 20%)
-* ``flatten_thresh`` - sets the normalization to
-  use in the arctan transform (flattens bright, compact regions). This
-  parameter is generally set automatically, but we seem to get better
-  results by setting it to the 95% percentile.
+The algorithm requires 3 inputs to begin: the image, header and FWHM
+beamwidth. In the code below, these are specified by:
+1. img - numpy array of the image
+2. hdr - the associated header of the image
+3. 10.0 - the FWHM beamwidth in arcseconds
+
+The distance is specified with the ``distance`` keyword (in pc). It is
+optional, however the output will all be in terms of pixel units. Many
+of the default settings for parameters are dependent on physical
+scaling; **if no distance is provided, all parameters that have defaults
+must be specified**. If values are not given, an error will be raised
+specifying which parameter must be set.
+
+While the algorithm has multiple parameters, these are automatically set
+to default values which we found work well with the 250 & 350 micron
+Herschel maps. Some adjustments may be needed when working with data
+from other sources. A full explanation can be found in `the
+docs <http://fil-finder.readthedocs.org/en/latest/fil_finder_2d.html>`__
+and a shortened version of some of the parameters is given here:
+* ``skel_thresh`` - a threshold (given in pixel units) for the minimum
+pixels a skeleton must contain to be considered (default 0.3 pc)
+* ``branch_thresh`` - the minimum length (in pixels) that a branch should
+have (default 3 :math:`\times` FWHM beamwidth). This sets one of the
+skeleton pruning criteria. If the intensity along it is significant to
+the filament, or if its deletion will change the graph connectivity, it
+will still be kept.
+* ``size_thresh`` - the minimum pixel area a region
+in the mask should have to be considered a real feature (default
+:math:`5\pi (0.1\mathrm{pc})^2)`. Previous usage of the algorithm has
+shown the real features tend to be a part of a network and will have
+large areas that deviate greatly from the elliptical areas. **This
+parameter likely needs to be altered from the default!**
+* ``pad_size`` - number of pixels to pad around each filament (default 10 pixels). This
+serves 2 purposes: to provide padding along the edges of the image while
+performing adaptive thresholding and to increase the maximum extent of
+the radial profiles for each of the filaments. If the size of the
+adaptive thresholding patch is large, this may need to be increased.
+* ``flatten_thresh`` - the flattening threshold that sets the
+normalization to use in the arctan transform (flattens bright, compact
+regions). When specified, it corresponds to the percentile of the
+intensity distribution (0-100). This parameter is set automatically by
+fitting a log-normal distribution to the intensities in the images and
+setting the threshold to :math:`\mu + 2\sigma`. The simulated image
+presented here doesn't follow a log-normal very well and we seem to get
+better results by setting it to the 95% percentile.
+* ``glob_thresh`` - a global threshold that sets the percentile of data to ignore. This is
+intended to remove noisy regions of the data. If no value is given, the
+algorithm does not apply any global thresholding and used the entire
+image. For this tutorial, the 20% percentile is used as the cutoff.
 
 .. code:: python
 
-    fils = fil_finder_2D(img, hdr, 15.1, 30, 5, 10, distance=260, glob_thresh=20, flatten_thresh=95)
+    fils = fil_finder_2D(img, hdr, 10.0, distance=260, glob_thresh=20, flatten_thresh=95)
 
 The algorithm has several steps, which will be outlined below. Using the
-run() function will perform all the steps in one with the algorithm
-defaults.
+``run`` function will perform all the steps in one with the algorithm
+defaults. For greater control of each step, each step can be run, which
+is shown in this tutorial.
 
 Masking
--------
+=======
+
 We begin by creating the mask of the image. All of the parameters are
 set by default based on physical parameters. However this simulation
 doesn't quite adhere to these and so the effect of manipulating these
 parameters is shown in the next few steps.
+
+**NOTE:** A pre-made mask can be specified if you already have computed
+one, or have one from another source. Specify the mask using the
+``mask`` keyword while creating the ``fil_finder_2D`` object (as shown
+above). Then enable its use by specifying ``use_existing_mask=True`` in
+the line below.
 
 .. code:: python
 
     fils.create_mask(verbose=True)
 
 
-
-.. image:: images/fil_finder_9_0.png
-
-Here is the default mask. The algorithm has largely picked out the
-filamentary structure, but there are two issues. First, the mask is not
-able to go to the edges of the image, due to the padding with ``Nans``.
-To fix this, we invoke the ``border_masking=False`` input.
-
-.. code:: python
-
-    # Reset the mask
-    fils.mask = None
-    fils.create_mask(verbose=True, border_masking=False)
+.. image:: images/FilFinder_Tutorial_11_1.png
 
 
-.. image:: images/fil_finder_11_0.png
-
-This is better, but some variations within the regions are being
-combined together. To try to pick up on the smaller scale variations, we
-can try using a smaller patch-size for the adaptive thresholding.
-Typically, we attain a good mask using a patch size of
-
-.. math:: 0.2 \textrm{pc}/ \textrm{pixel size}.
-
-This works well for observational data, but the filaments in this small
-simulation aren't quite the same. So let us try half of the normal patch
-size,
+Here is the default mask. The algorithm has picked out some of the
+filamentary structure, but there most of the structure is ignored. The
+mask is not able to go to the edges of the image, due to the padding
+with ``NaNs``. To fix this, we invoke the ``border_masking=False``
+input. For observational data, the edges are often dominated by noisy
+artifacts, but in this simulated image, there is usable data right to
+the edges.
 
 .. code:: python
 
-    fils.mask = None
-    fils.create_mask(verbose=True, border_masking=False, adapt_thresh=13.)
+    fils.create_mask(verbose=True, border_masking=False, use_existing_mask=False)
 
 
-.. image:: images/fil_finder_13_0.png
+.. image:: images/FilFinder_Tutorial_13_0.png
 
-This hasn't made a large difference. In general if the patch size is a
-reasonable size based on physical information, the mask obtained will be
-largely the same.
 
-There are a couple of other parameters based off of physical priors. One
-of these is a smoothing filter, which is generally set to be
-:math:`~0.05` pc, so as to smooth the small scale variations leading to
-more continuous regions. Let's try half of this size as we did before.
-This corresponds to about 3 pixels.
+This is an improvement, but a lot of the structures remain ignored. As
+stated above, the default value for ``size_thresh`` may need to be
+altered, and it certainly does for this image. After trying a few
+values, an area of 430 pixels seems to work very well.
 
 .. code:: python
 
-    fils.mask = None
-    fils.create_mask(verbose=True, border_masking=False, adapt_thresh=13., smooth_size=3.0)
+    fils.create_mask(verbose=True, border_masking=False, size_thresh=430, use_existing_mask=False)
 
 
-.. image:: images/fil_finder_15_0.png
+.. image:: images/FilFinder_Tutorial_15_0.png
 
-Again, this has not made a large difference which ensures that the
-smoothing is only acting on scales smaller than we care about here.
-
-The next parameter to try is to disable the regridding function. The
-algorithm has functionality to double the image size for the purposes of
-adaptive thresholding. When a small patch size is used for the
-thresholding, regions become too skinny and often fragment into small
-pieces. To deal with this pixelization issue, we perform the
-thresholding on the super-sampled image. This negates the patch size
-issue, and we obtain a better mask after regridding to the original
-size.
-
-.. code:: python
-
-    fils.mask = None
-    fils.create_mask(verbose=True, border_masking=False, adapt_thresh=13., smooth_size=3.0, regrid=False, zero_border=True, size_thresh=300.)
-
-
-.. image:: images/fil_finder_17_0.png
 
 That's better! Not only are the small scale features better
 characterized, but some additional faint regions have also been picked
 up.
 
-Regridding is useful only when the regions are becoming fragmented.
-As a default, it is enabled when the patch size is less than 40 pixels.
-This value is based on many trials with observational data.
-
-Note that pre-made masks can also be supplied to the algorithm during
-initialization without completing this step. As a default, if a mask has
-been attached to the object it will assume that that mask has been
-prescribed and will skip the mask making process.
+With well-defined regions, the skeletons can now be found using a Medial
+Axis Transform.
 
 Skeletons
----------
+=========
 
 The next step in the algorithm is to use a Medial Axis Transform to
 return the skeletons of the regions. These skeletons are the actual
@@ -164,7 +166,8 @@ be defined as the centers.
     fils.medskel(verbose=True)
 
 
-.. image:: images/fil_finder_20_0.png
+.. image:: images/FilFinder_Tutorial_18_0.png
+
 
 Pruning and Lengths
 -------------------
@@ -176,79 +179,107 @@ traditional pruning methods which shorten the entire skeleton.
 
 A whole ton of information is printed out when verbose mode is enabled.
 * The first set show the skeletons segmented into their branches (and
-  intersections have beem removed). Their connectivity graphs are also
-  shown. Their placement is unfortunately only useful for small
-  structures.
+intersections have beem removed). Their connectivity graphs are also
+shown. Their placement is unfortunately only useful for small
+structures.
 * Next, the longest paths through the skeleton are shown.
-  This is determined by the length of the branch and the median brightness
-  along it relative to the rest of the structure. These lengths are
-  classified as the main length of the filament.
-* The final set shows
-  the final, pruned skeletons which are recombined into the skeleton image
-  to be used for the rest of the analysis.
+This is determined by the length of the branch and the median brightness
+along it relative to the rest of the structure. These lengths are
+classified as the main length of the filament.
+* The final set shows the final, pruned skeletons which are recombined into the skeleton image
+to be used for the rest of the analysis.
+
+The parameter ``skel_thresh`` sets the minimum pixels a skeleton must
+contain (roughly the minimum length). By default, this is set in pixel
+units to correspond to 0.3 pc (giving an aspect ratio of 3 for the
+average filament). This cuts off a small, real feature in the simulated
+image, so it has been lowered to 20 pixels (~0.15 pc). Multiple other
+parameters may be set for this stage; see the documentation for a full
+explanation of each.
 
 .. code:: python
 
-    fils.analyze_skeletons(verbose=True)
+    fils.analyze_skeletons(verbose=True, skel_thresh=20.0)
 
 
-.. image:: images/fil_finder_22_13.png
+.. parsed-literal::
 
-.. image:: images/fil_finder_22_51.png
+    Filament: 2 / 9
 
-.. image:: images/fil_finder_22_82.png
+.. image:: images/FilFinder_Tutorial_20_3.png
 
+
+.. image:: images/FilFinder_Tutorial_20_21.png
+
+
+.. image:: images/FilFinder_Tutorial_20_37.png
 
 Let's plot the final skeletons before moving on:
 
 .. code:: python
 
-    p.imshow(fils.flat_img, interpolation=None, origin='lower')
-    p.contour(fils.skeleton, colors='k')
+    import numpy as np
+    vmin = np.percentile(fils.flat_img[np.isfinite(fils.flat_img)], 20)
+    vmax = np.percentile(fils.flat_img[np.isfinite(fils.flat_img)], 90)
+    p.imshow(fils.flat_img, interpolation=None, origin="lower",
+             cmap='binary', vmin=vmin, vmax=vmax)
+    p.contour(fils.skeleton, colors='r')
 
-.. image:: images/fil_finder_24_1.png
-
+.. image:: images/FilFinder_Tutorial_22_1.png
 
 The original skeletons didn't contain too many spurious features, so
 there is relatively little change.
 
 Curvature and Direction
------------------------
+=======================
 
-Following this step, we use a version of the `Rolling Hough
-Transform <http://adsabs.harvard.edu/abs/2014ApJ...789...82C>`__ to find
-the orientation of the filaments (median of transform) and their
-curvature (IQR of transform).
+Following this step, we use a version of the `Rolling Hough Transform
+(RHT) <http://adsabs.harvard.edu/abs/2014ApJ...789...82C>`__ to find the
+orientation of the filaments (median of transform) and their curvature
+(IQR of transform).
 
 The polar plots shown plot :math:`2\theta`. The transform itself is
-limited to :math:`(-\pi/2, \pi/2)`. The first plot shows the transform
-distribution for that filament. Beside it is the CDF of that
-distribution. By default, the transform is applied on the longest path
-of the skeleton. It can also be applied on a per-branch basis. This
-destroys information of the filaments relative to each other, but gives
-a better estimate for the image as a whole.
+limited to :math:`(-\pi/2, \pi/2)` since the direction is ambiguous. The
+first plot shows the transform distribution for that filament. Beside it
+is the CDF of that distribution.
+
+By default, the transform is applied on the longest path of the
+skeleton. It can also be applied on a per-branch basis by enabling the
+``branches=True`` when running ``exec_rht``. This destroys information
+of the filaments relative to each other, but gives a better estimate for
+the image as a whole.
 
 .. code:: python
 
     fils.exec_rht(verbose=True)
 
-
-.. image:: images/fil_finder_26_6.png
+.. image:: images/FilFinder_Tutorial_24_1.png
 
 Widths
-------
+======
 
-One of the final steps is to find the widths of the filaments.
+One of the final steps is to find the widths of the filaments. This is
+accomplished by building a radial profile along the filament, defining
+the skeleton as the middle. Pixels are binned based on their minimum
+distance from the nearest skeleton pixel. Pixels can only belong to one
+skeleton, the skeleton to which it is closest.
+
 ``fil_finder`` supports three different models to fit to the radial
-profiles. By default, a Gaussian with a background and mean zero is
-used. Using the ``fit_model`` parameter, a Lorentzian model or radial
+profiles. By default, a Gaussian with a constant background is used.
+Using the ``fit_model`` parameter, a Lorentzian model or radial
 cylindrical model can also be specified (imported from
-``fil_finder.widths``). With observational data, we found that many
-profiles are not well fit by these idealized cases. A non-parametric method
-has developed for these cases. It simply estimates the peak
-and background levels and esimates the width by interpolating between them. This
-is enabled, by default, using ``try_nonparam``. If a fit returns a lousy
-:math:`\chi^2` value, we attempt to use this method.
+``fil_finder.widths``). **The Gaussian model is the most tested and is
+recommended for most uses**.
+
+With some images, a small number of profiles were not well fit by these
+idealized cases. For these, there is a non-parameteric method that
+simply estimates a peak and background and interpolates between them to
+estimate the width. This is enabled, by default, using the
+``try_nonparam`` keyword in ``find_widths``. If a fit returns a bad fit
+(based on it reduced :math:`\chi^2` value), the non-parameteric method
+is attempted. Most of the cases where the non-parametric method is used
+correspond to regions that have many neighbouring filaments and the
+number of pixels belonging to a single filament decreases greatly.
 
 Fits are rejected based on a set of criteria:
 * Background is above the peak
@@ -257,30 +288,35 @@ Fits are rejected based on a set of criteria:
 * The width is not appreciably smaller than the length
 * The non-parametric method cannot find a reasonable estimate
 
-**Note:** Each profile is plotted before invoking the rejection criteria.
-This is why some of the plots created will look suspect. Also, the
-fitted lines are based on the model given (gaussian for this case) and
-since the non-parameteric method is not quite this profile, the fits will
-appear to be overestimated.
+*Note:* Each profile is plotted before invoking the rejection criteria.
+This is why some of the plots below may look suspect. The fitted lines
+are based on the model given (gaussian for this case) and since the
+non-parameteric method is not quite this profile, those fits will appear
+to be overestimated.
+
+**The order of the parameter values shown is: Amplitude, Width,
+Background, FWHM.**
 
 .. code:: python
 
     fils.find_widths(verbose=True)
 
-
-.. image:: images/fil_finder_28_13.png
-
-
 .. parsed-literal::
 
-    # Order: [Amplitude, Half-width, Background, Deconvolved FWHM]
-    Fit Parameters: [ 1.16529367  0.0204884   0.2051582   0.03459079]
-    Fit Errors: [ 0.00441983  0.00040846  0.00871116  0.00056972]
+    1 in 9
+    Fit Parameters: [ 0.95279165  0.02563813  0.1323161   0.06013541]
+    Fit Errors: [ 0.01423218  0.00146024  0.01652742  0.00146601]
     Fit Type: gaussian
 
+.. image:: images/FilFinder_Tutorial_26_4.png
+
+
+All of the fits in this image correspond well to a Gaussian profile.
+Note the large range of peak amplitudes in the fits; #8 peaks near 3 K,
+while #7 peaks much lower at 0.060 K.
 
 Further Methods and Properties
-------------------------------
+==============================
 
 While the above represent the major filamentary properties, some others
 can also be computed.
@@ -302,12 +338,14 @@ shown below.
 
 .. code:: python
 
-    p.imshow(fils.filament_model(), interpolation=None, origin='lower')
+    p.imshow(fils.filament_model(), interpolation=None, origin='lower', cmap='binary')
+    p.colorbar()
 
-.. image:: images/fil_finder_30_1.png
+
+.. image:: images/FilFinder_Tutorial_29_1.png
 
 
-Though not a perfect representation, it gives an esimate of the network
+Though not a perfect representation, it gives an estimate of the network
 and the relation of the intensity in the network versus the entire
 image. This fraction is computed by the function
 ``fils.find_covering_fraction``:
@@ -315,7 +353,11 @@ image. This fraction is computed by the function
 .. code:: python
 
     fils.find_covering_fraction()
-    print fils.covering_fraction  # 0.593953590473
+    print fils.covering_fraction
+
+.. parsed-literal::
+
+    0.622995650734
 
 
 Approximately 60% of the total intensity in the image is coming from the
@@ -324,7 +366,7 @@ ignores compact features, whose intensities generally greatly exceed
 that of the filaments.
 
 Saving Outputs
---------------
+==============
 
 Saving of outputs created by the algorithm are split into 2 functions.
 
@@ -343,9 +385,7 @@ skeleton, and model images are all saved. Saving of the model can be
 disabled through ``model_save=False``. The output skeleton FITS file has
 one extension of the final, cleaned skeletons, and a second containing
 only the longest path skeletons. Optionally, stamp images of each
-individual filament can be created using the `stamps` argument.
-These contain a portion of the
+individual filament can be created. These contain a portion of the
 image, the final skeleton, and the longest path in the outputted FITS
 file. The files are automatically saved in a 'stamps\_(save\_name)'
 folder.
-
