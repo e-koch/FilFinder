@@ -16,6 +16,19 @@ To install from the repository, run:
 
 Unfortunately, this is only available when installing from the repository.
 
+Quickest way to get FilFinder working
+-------------------------------------
+
+The easiest/quickest way to ensure FilFinder is installed along with
+all of the dependencies is to use the `Anaconda distribution <http://continuum.io/downloads>`_.
+
+Install the dependencies using:
+
+>>> conda install --yes numpy scipy matplotlib astropy scikit-image networkx
+
+This will install all of the newest releases of those packages. FilFinder can then be installed as explained
+above. Test with the ``check_deps`` option if in doubt.
+
 Package Dependencies
 --------------------
 
