@@ -56,7 +56,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'fil_finder'
+project = u'FilFinder'
 copyright = u'2014, Eric Koch & Erik Rosolowsky'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -180,7 +180,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'fil_finderdoc'
+htmlhelp_basename = 'FilFinderdoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -199,7 +199,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'fil_finder.tex', u'FilFinder Documentation',
+  ('index', 'FilFinder.tex', u'FilFinder Documentation',
    u'Eric Koch \\& Erik Rosolowsky', 'manual'),
 ]
 
@@ -229,7 +229,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'fil_finder', u'FilFinder Documentation',
+    ('index', 'FilFinder', u'FilFinder Documentation',
      [u'Eric Koch & Erik Rosolowsky'], 1)
 ]
 
@@ -243,8 +243,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'fil_finder', u'fil_finder Documentation',
-   u'Eric Koch & Erik Rosolowsky', 'fil_finder', 'One line description of project.',
+  ('index', 'FilFinder', u'FilFinder Documentation',
+   u'Eric Koch & Erik Rosolowsky', 'FilFinder', 'One line description of project.',
    'Miscellaneous'),
 ]
 
