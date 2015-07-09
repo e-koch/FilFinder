@@ -507,7 +507,8 @@ def extremum_pts(labelisofil, extremum, ends):
     return extrem_pts
 
 
-def make_final_skeletons(labelisofil, inters, verbose=False):
+def make_final_skeletons(labelisofil, inters, verbose=False, save_png=False,
+                         save_name=None):
     '''
     Creates the final skeletons outputted by the algorithm.
 
@@ -519,6 +520,11 @@ def make_final_skeletons(labelisofil, inters, verbose=False):
         Positions of the intersections in each skeleton.
     verbose : bool, optional
         Enables plotting of the final skeleton.
+    save_png : bool, optional
+        Saves the plot made in verbose mode. Disabled by default.
+    save_name : str, optional
+        For use when ``save_png`` is enabled.
+        **MUST be specified when ``save_png`` is enabled.**
 
     Returns
     -------
@@ -542,9 +548,20 @@ def make_final_skeletons(labelisofil, inters, verbose=False):
 
         filament_arrays.append(cleaned_array)
 
-        if verbose:
-            p.imshow(cleaned_array)
-            p.show()
+        if verbose or save_png:
+            if save_png and save_name is None:
+                Warning("Must give a save_name when save_png is enabled. No"
+                        " plots will be created.")
+
+            p.imshow(cleaned_array, origin='lower', interpolaton='nearest')
+
+            if save_png:
+                try_mkdir(save_name)
+                p.savefig(os.path.join(save_name,
+                                       save_name+"_final_skeleton_"+str(n)+".png"))
+            if verbose:
+                p.show()
+            p.clf()
 
     return filament_arrays
 
