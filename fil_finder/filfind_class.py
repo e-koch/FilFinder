@@ -1373,12 +1373,7 @@ class fil_finder_2D(object):
         '''
 
         if save_name is None:
-            try:
-                save_name = self.header["OBJECT"]
-            except KeyError:
-                save_name = 'default'
-                raise KeyError("Header does not specify an object name."
-                               "Output files will be labelled as 'default'.")
+                save_name = self.save_name
 
         self.create_mask(verbose=verbose, save_png=save_png)
         self.medskel(verbose=verbose, save_png=save_png)
