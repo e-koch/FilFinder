@@ -1138,7 +1138,6 @@ class fil_finder_2D(object):
             filename = os.path.join(path, filename)
 
         if not self._rht_branches_flag:
-
             data = {"Lengths": self.lengths,
                     "Orientation": self.rht_curvature["Median"],
                     "Curvature": self.rht_curvature["IQR"],
@@ -1153,17 +1152,18 @@ class fil_finder_2D(object):
         else:
             # RHT was ran on branches, and so can only be saved as a branch
             # property due to the table shape
+
             data = {"Lengths": self.lengths,
-                    "Orientation": self.rht_curvature["Median"],
                     "Fit Type": self.width_fits["Type"],
                     "Total Intensity": self.total_intensity,
+                    "Branches": self.branch_properties["number"],
                     "Median Brightness": self.filament_brightness}
 
             branch_data = \
-                {"Branch Length": self.branch_properties["length"],
-                 "Branch Intensity": self.branch_properties["intensity"],
+                {"Branch Length": self.rht_curvature["Length"],
+                 "Branch Intensity": self.rht_curvature["Intensity"],
                  "Curvature": self.rht_curvature["IQR"],
-                 "Branches": self.branch_properties["number"]}
+                 "Orientation": self.rht_curvature["Median"]}
 
         for i, param in enumerate(self.width_fits["Names"]):
             data[param] = self.width_fits["Parameters"][:, i]
