@@ -28,15 +28,8 @@ import warnings
 class fil_finder_2D(object):
 
     """
-
-    fil_finder is intended for use on astronomical images for detecting
-    and analyzing filamentary structure in molecular clouds. Our method
-    is largely based on mathematical morphology. When properly tuned, it
-    is capable of extracting a complete catalog of filaments from an image
-    over the complete range of intensities.
-
     This class acts as an overall wrapper to run the fil-finder algorithm
-    on 2D images and enables visualization and saving capabilities.
+    on 2D images and contains visualization and saving capabilities.
 
     Parameters
     ------
@@ -224,35 +217,46 @@ class fil_finder_2D(object):
         Parameters
         ----------
         smooth_size : int, optional
-            See previous definition.
+            See definition in ``fil_finder_2D`` inputs.
         size_thresh : int, optional
-            See previous definition.
+            See definition in ``fil_finder_2D`` inputs.
         glob_thresh : float, optional
-            See previous definition.
+            See definition in ``fil_finder_2D`` inputs.
         adapt_thresh : int, optional
-            See previous definition.
+            See definition in ``fil_finder_2D`` inputs.
         verbose : bool, optional
-            Enables plotting.
+            Enables plotting. Default is False.
         test_mode : bool, optional
-            Plot each masking step.
+            Plot each masking step. Default is False.
+        regrid : bool, optional
+            Enables the regridding of the image to larger sizes when the patch
+            size for the adaptive thresholding is less than 40 pixels. This
+            decreases fragmentation of regions due to pixellization effects.
+            Default is True.
+        border_masking : bool, optional
+            Dilates a mask of the regions along the edge of the image to remove
+            regions dominated by noise. Disabling leads to regions characterized
+            at the image boundaries and should only be used if there is not
+            significant noise at the edges. Default is True.
         zero_border : bool, optional
             Replaces the NaN border with zeros for the adaptive thresholding.
             This is useful when emission continues to the edge of the image.
+            Default is False.
         fill_hole_size : int or float, optional
             Sets the maximum hole size to fill in the skeletons. If <1,
             maximum is that proportion of the total number of pixels in
             skeleton. Otherwise, it sets the maximum number of pixels.
             Defaults to a square area with length of the beamwidth.
         use_existing_mask : bool, optional
-            If ```self.mask``` is already specified, enabling this skips
+            If ``mask`` is already specified, enabling this skips
             recomputing the mask.
         save_png : bool, optional
             Saves the plot made in verbose mode. Disabled by default.
 
-        Returns
-        -------
-        self.mask : numpy.ndarray
-            The mask.
+        Attributes
+        ----------
+        mask : numpy.ndarray
+            The mask of filaments.
 
         '''
 
@@ -451,15 +455,13 @@ class fil_finder_2D(object):
             Enables plotting.
         save_png : bool, optional
             Saves the plot made in verbose mode. Disabled by default.
-        Returns
-        -------
 
-        self.skeleton : numpy.ndarray
+        Attributes
+        ----------
+        skeleton : numpy.ndarray
             The array containing all of the skeletons.
-
-        self.medial_axis_distance : numpy.ndarray
+        medial_axis_distance : numpy.ndarray
             The distance transform used to create the skeletons.
-
         '''
 
         if return_distance:
@@ -508,7 +510,7 @@ class fil_finder_2D(object):
             self.size_thresh, the region is removed. An updated mask is
             also returned.
         *   pix_identify classifies each of the pixels in a skeleton as a
-            body, end, or interestion point. See the documentation on find_filpix
+            body, end, or intersection point. See the documentation on find_filpix
             for a complete explanation. The function labels the branches and
             intersections of each skeletons.
         *   init_lengths finds the length of each branch in each skeleton and
@@ -543,6 +545,9 @@ class fil_finder_2D(object):
         nbeam_lengths : float or int, optional
             Sets the minimum skeleton length based on the number of beam
             sizes specified.
+        branch_nbeam_lengths : float or int, optional
+            Sets the minimum branch length based on the number of beam
+            sizes specified.
         skel_thresh : float, optional
             Manually set the minimum skeleton threshold. Overrides all
             previous settings.
@@ -552,24 +557,24 @@ class fil_finder_2D(object):
         save_png : bool, optional
             Saves the plot made in verbose mode. Disabled by default.
 
-        Returns
-        -------
-        self.filament_arrays : list of numpy.ndarray
+        Attributes
+        ----------
+        filament_arrays : list of numpy.ndarray
                                Contains individual arrays of each skeleton
-        self.number_of_filaments : int
+        number_of_filaments : int
                                    The number of individual filaments.
-        self.array_offsets : list
+        array_offsets : list
             A list of coordinates for each filament array.This will
             be used to recombine the final skeletons into one array.
-        self.filament_extents : list
+        filament_extents : list
             This contains the coordinates of the initial and final
             position of the skeleton's extent. It may be used to
             test the performance of the shortest path algorithm.
-        self.lengths : list
+        lengths : list
             Contains the overall lengths of the skeletons
-        self.labeled_fil_arrays : list of numpy.ndarray
+        labeled_fil_arrays : list of numpy.ndarray
             Contains the final labeled versions of the skeletons.
-        self.branch_properties : dict
+        branch_properties : dict
             The significant branches of the skeletons have their length
             and number of branches in each skeleton stored here.
             The keys are: *filament_branches*, *branch_lengths*
@@ -711,9 +716,9 @@ class fil_finder_2D(object):
         save_png : bool, optional
             Saves the plot made in verbose mode. Disabled by default.
 
-        Returns
-        -------
-        self.rht_curvature : dict
+        Attributes
+        ----------
+        rht_curvature : dict
             Contains the median and IQR for each filament.
 
         References
@@ -870,16 +875,17 @@ class fil_finder_2D(object):
         save_png : bool, optional
             Saves the plot made in verbose mode. Disabled by default.
 
-        Returns
-        -------
+        Attributes
+        ----------
 
-        self.widths : list
+        widths : list
             List of the FWHM widths returned from the fits.
-        self.width_fits : dict
+        width_fits : dict
             Contains the fit parameters and estimations of the errors
             from each fit.
-        self.skeleton : numpy.ndarray
-            Updated versions of the array of skeletons.
+        total_intensity : list
+            Sum of the intensity in each filament within 1 FWHM of the
+            skeleton.
 
         '''
 
@@ -1018,6 +1024,12 @@ class fil_finder_2D(object):
     def compute_filament_brightness(self):
         '''
         Returns the median brightness along the skeleton of the filament.
+
+        Attributes
+        ----------
+        filament_brightness : list
+            Average brightness/intensity over the skeleton pixels
+            for each filament.
         '''
 
         self.filament_brightness = []
@@ -1086,6 +1098,12 @@ class fil_finder_2D(object):
         ----------
         max_radius : int, optional
             Passed to :method:`filament_model`
+
+        Attributes
+        ----------
+        covering_fraction : float
+            Fraction of the total image intensity contained in the
+            filamentary structure (based on the local, individual fits)
         '''
 
         fil_model = self.filament_model(max_radius=max_radius)
@@ -1119,12 +1137,13 @@ class fil_finder_2D(object):
         branch_table_type : str, optional
             Any of the accepted table_types will work here. If using HDF5,
             just one output file is created with each stored within it.
+        hdf5_path : str, optional
+            Path name within the HDF5 file.
 
-        Returns
-        -------
-
-        self.dataframe : astropy.Table
-            The dataframe is returned for use with the Analysis class.
+        Attributes
+        ----------
+        dataframe : astropy.Table
+            The dataframe is returned for use with the ``Analysis`` class.
 
         '''
 
@@ -1240,7 +1259,6 @@ class fil_finder_2D(object):
 
         Parameters
         ----------
-
         save_name : str, optional
             The prefix for the saved file. If None, the save name specified
             when ``fil_finder_2D`` was first called.
@@ -1249,6 +1267,9 @@ class fil_finder_2D(object):
         filename : str, optional
             File name of the image used. If None, assumes save_name is the
             file name.
+        model_save : bool, optional
+            When enabled, calculates the model using :method:`filament_model`
+            and saves it in a FITS file.
 
         '''
 
