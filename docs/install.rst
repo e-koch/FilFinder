@@ -1,5 +1,5 @@
 Installation
-------------
+============
 
 FilFinder can be installed via pip:
 
