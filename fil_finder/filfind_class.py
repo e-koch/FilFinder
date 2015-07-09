@@ -274,6 +274,17 @@ class fil_finder_2D(object):
         if size_thresh is not None:
             self.size_thresh = size_thresh
 
+        if self.pixel_unit_flag:
+            if smooth_size is None:
+                raise ValueError("Distance not given. Must specify smooth_size"
+                                 " in pixel units.")
+            if adapt_thresh is None:
+                raise ValueError("Distance not given. Must specify adapt_thresh"
+                                 " in pixel units.")
+            if size_thresh is None:
+                raise ValueError("Distance not given. Must specify size_thresh"
+                                 " in pixel units.")
+
         if self.size_thresh is None:
             if self.beamwidth == 0.0:
                 warnings.warn("Beam width is set to 0.0."
@@ -576,6 +587,12 @@ class fil_finder_2D(object):
             raise ValueError(
                 "relintens_thresh must be set between (0.0, 1.0].")
 
+
+        if self.pixel_unit_flag:
+            if self.skel_thresh is None and skel_thresh is None:
+                raise ValueError("Distance not given. Must specify skel_thresh"
+                                 " in pixel units.")
+
         # Set the skeleton length threshold to some factor of the beam width
         if self.skel_thresh is None:
             self.skel_thresh = round(0.3 / self.imgscale)
@@ -662,7 +679,8 @@ class fil_finder_2D(object):
         return self
 
     def exec_rht(self, radius=10, ntheta=180, background_percentile=25,
-                 branches=False, min_branch_length=3, verbose=False, save_png=False):
+                 branches=False, min_branch_length=3, verbose=False,
+                 save_png=False):
         '''
 
         Implements the Rolling Hough Transform (Clark et al., 2014).
@@ -709,6 +727,7 @@ class fil_finder_2D(object):
         ----------
 
         `Clark et al. (2014) <http://adsabs.harvard.edu/abs/2014ApJ...789...82C>`_
+        `Fisher & Lewis (1983) <http://biomet.oxfordjournals.org/content/70/2/333.short>`_
 
         '''
 
