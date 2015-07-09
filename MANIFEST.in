@@ -1,0 +1,7 @@
+include README.md
+include LICENSE.md
+
+include ez_setup.py
+include setup.cfg
+
+global-exclude *.pyc *.o
