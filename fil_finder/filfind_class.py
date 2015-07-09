@@ -101,9 +101,12 @@ class fil_finder_2D(object):
         A pre-made, boolean mask may be supplied to skip the segmentation
         process. The algorithm will skeletonize and run the analysis portions
         only.
-    freq : float
+    freq : float, optional
            Frequency of the image. This is required for using the cylindrical
            model (cyl_model) for the widths.
+    save_name : str, optional
+        Sets the prefix name that is used for output files. Can be overridden
+        in ``save_fits`` and ``save_table``. Default is "FilFinder_output".
 
     Examples
     --------
@@ -126,7 +129,7 @@ class fil_finder_2D(object):
                  branch_thresh=None, pad_size=10, flatten_thresh=None,
                  smooth_size=None, size_thresh=None, glob_thresh=None,
                  adapt_thresh=None, distance=None, region_slice=None,
-                 mask=None, freq=None):
+                 mask=None, freq=None, save_name="FilFinder_output"):
 
         img_dim = len(image.shape)
         if img_dim < 2 or img_dim > 2:
@@ -145,6 +148,7 @@ class fil_finder_2D(object):
         self.branch_thresh = branch_thresh
         self.pad_size = pad_size
         self.freq = freq
+        self.save_name = save_name
 
         # If pre-made mask is provided, remove nans if any.
         self.mask = None
@@ -199,7 +203,7 @@ class fil_finder_2D(object):
                     smooth_size=None, size_thresh=None, verbose=False,
                     test_mode=False, regrid=True, border_masking=True,
                     zero_border=False, fill_hole_size=None,
-                    use_existing_mask=False):
+                    use_existing_mask=False, save_png=False):
         '''
 
         This runs the complete segmentation process and returns a mask of the
@@ -247,6 +251,8 @@ class fil_finder_2D(object):
         use_existing_mask : bool, optional
             If ```self.mask``` is already specified, enabling this skips
             recomputing the mask.
+        save_png : bool, optional
+            Saves the plot made in verbose mode. Disabled by default.
 
         Returns
         -------
@@ -403,18 +409,23 @@ class fil_finder_2D(object):
                      cmap='binary')
             p.show()
 
-        if verbose:
+        if verbose or save_png:
             vmin = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 20)
             vmax = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 90)
             p.imshow(self.flat_img, interpolation=None, origin="lower",
                      cmap='binary', vmin=vmin, vmax=vmax)
             p.contour(self.mask, colors="r")
             p.title("Mask on Flattened Image.")
-            p.show()
+            if save_png:
+                try_mkdir(self.save_name)
+                p.savefig(os.path.join(self.save_name, self.save_name+"_mask.png"))
+            if verbose:
+                p.show()
+            p.clf()
 
         return self
 
-    def medskel(self, return_distance=True, verbose=False):
+    def medskel(self, return_distance=True, verbose=False, save_png=False):
         '''
 
         This function performs the medial axis transform (skeletonization)
@@ -432,10 +443,10 @@ class fil_finder_2D(object):
         return_distance : bool, optional
             This sets whether the distance transform is returned from
             skimage.morphology.medial_axis.
-
         verbose : bool, optional
             Enables plotting.
-
+        save_png : bool, optional
+            Saves the plot made in verbose mode. Disabled by default.
         Returns
         -------
 
@@ -464,20 +475,26 @@ class fil_finder_2D(object):
             self.skeleton = medial_axis(self.mask)
             self.medial_axis_skeleton = None
 
-        if verbose:  # For examining results of skeleton
+        if verbose or save_png:  # For examining results of skeleton
             vmin = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 20)
             vmax = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 90)
             p.imshow(self.flat_img, interpolation=None, origin="lower",
                      cmap='binary', vmin=vmin, vmax=vmax)
             p.contour(self.skeleton, colors="r")
-            p.show()
+            if save_png:
+                try_mkdir(self.save_name)
+                p.savefig(os.path.join(self.save_name,
+                                       self.save_name+"_initial_skeletons.png"))
+            if verbose:
+                p.show()
+            p.clf()
 
         return self
 
     def analyze_skeletons(self, relintens_thresh=0.2, nbeam_lengths=5,
                           branch_nbeam_lengths=3,
                           skel_thresh=None, branch_thresh=None,
-                          verbose=False):
+                          verbose=False, save_png=False):
         '''
 
         This function wraps most of the skeleton analysis. Several steps are
@@ -513,7 +530,6 @@ class fil_finder_2D(object):
 
         Parameters
         ----------
-
         verbose : bool, optional
             Enables plotting.
         relintens_thresh : float, optional
@@ -529,6 +545,8 @@ class fil_finder_2D(object):
         branch_thresh : float, optional
             Manually set the minimum branch length threshold. Overrides all
             previous settings.
+        save_png : bool, optional
+            Saves the plot made in verbose mode. Disabled by default.
 
         Returns
         -------
@@ -592,6 +610,8 @@ class fil_finder_2D(object):
         max_path, extremum, G = \
             longest_path(edge_list, nodes,
                          verbose=verbose,
+                         save_png=save_png,
+                         save_name=self.save_name,
                          skeleton_arrays=labeled_fil_arrays,
                          lengths=self.branch_properties["length"])
 
@@ -609,14 +629,17 @@ class fil_finder_2D(object):
         length_output = main_length(max_path, edge_list, labeled_fil_arrays,
                                     interpts, self.branch_properties[
                                         "length"], self.imgscale,
-                                    verbose=verbose)
+                                    verbose=verbose, save_png=save_png,
+                                    save_name=self.save_name)
 
         self.lengths, self.filament_arrays["long path"] = length_output
         # Convert lengths to numpy array
         self.lengths = np.asarray(self.lengths)
 
-        self.filament_arrays["final"] = make_final_skeletons(
-            labeled_fil_arrays, interpts, verbose=verbose)
+        self.filament_arrays["final"] =\
+             make_final_skeletons(labeled_fil_arrays, interpts,
+                                  verbose=verbose, save_png=save_png,
+                                  save_name=self.save_name)
 
         self.labelled_filament_arrays = labeled_fil_arrays
 
@@ -629,17 +652,21 @@ class fil_finder_2D(object):
         self.skeleton = \
             recombine_skeletons(self.filament_arrays["final"],
                                 self.array_offsets, self.image.shape,
-                                self.pad_size, verbose=True)
+                                self.pad_size, verbose=True,
+                                save_png=save_png,
+                                save_name=self.save_name)
 
         self.skeleton_longpath = \
             recombine_skeletons(self.filament_arrays["long path"],
                                 self.array_offsets, self.image.shape,
-                                self.pad_size, verbose=True)
+                                self.pad_size, verbose=True,
+                                save_png=save_png,
+                                save_name=self.save_name)
 
         return self
 
     def exec_rht(self, radius=10, ntheta=180, background_percentile=25,
-                 branches=False, min_branch_length=3, verbose=False):
+                 branches=False, min_branch_length=3, verbose=False, save_png=False):
         '''
 
         Implements the Rolling Hough Transform (Clark et al., 2014).
@@ -661,36 +688,31 @@ class fil_finder_2D(object):
 
         Parameters
         ----------
-
         radius : int
             Sets the patch size that the RHT uses.
-
         ntheta : int, optional
             The number of bins to use for the RHT.
-
         background : int, optional
             RHT distribution often has a constant background. This sets the
             percentile to subtract off.
-
         branches : bool, optional
             If enabled, runs the RHT on individual branches in the skeleton.
-
         min_branch_length : int, optional
             Sets the minimum pixels a branch must have to calculate the RHT
-
         verbose : bool, optional
             Enables plotting.
+        save_png : bool, optional
+            Saves the plot made in verbose mode. Disabled by default.
 
         Returns
         -------
-
         self.rht_curvature : dict
             Contains the median and IQR for each filament.
 
         References
         ----------
 
-        Clark et al. (2014)
+        `Clark et al. (2014) <http://adsabs.harvard.edu/abs/2014ApJ...789...82C>`_
 
         '''
 
@@ -763,6 +785,10 @@ class fil_finder_2D(object):
                 self.rht_curvature["Intensity"].append(intensity)
                 self.rht_curvature["Length"].append(lengths)
 
+                if verbose or save_png:
+                    Warning("No verbose mode available when running RHT on individual"
+                            " branches. No plots will be saved.")
+
             else:
                 skel_arr = np.fliplr(self.filament_arrays["long path"][n])
                 theta, R, quantiles = rht(
@@ -778,7 +804,7 @@ class fil_finder_2D(object):
                     self.rht_curvature["IQR"].append(
                         np.abs(sevenfive - twofive + np.pi))
 
-                if verbose:
+                if verbose or save_png:
                     ax1 = p.subplot(121, polar=True)
                     ax1.plot(2 * theta, R / R.max(), "kD")
                     ax1.fill_between(2 * theta, 0,
@@ -794,12 +820,18 @@ class fil_finder_2D(object):
                     p.subplot(122)
                     p.imshow(self.filament_arrays["long path"][n],
                              cmap="binary", origin="lower")
-                    p.show()
+                    if save_png:
+                        try_mkdir(self.save_name)
+                        p.savefig(os.path.join(self.save_name,
+                                               self.save_name+"_rht_"+str(n)+".png"))
+                    if verbose:
+                        p.show()
+                    p.clf()
 
         return self
 
     def find_widths(self, fit_model=gauss_model, try_nonparam=True,
-                    verbose=False):
+                    verbose=False, save_png=False):
         '''
 
         The final step of the algorithm is to find the widths of each
@@ -820,27 +852,24 @@ class fil_finder_2D(object):
 
         Parameters
         ----------
-
         fit_model : function
             Function to fit to the radial profile.
-
         try_nonparam : bool, optional
             If True, uses a non-parametric method to find the properties of
-            the radial profile in cases where the model fails.
-
+            the radial profile in cases where the model fails.\
         verbose : bool, optional
             Enables plotting.
+        save_png : bool, optional
+            Saves the plot made in verbose mode. Disabled by default.
 
         Returns
         -------
 
         self.widths : list
             List of the FWHM widths returned from the fits.
-
         self.width_fits : dict
             Contains the fit parameters and estimations of the errors
             from each fit.
-
         self.skeleton : numpy.ndarray
             Updated versions of the array of skeletons.
 
@@ -849,10 +878,6 @@ class fil_finder_2D(object):
         dist_transform_all, dist_transform_separate = \
             dist_transform(self.filament_arrays["final"],
                            self.skeleton)
-
-        def red_chisq(data, fit, nparam, sd):
-            N = data.shape[0]
-            return np.sum(((fit - data) / sd) ** 2.) / float(N - nparam - 1)
 
         for n in range(self.number_of_filaments):
 
@@ -903,11 +928,13 @@ class fil_finder_2D(object):
                 self.total_intensity = np.empty(
                     (self.number_of_filaments, ))
 
-            if verbose:
-                print "%s in %s" % (n, self.number_of_filaments)
-                print "Fit Parameters: %s " % (fit)
-                print "Fit Errors: %s" % (fit_error)
-                print "Fit Type: %s" % (fit_type)
+            if verbose or save_png:
+                if verbose:
+                    print "%s in %s" % (n, self.number_of_filaments)
+                    print "Fit Parameters: %s " % (fit)
+                    print "Fit Errors: %s" % (fit_error)
+                    print "Fit Type: %s" % (fit_type)
+
                 p.subplot(121)
                 p.plot(dist, radprof, "kD")
                 points = np.linspace(np.min(dist), np.max(dist), 2 * len(dist))
@@ -918,22 +945,34 @@ class fil_finder_2D(object):
                 p.xlabel(r'Radial Distance (pc)')
                 p.ylabel(r'Intensity')
                 p.grid(True)
+
                 p.subplot(122)
+
                 xlow, ylow = (
                     self.array_offsets[n][0][0], self.array_offsets[n][0][1])
                 xhigh, yhigh = (
                     self.array_offsets[n][1][0], self.array_offsets[n][1][1])
                 shape = (xhigh - xlow, yhigh - ylow)
+
                 p.contour(self.filament_arrays["final"][n]
                           [self.pad_size:shape[0] - self.pad_size,
                            self.pad_size:shape[1] - self.pad_size], colors="r")
+
                 img_slice = self.image[xlow + self.pad_size:xhigh - self.pad_size,
                                        ylow + self.pad_size:yhigh - self.pad_size]
+
                 vmin = scoreatpercentile(img_slice[np.isfinite(img_slice)], 10)
                 p.imshow(img_slice, interpolation=None, vmin=vmin, origin='lower',
                          cmap='binary')
                 p.colorbar()
-                p.show()
+
+                if save_png:
+                    try_mkdir(self.save_name)
+                    p.savefig(os.path.join(self.save_name,
+                                           self.save_name+"_width_fit_"+str(n)+".png"))
+                if verbose:
+                    p.show()
+                p.clf()
 
             # Final width check -- make sure length is longer than the width.
             # If it is, add the width onto the length since the adaptive
@@ -1059,12 +1098,11 @@ class fil_finder_2D(object):
         table_type : str, optional
             Sets the output type of the table. Supported options are
             "csv", "fits" and "latex".
-
         path : str, optional
             The path where the file should be saved.
         save_name : str, optional
-            The prefix for the saved file.
-            If None, the name from the header is used.
+            The prefix for the saved file. If None, the save name specified
+            when ``fil_finder_2D`` was first called.
 
         Returns
         -------
@@ -1075,7 +1113,7 @@ class fil_finder_2D(object):
         '''
 
         if save_name is None:
-            save_name = self.header["OBJECT"]
+            save_name = self.save_name
 
         save_name = save_name + "_table"
 
@@ -1154,17 +1192,18 @@ class fil_finder_2D(object):
         ----------
 
         save_name : str, optional
-            The prefix for the saved file. If None, the name from the header
-            is used.
-
+            The prefix for the saved file. If None, the save name specified
+            when ``fil_finder_2D`` was first called.
         stamps : bool, optional
             Enables saving of individual stamps
-
         filename : str, optional
             File name of the image used. If None, assumes save_name is the
             file name.
 
         '''
+
+        if save_name is None:
+            save_name = self.save_name
 
         if not filename:  # Assume save_name is filename if not specified.
             filename = save_name
@@ -1300,7 +1339,8 @@ class fil_finder_2D(object):
                  self.lengths[fil], self.rht_curvature["Std"][fil],
                  self.rht_curvature["Std"][fil])
 
-    def run(self, verbose=False, save_name=None, save_plots=False):
+    def run(self, verbose=False, save_name=None, save_png=False,
+            table_type="fits"):
         '''
         The whole algorithm in one easy step. Individual parameters have not
         been included in this batch run. If fine-tuning is needed, it is
@@ -1313,8 +1353,11 @@ class fil_finder_2D(object):
         save_name : str, optional
             The prefix for the saved file.
             If None, the name from the header is used.
-        save_plots : bool, optional
-            Enables the saving of the output plots.
+        save_png : bool, optional
+            Saves the plot made in verbose mode. Disabled by default.
+        table_type : str, optional
+            Sets the output type of the table. Supported options are
+            "csv", "fits" and "latex".
 
         '''
 
@@ -1326,16 +1369,15 @@ class fil_finder_2D(object):
                 raise KeyError("Header does not specify an object name."
                                "Output files will be labelled as 'default'.")
 
-        self.create_mask(verbose=verbose)
-        self.medskel(verbose=verbose)
+        self.create_mask(verbose=verbose, save_png=save_png)
+        self.medskel(verbose=verbose, save_png=save_png)
 
-        self.analyze_skeletons(verbose=verbose)
-        self.exec_rht(verbose=verbose)
-        self.find_widths(verbose=verbose)
+        self.analyze_skeletons(verbose=verbose, save_png=save_png)
+        self.exec_rht(verbose=verbose, save_png=save_png)
+        self.find_widths(verbose=verbose, save_png=save_png)
         self.compute_filament_brightness()
         self.find_covering_fraction()
-        self.save_table(save_name=save_name, table_type="fits")
-        self.save_table(save_name=save_name, table_type="csv")
+        self.save_table(save_name=save_name, table_type=table_type)
         self.save_fits(save_name=save_name, stamps=False)
 
         if verbose:
