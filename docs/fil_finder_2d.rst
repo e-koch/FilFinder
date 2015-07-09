@@ -4,10 +4,6 @@ fil_finder_2D
 
 .. autoclass:: fil_finder.fil_finder_2D
 
-    .. rubric:: Attributes
-
-
-
     .. rubric:: Methods
 
     .. automethod:: fil_finder.fil_finder_2D.create_mask
@@ -19,6 +15,12 @@ fil_finder_2D
     .. automethod:: fil_finder.fil_finder_2D.exec_rht
 
     .. automethod:: fil_finder.fil_finder_2D.find_widths
+
+    .. automethod:: fil_finder.fil_finder_2D.compute_filament_brightness
+
+    .. automethod:: fil_finder.fil_finder_2D.find_covering_fraction
+
+    .. automethod:: fil_finder.fil_finder_2D.filament_model
 
     .. automethod:: fil_finder.fil_finder_2D.run
 
