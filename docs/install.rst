@@ -31,3 +31,10 @@ Requires:
 Optional:
 
  *  `prettyplotlib <https://github.com/olgabot/prettyplotlib>`_ - *Will eventually be removed in a future release*
+
+Contributing
+------------
+
+We welcome any user feedback on FilFinder's performance. If you find an issue with the code, or would like to request additional features, please raise an issue in the repository or send me an email at the address on `this page <https://github.com/e-koch>`_.
+
+We also welcome and encourage contributions to the code base! We want this package to evolve into a tool developed for the community, by the community.
