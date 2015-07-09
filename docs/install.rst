@@ -3,18 +3,16 @@ Installation
 
 FilFinder can be installed via pip:
 
-.. code::
-    pip install FilFinder
+>>> pip install FilFinder
 
 To install from the repository, run:
-.. code::
-    python setup.py install
+
+>>> python setup.py install
 
 
 **NOTE:** Due to install conflicts amongst FilFinder's dependencies, installing the package will **NOT** install the dependencies. To check if you have the necessary packages installed, run:
 
-.. code::
-    python setup.py check_deps
+>>> python setup.py check_deps
 
 Unfortunately, this is only available when installing from the repository.
 
