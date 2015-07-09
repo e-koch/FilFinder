@@ -642,7 +642,7 @@ class fil_finder_2D(object):
                  branches=False, min_branch_length=3, verbose=False):
         '''
 
-        Implements the Rolling Hough Transform (Clark et al., 2013).
+        Implements the Rolling Hough Transform (Clark et al., 2014).
         The orientation of each filament is denoted by the mean value of the
         RHT, which from directional statistics can be defined as:
         :math:`\\langle\\theta \\rangle = \\frac{1}{2} \\tan^{-1}\\left(\\frac{\\Sigma_i w_i\\sin2\\theta_i}{\\Sigma_i w_i\\cos2\\theta_i}\\right)`
