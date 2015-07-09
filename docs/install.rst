@@ -1,19 +1,34 @@
 Installation
-************
+------------
 
-fil_finder has several dependent packages:
-    * numpy (>1.7.1)
-    * matplotlib
-    * astropy (>0.2)
-    * scipy
-    * skimage (>0.8)
-    * networkx
-    * *OPTIONAL* pygraphviz
+FilFinder can be installed via pip:
 
-To install the package, run:
+.. code::
+    pip install FilFinder
 
->>> python setup.py install
+To install from the repository, run:
+.. code::
+    python setup.py install
 
-The package can also be installed via pip:
 
->>> pip install FilFinder
+**NOTE:** Due to install conflicts amongst FilFinder's dependencies, installing the package will **NOT** install the dependencies. To check if you have the necessary packages installed, run:
+```
+python setup.py check_deps
+```
+Unfortunately, this is only available when installing from the repository.
+
+Package Dependencies
+--------------------
+
+Requires:
+
+ *   numpy 1.7.1
+ *   matplotlib
+ *   astropy
+ *   scipy
+ *   scikits-image 0.8.0
+ *   networkx
+
+Optional:
+
+ *  prettyplotlib (https://github.com/olgabot/prettyplotlib) - *Will eventually be removed in a future release*
