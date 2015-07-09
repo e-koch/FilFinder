@@ -1083,7 +1083,7 @@ class fil_finder_2D(object):
         return self
 
     def save_table(self, table_type="csv", path=None, save_name=None,
-                   save_branch_props=True, branch_output_type="hdf5",
+                   save_branch_props=True, branch_table_type="hdf5",
                    hdf5_path="data"):
         '''
 
@@ -1104,7 +1104,7 @@ class fil_finder_2D(object):
         save_branch_props : bool, optional
             When enabled, saves the lists of branch lengths and intensities
             in a separate file(s). Default is enabled.
-        branch_output_type : str, optional
+        branch_table_type : str, optional
             Any of the accepted table_types will work here. If using HDF5,
             just one output file is created with each stored within it.
 
@@ -1135,9 +1135,7 @@ class fil_finder_2D(object):
 
         # If path is specified, append onto filename.
         if path is not None:
-            if path[-1] != "/":
-                path = "".join(path, "/")
-            filename = path + filename
+            filename = os.path.join(path, filename)
 
         if not self._rht_branches_flag:
 
@@ -1189,6 +1187,36 @@ class fil_finder_2D(object):
 
         self.dataframe = df
 
+        for n in range(self.number_of_filaments):
+
+            branch_df = \
+                Table([branch_data[key][n] for key in branch_data.keys()],
+                      names=branch_data.keys())
+
+            branch_filename = save_name + "_branch_" + str(n)
+
+            if branch_table_type == "csv":
+                branch_df.write(os.path.join(self.save_name,
+                                             branch_filename+".csv"),
+                                format="ascii.csv")
+            elif branch_table_type == "fits":
+                branch_df.write(os.path.join(self.save_name,
+                                             branch_filename+".fits"))
+            elif branch_table_type == "latex":
+                branch_df.write(os.path.join(self.save_name,
+                                             branch_filename+".tex"),
+                                format="ascii.latex")
+            elif branch_table_type == 'hdf5':
+                hdf_filename = save_name + "_branch"
+                if n == 0:
+                    branch_df.write(os.path.join(self.save_name,
+                                                 hdf_filename+".hdf5"),
+                                    path="branch_"+str(n))
+                else:
+                    branch_df.write(os.path.join(self.save_name,
+                                                 hdf_filename+".hdf5"),
+                                    path="branch_"+str(n),
+                                    append=True)
         return self
 
     def save_fits(self, save_name=None, stamps=False, filename=None,
