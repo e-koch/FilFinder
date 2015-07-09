@@ -102,8 +102,9 @@ class fil_finder_2D(object):
         process. The algorithm will skeletonize and run the analysis portions
         only.
     freq : float, optional
-           Frequency of the image. This is required for using the cylindrical
-           model (cyl_model) for the widths.
+        **NOT FULLY SUPPORTED IN THIS RELEASE**
+        Frequency of the image. This is required for using the cylindrical
+        model (cyl_model) for the widths.
     save_name : str, optional
         Sets the prefix name that is used for output files. Can be overridden
         in ``save_fits`` and ``save_table``. Default is "FilFinder_output".
@@ -112,16 +113,10 @@ class fil_finder_2D(object):
     --------
     >>> from fil_finder import fil_finder_2D
     >>> from astropy.io.fits import getdata
-    >>> img,hdr = \
-    >>>     getdata("/srv/astro/erickoch/gould_belt/chamaeleonI-250.fits",
-                    header=True)
-    >>> filfind = fil_finder_2D(img, hdr, 15.1, 30, 5, 10, 95 , distance=160,
-                                region_slice=[620,1400,430,1700])
-    >>> filfind.run(verbose=False, save_name="chamaeleonI-250")
-
-
-    References
-    ----------
+    >>> img,hdr = getdata("/srv/astro/erickoch/gould_belt/chamaeleonI-250.fits", header=True)
+    >>> filfind = fil_finder_2D(img, hdr, 15.1, distance=170,
+                                region_slice=[620,1400,430,1700], save_name='chamaeleonI-250')
+    >>> filfind.run(verbose=False)
 
     """
 
@@ -374,9 +369,8 @@ class fil_finder_2D(object):
             glob = flat_copy > thresh_value
             adapt = glob * adapt
 
-        opening = adapt # nd.binary_opening(adapt, structure=np.ones((3, 3)))
         cleaned = \
-            remove_small_objects(opening, min_size=self.size_thresh)
+            remove_small_objects(adapt, min_size=self.size_thresh)
 
         # Remove small holes within the object
 
@@ -390,8 +384,10 @@ class fil_finder_2D(object):
                                         corners, self.image.shape,
                                         self.pad_size, verbose=True)
 
-        ## WARNING!! Setting some image values to 0 to avoid negative weights.
-        ## This may cause issues, however it will allow for proper skeletons
+        # WARNING!! Setting some image values to 0 to avoid negative weights.
+        # This may cause issues, however it will allow for proper skeletons
+        # Through all the testing and deriving science results, this has not
+        # been an issue! EK
         self.image[np.where((self.mask * self.image) < 0.0)] = 0
 
         if test_mode:
@@ -408,9 +404,6 @@ class fil_finder_2D(object):
             p.colorbar()
             p.show()
             p.imshow(adapt, origin="lower", interpolation=None,
-                     cmap='binary')
-            p.show()
-            p.imshow(opening, origin="lower", interpolation=None,
                      cmap='binary')
             p.show()
             p.imshow(cleaned, origin="lower", interpolation=None,
