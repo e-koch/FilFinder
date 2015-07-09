@@ -372,7 +372,15 @@ that of the filaments.
 Saving Outputs
 --------------
 
-Saving of outputs created by the algorithm are split into 2 functions.
+When ``verbose=True``, is enabled, the algorithm will interactively display
+plots at points during the algorithm. If there are hundreds of individual
+filaments found, this quickly becomes unfeasible. In this case, ``verbose``
+can be disabled and those plots can be saved in "png" form by enabling
+``save_png``. This is an accepted keyword for all functions that also
+accept ``verbose``.
+
+Saving of the mask, skeletons, and catalog created by the algorithm are
+split into 2 functions.
 
 Numerical data is dealt with using ``fils.save_table``. This combines
 the results derived for each of the portions into a final table. We use
