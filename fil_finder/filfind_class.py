@@ -878,8 +878,6 @@ class fil_finder_2D(object):
         Attributes
         ----------
 
-        widths : list
-            List of the FWHM widths returned from the fits.
         width_fits : dict
             Contains the fit parameters and estimations of the errors
             from each fit.
