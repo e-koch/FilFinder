@@ -404,8 +404,10 @@ class fil_finder_2D(object):
             p.show()
 
         if verbose:
+            vmin = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 20)
+            vmax = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 90)
             p.imshow(self.flat_img, interpolation=None, origin="lower",
-                     cmap='binary')
+                     cmap='binary', vmin=vmin, vmax=vmax)
             p.contour(self.mask, colors="r")
             p.title("Mask on Flattened Image.")
             p.show()
@@ -463,8 +465,10 @@ class fil_finder_2D(object):
             self.medial_axis_skeleton = None
 
         if verbose:  # For examining results of skeleton
+            vmin = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 20)
+            vmax = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 90)
             p.imshow(self.flat_img, interpolation=None, origin="lower",
-                     cmap='binary')
+                     cmap='binary', vmin=vmin, vmax=vmax)
             p.contour(self.skeleton, colors="r")
             p.show()
 
