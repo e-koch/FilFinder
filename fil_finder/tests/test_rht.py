@@ -1,6 +1,7 @@
 
-from ..rollinghough import rht
+from fil_finder.rollinghough import rht
 
+import numpy as np
 from numpy.testing import assert_allclose
 
 def test_rht():
@@ -8,8 +9,8 @@ def test_rht():
     test2 = np.zeros((20,20))
     test2[10, :] = 1
 
-    assert_allclose(rht(test1, 10)[3], (0.61427789316001524, 0.7897858626343055, 0.94774303516116642))
-    assert_allclose(rht(test1[::-1], 10)[3], (2.1938496184286262, 2.3518067909554876, 2.5273147604297774))
+    assert_allclose(rht(test1, 10)[2], (0.56726012004973192, 0.78609389334676461, 1.004927666643797))
+    assert_allclose(rht(test1[::-1], 10)[2], (-0.9992547253703965, -0.78301561713294787, -0.56677650889549924))
 
-    assert_allclose(rht(test2, 10)[3], (1.439165349689179, 1.5620209283211821, 1.7024273039006141))
-    assert_allclose(rht(test2.T, 10)[3], (3.01873707495779, 0.0, 0.12285557863200314))
+    assert_allclose(rht(test2, 10)[2], (1.4325334658241844, 1.5707963267948966, 1.7090591877656087))
+    assert_allclose(rht(test2.T, 10)[2], (-0.13975291307401344, -1.2236762866959916e-16, 0.13975291307401316))
