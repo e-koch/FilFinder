@@ -76,6 +76,7 @@ Requires:
 Optional:
 
  *  prettyplotlib (https://github.com/olgabot/prettyplotlib) - *Will eventually be removed in a future release*
+ *  aplpy
 
 Example Images
 --------------

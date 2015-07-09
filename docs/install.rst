@@ -44,6 +44,7 @@ Requires:
 Optional:
 
  *  `prettyplotlib <https://github.com/olgabot/prettyplotlib>`_ - *Will eventually be removed in a future release*
+ *  aplpy
 
 Contributing
 ------------
