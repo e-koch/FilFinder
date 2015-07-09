@@ -9,6 +9,7 @@ from pixel_ident import *
 import operator
 import string
 import copy
+import os
 from skimage import measure as me
 
 # Create 4 to 8-connected elements to use with binary hit-or-miss
@@ -345,7 +346,7 @@ def pre_graph(labelisofil, branch_properties, interpts, ends):
 
 
 def longest_path(edge_list, nodes, verbose=False, lengths=None,
-                 skeleton_arrays=None):
+                 skeleton_arrays=None, save_png=False, save_name=None):
     '''
     Takes the output of pre_graph and runs the shortest path algorithm.
 
@@ -369,6 +370,13 @@ def longest_path(edge_list, nodes, verbose=False, lengths=None,
 
     skeleton_arrays : list, optional
         List of the skeleton arrays. Required when verbose=True.
+
+    save_png : bool, optional
+        Saves the plot made in verbose mode. Disabled by default.
+
+    save_name : str, optional
+        For use when ``save_png`` is enabled.
+        **MUST be specified when ``save_png`` is enabled.**
 
     Returns
     -------
@@ -404,22 +412,26 @@ def longest_path(edge_list, nodes, verbose=False, lengths=None,
         extremum.append([start, finish])
         max_path.append(nx.shortest_path(G, start, finish))
         graphs.append(G)
-        if verbose:
+
+        if verbose or save_png:
             if not skeleton_arrays:
-                print "Must input skeleton arrays if verbose=True."
+                Warning("Must input skeleton arrays if verbose or save_png is"
+                        " enabled. No plots will be created.")
+            elif save_png and save_name is None:
+                Warning("Must give a save_name when save_png is enabled. No"
+                        " plots will be created.")
             else:
                 # Check if skeleton_arrays is a list
                 assert isinstance(skeleton_arrays, list)
                 import matplotlib.pyplot as p
-                print "Filament: %s / %s" % (n+1, num)
+                if verbose:
+                    print "Filament: %s / %s" % (n+1, num)
                 p.subplot(1, 2, 1)
-                p.imshow(
-                    skeleton_arrays[n], interpolation="nearest")
+                p.imshow(skeleton_arrays[n], interpolation="nearest")
 
                 p.subplot(1, 2, 2)
                 elist = [(u, v) for (u, v, d) in G.edges(data=True)]
                 try:
-                    import pygraphviz
                     pos = nx.graphviz_layout(G)  # , arg=str(lengths[n]))
                 except ImportError:
                     pos = nx.spring_layout(G)
@@ -428,7 +440,14 @@ def longest_path(edge_list, nodes, verbose=False, lengths=None,
                 nx.draw_networkx_labels(
                     G, pos, font_size=10, font_family='sans-serif')
                 p.axis('off')
-                p.show()
+
+                if save_png:
+                    try_mkdir(save_name)
+                    p.savefig(os.path.join(save_name,
+                                           save_name+"_longest_path"+str(n)+".png"))
+                if verbose:
+                    p.show()
+                p.clf()
 
     return max_path, extremum, graphs
 
@@ -513,7 +532,7 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
 
 
 def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
-                img_scale, verbose=False):
+                img_scale, verbose=False, save_png=False, save_name=None):
     '''
     Wraps previous functionality together for all of the skeletons in the
     image. To find the overall length for each skeleton, intersections are
@@ -537,6 +556,11 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
         Conversion from pixel to physical units.
     verbose : bool, optional
         Returns plots of the longest path skeletons.
+    save_png : bool, optional
+        Saves the plot made in verbose mode. Disabled by default.
+    save_name : str, optional
+        For use when ``save_png`` is enabled.
+        **MUST be specified when ``save_png`` is enabled.**
 
     Returns
     -------
@@ -606,12 +630,26 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
 
         longpath_arrays.append(skeleton.astype(int))
 
-        if verbose:
-            print "Filament: %s / %s" % (num+1, len(labelisofil))
+        if verbose or save_png:
+            if save_name is None:
+                Warning("Must give a save_name when save_png is enabled. No"
+                        " plots will be created.")
+            import matplotlib.pyplot as p
+            if verbose:
+                print "Filament: %s / %s" % (num+1, len(labelisofil))
+
             p.subplot(121)
-            p.imshow(skeleton, interpolation="nearest")
+            p.imshow(skeleton, origin='lower', interpolation="nearest")
             p.subplot(122)
-            p.imshow(labelisofil[num], interpolation="nearest")
-            p.show()
+            p.imshow(labelisofil[num],  origin='lower',
+                     interpolation="nearest")
+
+            if save_png:
+                try_mkdir(save_name)
+                p.savefig(os.path.join(save_name,
+                                       save_name+"_longest_path"+str(num)+".png"))
+            if verbose:
+                p.show()
+            p.clf()
 
     return main_lengths, longpath_arrays
