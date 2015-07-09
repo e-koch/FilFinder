@@ -1212,7 +1212,11 @@ class fil_finder_2D(object):
         except KeyError:
             pass
 
-        new_hdr.update("BUNIT", value="bool", comment="")
+        try:
+            new_hdr.update("BUNIT", value="bool", comment="")
+        except KeyError:
+            new_hdr["BUNIT"] = ("int", "")
+
         new_hdr["COMMENT"] = "Mask created by fil_finder on " + \
             time.strftime("%c")
         new_hdr["COMMENT"] = \
@@ -1236,7 +1240,11 @@ class fil_finder_2D(object):
             "".join([save_name, "_mask.fits"]), mask.astype(">i2"), new_hdr)
 
         # Save skeletons. Includes final skeletons and the longest paths.
-        new_hdr.update("BUNIT", value="int", comment="")
+        try:
+            new_hdr.update("BUNIT", value="int", comment="")
+        except KeyError:
+            new_hdr["BUNIT"] = ("int", "")
+
         new_hdr["COMMENT"] = "Skeleton Size Threshold: " + \
             str(self.skel_thresh)
         new_hdr["COMMENT"] = "Branch Size Threshold: " + \
@@ -1299,7 +1307,11 @@ class fil_finder_2D(object):
                 hdu.append(fits.PrimaryHDU(img_stamp.astype(">f4"),
                            header=prim_hdr))
                 # Stamp of final skeleton
-                prim_hdr.update("BUNIT", value="bool", comment="")
+                try:
+                    prim_hdr.update("BUNIT", value="bool", comment="")
+                except KeyError:
+                    prim_hdr["BUNIT"] = ("int", "")
+
                 hdu.append(fits.PrimaryHDU(skel_arr.astype(">i2"),
                            header=prim_hdr))
                 # Stamp of longest path
@@ -1318,7 +1330,10 @@ class fil_finder_2D(object):
 
             model_hdr = new_hdr.copy()
 
-            model_hdr.update('BUNIT', value=self.header['BUNIT'], comment="")
+            try:
+                model_hdr.update("BUNIT", value=self.header['BUNIT'], comment="")
+            except KeyError:
+                Warning("No BUNIT specified in original header.")
 
             model_hdu = fits.PrimaryHDU(model.astype(">f4"), header=model_hdr)
 
