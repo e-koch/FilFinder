@@ -1143,9 +1143,12 @@ class fil_finder_2D(object):
             data[param] = self.width_fits["Parameters"][:, i]
             data[param + " Error"] = self.width_fits["Errors"][:, i]
 
+        try_mkdir(self.save_name)
+
         if table_type == "csv":
             df = Table(data)
-            df.write(filename, format="ascii.csv")
+            df.write(os.path.join(self.save_name, filename),
+                     format="ascii.csv")
 
         elif table_type == "fits":
             warnings.warn("Entries containing lists have been deleted from \
@@ -1167,11 +1170,12 @@ class fil_finder_2D(object):
                 print("Deleted: Orientation, Curvature")
 
             df = Table(data)
-            df.write(filename)
+            df.write(os.path.join(self.save_name, filename))
 
         elif table_type == "latex":
             df = Table(data)
-            df.write(filename, format="ascii.latex")
+            df.write(os.path.join(self.save_name, filename),
+                     format="ascii.latex")
 
         self.dataframe = df
 
@@ -1235,9 +1239,12 @@ class fil_finder_2D(object):
         mask = self.mask[self.pad_size:-self.pad_size,
                          self.pad_size:-self.pad_size]
 
+        try_mkdir(self.save_name)
+
         # Save mask
-        fits.writeto(
-            "".join([save_name, "_mask.fits"]), mask.astype(">i2"), new_hdr)
+        fits.writeto(os.path.join(self.save_name,
+                                  "".join([save_name, "_mask.fits"])),
+                     mask.astype(">i2"), new_hdr)
 
         # Save skeletons. Includes final skeletons and the longest paths.
         try:
@@ -1265,17 +1272,26 @@ class fil_finder_2D(object):
 
         # Longest Paths
         labels_lp = nd.label(skeleton_long, eight_con())[0]
-        hdu_skel.append(fits.PrimaryHDU(labels_lp.astype(">i2"), header=new_hdr))
+        hdu_skel.append(fits.PrimaryHDU(labels_lp.astype(">i2"),
+                                        header=new_hdr))
 
-        hdu_skel.writeto("".join([save_name, "_skeletons.fits"]))
+        try_mkdir(self.save_name)
+
+        hdu_skel.writeto(os.path.join(self.save_name,
+                                      "".join([save_name, "_skeletons.fits"])))
 
         if stamps:
             # Save stamps of all images. Include portion of image and the
             # skeleton for reference.
 
+            try_mkdir(self.save_name)
+
             # Make a directory for the stamps
-            if not os.path.exists("stamps_" + save_name):
-                os.makedirs("stamps_" + save_name)
+            out_dir = \
+                os.path.join(self.save_name, "stamps_" + save_name)
+
+            if not os.path.exists(out_dir):
+                os.makedirs(out_dir)
 
             final_arrays = self.filament_arrays["final"]
             longpath_arrays = self.filament_arrays["long path"]
@@ -1318,8 +1334,8 @@ class fil_finder_2D(object):
                 hdu.append(fits.PrimaryHDU(lp_arr.astype(">i2"),
                            header=prim_hdr))
 
-                hdu.writeto("stamps_"+save_name+"/"+save_name+\
-                            "_object_"+str(n+1)+".fits")
+                hdu.writeto(os.path.join(out_dir,
+                                         save_name+"_object_"+str(n+1)+".fits"))
 
         if model_save:
             model = self.filament_model()
@@ -1337,7 +1353,10 @@ class fil_finder_2D(object):
 
             model_hdu = fits.PrimaryHDU(model.astype(">f4"), header=model_hdr)
 
-            model_hdu.writeto("".join([save_name, "_filament_model.fits"]))
+            try_mkdir(self.save_name)
+            model_hdu.writeto(
+                os.path.join(self.save_name,
+                             "".join([save_name, "_filament_model.fits"])))
 
         return self
 
