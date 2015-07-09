@@ -23,7 +23,7 @@ This method returns the direction of the filament on the plane (median of the RH
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    install.rst
    tutorial.rst
