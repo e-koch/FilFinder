@@ -97,7 +97,7 @@ defaults. For greater control of each step, each step can be run, which
 is shown in this tutorial.
 
 Masking
-=======
+-------
 
 We begin by creating the mask of the image. All of the parameters are
 set by default based on physical parameters. However this simulation
@@ -155,7 +155,7 @@ With well-defined regions, the skeletons can now be found using a Medial
 Axis Transform.
 
 Skeletons
-=========
+---------
 
 The next step in the algorithm is to use a Medial Axis Transform to
 return the skeletons of the regions. These skeletons are the actual
@@ -234,7 +234,7 @@ The original skeletons didn't contain too many spurious features, so
 there is relatively little change.
 
 Curvature and Direction
-=======================
+-----------------------
 
 Following this step, we use a version of the `Rolling Hough Transform
 (RHT) <http://adsabs.harvard.edu/abs/2014ApJ...789...82C>`__ to find the
@@ -259,7 +259,7 @@ the image as a whole.
 .. image:: images/FilFinder_Tutorial_24_1.png
 
 Widths
-======
+------
 
 One of the final steps is to find the widths of the filaments. This is
 accomplished by building a radial profile along the filament, defining
@@ -320,7 +320,7 @@ Note the large range of peak amplitudes in the fits; #8 peaks near 3 K,
 while #7 peaks much lower at 0.060 K.
 
 Further Methods and Properties
-==============================
+------------------------------
 
 While the above represent the major filamentary properties, some others
 can also be computed.
@@ -370,7 +370,7 @@ ignores compact features, whose intensities generally greatly exceed
 that of the filaments.
 
 Saving Outputs
-==============
+--------------
 
 Saving of outputs created by the algorithm are split into 2 functions.
 
