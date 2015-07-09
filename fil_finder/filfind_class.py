@@ -652,16 +652,12 @@ class fil_finder_2D(object):
         self.skeleton = \
             recombine_skeletons(self.filament_arrays["final"],
                                 self.array_offsets, self.image.shape,
-                                self.pad_size, verbose=True,
-                                save_png=save_png,
-                                save_name=self.save_name)
+                                self.pad_size, verbose=True)
 
         self.skeleton_longpath = \
             recombine_skeletons(self.filament_arrays["long path"],
                                 self.array_offsets, self.image.shape,
-                                self.pad_size, verbose=True,
-                                save_png=save_png,
-                                save_name=self.save_name)
+                                self.pad_size, verbose=True)
 
         return self
 
