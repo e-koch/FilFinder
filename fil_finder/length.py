@@ -444,7 +444,7 @@ def longest_path(edge_list, nodes, verbose=False, lengths=None,
                 if save_png:
                     try_mkdir(save_name)
                     p.savefig(os.path.join(save_name,
-                                           save_name+"_longest_path"+str(n)+".png"))
+                                           save_name+"_longest_path_"+str(n)+".png"))
                 if verbose:
                     p.show()
                 p.clf()
@@ -647,7 +647,7 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
             if save_png:
                 try_mkdir(save_name)
                 p.savefig(os.path.join(save_name,
-                                       save_name+"_longest_path"+str(num)+".png"))
+                                       save_name+"_main_length_"+str(num)+".png"))
             if verbose:
                 p.show()
             p.clf()
