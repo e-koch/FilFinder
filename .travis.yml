@@ -17,6 +17,7 @@ install:
     - source activate test
 
     # Now install dependencies
+    - conda install --yes h5py
     - conda install --yes numpy
     - conda install --yes scipy
     - conda install --yes matplotlib
