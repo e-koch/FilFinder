@@ -37,6 +37,7 @@ Next we initialize the fil\_finder\_2D object.
 
 The algorithm requires 3 inputs to begin: the image, header and FWHM
 beamwidth. In the code below, these are specified by:
+
 1. img - numpy array of the image
 2. hdr - the associated header of the image
 3. 10.0 - the FWHM beamwidth in arcseconds
@@ -54,6 +55,7 @@ Herschel maps. Some adjustments may be needed when working with data
 from other sources. A full explanation can be found in `the
 docs <http://fil-finder.readthedocs.org/en/latest/fil_finder_2d.html>`__
 and a shortened version of some of the parameters is given here:
+
 * ``skel_thresh`` - a threshold (given in pixel units) for the minimum
   pixels a skeleton must contain to be considered (default 0.3 pc)
 * ``branch_thresh`` - the minimum length (in pixels) that a branch should
@@ -178,16 +180,17 @@ short branches which aren't essential. This is preferable over
 traditional pruning methods which shorten the entire skeleton.
 
 A whole ton of information is printed out when verbose mode is enabled.
+
 * The first set show the skeletons segmented into their branches (and
-intersections have beem removed). Their connectivity graphs are also
-shown. Their placement is unfortunately only useful for small
-structures.
+  intersections have beem removed). Their connectivity graphs are also
+  shown. Their placement is unfortunately only useful for small
+  structures.
 * Next, the longest paths through the skeleton are shown.
-This is determined by the length of the branch and the median brightness
-along it relative to the rest of the structure. These lengths are
-classified as the main length of the filament.
+  This is determined by the length of the branch and the median brightness
+  along it relative to the rest of the structure. These lengths are
+  classified as the main length of the filament.
 * The final set shows the final, pruned skeletons which are recombined into the skeleton image
-to be used for the rest of the analysis.
+  to be used for the rest of the analysis.
 
 The parameter ``skel_thresh`` sets the minimum pixels a skeleton must
 contain (roughly the minimum length). By default, this is set in pixel
@@ -282,6 +285,7 @@ correspond to regions that have many neighbouring filaments and the
 number of pixels belonging to a single filament decreases greatly.
 
 Fits are rejected based on a set of criteria:
+
 * Background is above the peak
 * Errors are larger than the respective parameters
 * The width is too small to be deconvolved from the beamwidth
