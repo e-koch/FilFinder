@@ -90,7 +90,4 @@ if __name__ == "__main__":
           author_email='koch.eric.w@gmail.com',
           url='http://github.com/e-koch/fil_finder',
           packages=['fil_finder'],
-          cmdclass={'check_deps': check_deps},
-          setup_requires=[],
-          install_requires=[]
-         )
+          cmdclass={'check_deps': check_deps})
