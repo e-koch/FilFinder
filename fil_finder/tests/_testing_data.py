@@ -34,7 +34,7 @@ skeletons2 = \
 
 
 table1 = Table.read(os.path.join(path1, "test1_table.hdf5"), path="data")
-table2 = Table.read(os.path.join(path1, "test1_table.hdf5"), path="data")
+table2 = Table.read(os.path.join(path2, "test2_table.hdf5"), path="data")
 
 branch_tables1 = \
     [Table.read(os.path.join(path1, "test1_table_branch.hdf5"), path="branch_"+str(i))
