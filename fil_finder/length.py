@@ -427,7 +427,8 @@ def longest_path(edge_list, nodes, verbose=False, lengths=None,
                 if verbose:
                     print "Filament: %s / %s" % (n+1, num)
                 p.subplot(1, 2, 1)
-                p.imshow(skeleton_arrays[n], interpolation="nearest")
+                p.imshow(skeleton_arrays[n], interpolation="nearest",
+                         origin="lower")
 
                 p.subplot(1, 2, 2)
                 elist = [(u, v) for (u, v, d) in G.edges(data=True)]
