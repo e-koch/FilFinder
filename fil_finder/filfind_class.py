@@ -1082,7 +1082,9 @@ class fil_finder_2D(object):
 
         return self
 
-    def save_table(self, table_type="csv", path=None, save_name=None):
+    def save_table(self, table_type="csv", path=None, save_name=None,
+                   save_branch_props=True, branch_output_type="hdf5",
+                   hdf5_path="data"):
         '''
 
         The results of the algorithm are saved as an Astropy table in a 'csv',
@@ -1093,12 +1095,18 @@ class fil_finder_2D(object):
 
         table_type : str, optional
             Sets the output type of the table. Supported options are
-            "csv", "fits" and "latex".
+            "csv", "fits", "latex" and "hdf5".
         path : str, optional
             The path where the file should be saved.
         save_name : str, optional
             The prefix for the saved file. If None, the save name specified
             when ``fil_finder_2D`` was first called.
+        save_branch_props : bool, optional
+            When enabled, saves the lists of branch lengths and intensities
+            in a separate file(s). Default is enabled.
+        branch_output_type : str, optional
+            Any of the accepted table_types will work here. If using HDF5,
+            just one output file is created with each stored within it.
 
         Returns
         -------
@@ -1119,6 +1127,8 @@ class fil_finder_2D(object):
             filename = save_name + ".fits"
         elif table_type == "latex":
             filename = save_name + ".tex"
+        elif table_type == "hdf5":
+            filename = save_name + ".hdf5"
         else:
             raise NameError("Only formats supported are 'csv', 'fits' \
                            and 'latex'.")
@@ -1129,15 +1139,33 @@ class fil_finder_2D(object):
                 path = "".join(path, "/")
             filename = path + filename
 
-        data = {"Lengths": self.lengths,
-                "Orientation": self.rht_curvature["Median"],
-                "Curvature": self.rht_curvature["IQR"],
-                "Branches": self.branch_properties["number"],
-                "Branch Length": self.branch_properties["length"],
-                "Branch Intensity": self.branch_properties["intensity"],
-                "Fit Type": self.width_fits["Type"],
-                "Total Intensity": self.total_intensity,
-                "Median Brightness": self.filament_brightness}
+        if not self._rht_branches_flag:
+
+            data = {"Lengths": self.lengths,
+                    "Orientation": self.rht_curvature["Median"],
+                    "Curvature": self.rht_curvature["IQR"],
+                    "Branches": self.branch_properties["number"],
+                    "Fit Type": self.width_fits["Type"],
+                    "Total Intensity": self.total_intensity,
+                    "Median Brightness": self.filament_brightness}
+
+            branch_data = \
+                {"Branch Length": self.branch_properties["length"],
+                 "Branch Intensity": self.branch_properties["intensity"]}
+        else:
+            # RHT was ran on branches, and so can only be saved as a branch
+            # property due to the table shape
+            data = {"Lengths": self.lengths,
+                    "Orientation": self.rht_curvature["Median"],
+                    "Fit Type": self.width_fits["Type"],
+                    "Total Intensity": self.total_intensity,
+                    "Median Brightness": self.filament_brightness}
+
+            branch_data = \
+                {"Branch Length": self.branch_properties["length"],
+                 "Branch Intensity": self.branch_properties["intensity"],
+                 "Curvature": self.rht_curvature["IQR"],
+                 "Branches": self.branch_properties["number"]}
 
         for i, param in enumerate(self.width_fits["Names"]):
             data[param] = self.width_fits["Parameters"][:, i]
@@ -1145,37 +1173,19 @@ class fil_finder_2D(object):
 
         try_mkdir(self.save_name)
 
+        df = Table(data)
+
         if table_type == "csv":
-            df = Table(data)
             df.write(os.path.join(self.save_name, filename),
                      format="ascii.csv")
-
         elif table_type == "fits":
-            warnings.warn("Entries containing lists have been deleted from \
-                           FITS output due to incompatible format. If you  \
-                           need these results, rerun save_table and save to\
-                           a CSV file")
-            # Branch Lengths and Intensity contains a list for each entry,
-            # which aren't accepted for BIN tables.
-            if "Branch Length" in data.keys():
-                del data["Branch Length"]
-                print("Deleted: Branch Length")
-            if "Branch Intensity" in data.keys():
-                del data["Branch Intensity"]
-                print("Deleted: Branch Intensity")
-            # If RHT is run on branches, we have to delete that too for FITS
-            if self._rht_branches_flag:
-                del data["Orientation"]
-                del data["Curvature"]
-                print("Deleted: Orientation, Curvature")
-
-            df = Table(data)
             df.write(os.path.join(self.save_name, filename))
-
         elif table_type == "latex":
-            df = Table(data)
             df.write(os.path.join(self.save_name, filename),
                      format="ascii.latex")
+        elif table_type == 'hdf5':
+            df.write(os.path.join(self.save_name, filename),
+                     path=hdf5_path)
 
         self.dataframe = df
 
