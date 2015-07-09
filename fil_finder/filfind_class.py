@@ -1314,9 +1314,6 @@ class fil_finder_2D(object):
 
         '''
 
-        if verbose:
-            print "Best to run in pylab for verbose output."
-
         if save_name is None:
             save_name = self.header["OBJECT"]
 
