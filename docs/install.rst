@@ -30,4 +30,4 @@ Requires:
 
 Optional:
 
- *  prettyplotlib (https://github.com/olgabot/prettyplotlib) - *Will eventually be removed in a future release*
+ *  `prettyplotlib <https://github.com/olgabot/prettyplotlib>`_ - *Will eventually be removed in a future release*
