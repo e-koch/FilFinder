@@ -12,7 +12,7 @@ noiseimg = img + np.random.normal(0,0.05,size=img.shape)
 
 ## Utilize fil_finder_2D class
 ## See filfind_class.py for inputs
-test = fil_finder_2D(noiseimg, hdr, 0.0, 30, 5, 10, flatten_thresh=95, distance=260)
+test = fil_finder_2D(noiseimg, hdr, 10.0, flatten_thresh=95, distance=260)
 test.create_mask(verbose=True, smooth_size=3.0, adapt_thresh=13.0,
                  size_thresh=180, regrid=False, border_masking=False,
                  zero_border=True)
