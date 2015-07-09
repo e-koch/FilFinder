@@ -386,7 +386,7 @@ Numerical data is dealt with using ``fils.save_table``. This combines
 the results derived for each of the portions into a final table. We use
 the `astropy.table <http://astropy.readthedocs.org/en/latest/table/>`__
 package to save the results. Currently, the type of output is specified
-through ``table_type`` and accepts 'csv', 'fits', and 'latex' as valid
+through ``table_type`` and accepts 'csv', 'fits', 'hdf5', and 'latex' as valid
 output types. If the output is saved as a fits file, branch information
 is not saved as BIN tables do not accept lists as an entry. The data
 table created can be accessed after through ``fils.dataframe``, which is
