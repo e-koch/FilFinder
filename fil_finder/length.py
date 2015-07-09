@@ -631,7 +631,7 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
         longpath_arrays.append(skeleton.astype(int))
 
         if verbose or save_png:
-            if save_name is None:
+            if save_png and save_name is None:
                 Warning("Must give a save_name when save_png is enabled. No"
                         " plots will be created.")
             import matplotlib.pyplot as p
