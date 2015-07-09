@@ -3,7 +3,7 @@
 from unittest import TestCase
 
 import numpy as np
-import numpy.testing as npt
+# import numpy.testing as npt
 
 from fil_finder import fil_finder_2D
 
