@@ -5,6 +5,8 @@ FilFinder
 
 [![Documentation Status](https://readthedocs.org/projects/fil-finder/badge/?version=latest)](https://readthedocs.org/projects/fil-finder/?badge=latest)
 
+[![Build Status](https://travis-ci.org/e-koch/FilFinder.svg?branch=master)](https://travis-ci.org/e-koch/FilFinder)
+
 **See tutorial here! [FilFinder Tutorial](http://nbviewer.ipython.org/github/e-koch/FilFinder/blob/master/examples/FilFinder%20Tutorial.ipynb)**
 
 **Check out our gallery page: [FilFinder Gallery](http://e-koch.github.io/FilFinder_Results/)**
