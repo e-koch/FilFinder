@@ -28,7 +28,7 @@ test2 = fil_finder_2D(img, hdr, 10.0, flatten_thresh=95, distance=260,
 test2.create_mask(border_masking=False)
 test2.medskel()
 test2.analyze_skeletons()
-test2.exec_rht(branches=True)
+test2.exec_rht(branches=False)
 test2.find_widths()
 test2.compute_filament_brightness()
 test2.save_table(save_name="test2",
