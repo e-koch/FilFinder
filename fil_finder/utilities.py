@@ -12,6 +12,7 @@ from scipy import optimize as op
 import thread
 import threading
 import time
+import os
 
 
 def removearray(l, arr):
@@ -171,3 +172,17 @@ def planck(T, freq):
 def dens_func(B, kappa, I):
     kappa = 100 * kappa
     return (I / (B * 10 ** 20)) * (1 / (kappa)) * 4787  # into sol.mass/pc
+
+
+def red_chisq(data, fit, nparam, sd):
+    N = data.shape[0]
+    return np.sum(((fit - data) / sd) ** 2.) / float(N - nparam - 1)
+
+
+def try_mkdir(name):
+    '''
+    Checks if a folder exists, and makes it if it doesn't
+    '''
+
+    if not os.path.isdir(os.path.join(os.getcwd(), name)):
+        os.mkdir(os.path.join(os.getcwd(), name))
