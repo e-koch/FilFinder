@@ -553,7 +553,7 @@ def make_final_skeletons(labelisofil, inters, verbose=False, save_png=False,
                 Warning("Must give a save_name when save_png is enabled. No"
                         " plots will be created.")
 
-            p.imshow(cleaned_array, origin='lower', interpolaton='nearest')
+            p.imshow(cleaned_array, origin='lower', interpolation='nearest')
 
             if save_png:
                 try_mkdir(save_name)
