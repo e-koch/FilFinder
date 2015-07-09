@@ -12,9 +12,10 @@ To install from the repository, run:
 
 
 **NOTE:** Due to install conflicts amongst FilFinder's dependencies, installing the package will **NOT** install the dependencies. To check if you have the necessary packages installed, run:
-```
-python setup.py check_deps
-```
+
+.. code::
+    python setup.py check_deps
+
 Unfortunately, this is only available when installing from the repository.
 
 Package Dependencies
