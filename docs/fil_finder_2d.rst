@@ -2,6 +2,8 @@
 fil_finder_2D
 =============
 
+**The entire algorithm is run through ``fil_finder_2D``.**
+
 .. autoclass:: fil_finder.fil_finder_2D
 
     .. rubric:: Methods
