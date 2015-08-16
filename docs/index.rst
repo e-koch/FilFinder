@@ -8,6 +8,8 @@ FilFinder
 
 FilFinder is a Python package for extraction and analysis of filamentary structure in molecular clouds. In particular, the algorithm is capable of uniformly extracting structure over a large dynamical range in intensity (see images below).
 
+**Please note: FilFinder currently only supports python 2.x. Support for python3 is planned, but not yet available.**
+
 The algorithm proceeds through multiple steps:
 
 * FilFinder segments filamentary structure by using `adaptive thresholding <http://scikit-image.org/docs/dev/auto_examples/plot_threshold_adaptive.html>`_. This performs thresholding over local neighborhoods, allowing for the extraction of structure over a large dynamic range.
