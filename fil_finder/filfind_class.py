@@ -429,7 +429,8 @@ class fil_finder_2D(object):
                 p.savefig(os.path.join(self.save_name, self.save_name+"_mask.png"))
             if verbose:
                 p.show()
-            p.clf()
+            if in_ipynb():
+                p.clf()
 
         return self
 
@@ -493,7 +494,8 @@ class fil_finder_2D(object):
                                        self.save_name+"_initial_skeletons.png"))
             if verbose:
                 p.show()
-            p.clf()
+            if in_ipynb():
+                p.clf()
 
         return self
 
@@ -839,7 +841,8 @@ class fil_finder_2D(object):
                                                self.save_name+"_rht_"+str(n)+".png"))
                     if verbose:
                         p.show()
-                    p.clf()
+                    if in_ipynb():
+                        p.clf()
 
         return self
 
@@ -984,7 +987,8 @@ class fil_finder_2D(object):
                                            self.save_name+"_width_fit_"+str(n)+".png"))
                 if verbose:
                     p.show()
-                p.clf()
+                if in_ipynb():
+                    p.clf()
 
             # Final width check -- make sure length is longer than the width.
             # If it is, add the width onto the length since the adaptive
