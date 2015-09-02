@@ -397,8 +397,6 @@ def longest_path(edge_list, nodes, verbose=False, lengths=None,
     graphs = []
 
     for n in range(num):
-        if len(edge_list[n]) == 0:
-            continue
         G = nx.Graph()
         G.add_nodes_from(nodes[n])
         for i in edge_list[n]:
