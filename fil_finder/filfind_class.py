@@ -420,6 +420,7 @@ class fil_finder_2D(object):
         if verbose or save_png:
             vmin = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 20)
             vmax = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 90)
+            p.clf()
             p.imshow(self.flat_img, interpolation=None, origin="lower",
                      cmap='binary', vmin=vmin, vmax=vmax)
             p.contour(self.mask, colors="r")
@@ -485,6 +486,7 @@ class fil_finder_2D(object):
         if verbose or save_png:  # For examining results of skeleton
             vmin = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 20)
             vmax = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 90)
+            p.clf()
             p.imshow(self.flat_img, interpolation=None, origin="lower",
                      cmap='binary', vmin=vmin, vmax=vmax)
             p.contour(self.skeleton, colors="r")
@@ -820,6 +822,7 @@ class fil_finder_2D(object):
                         np.abs(sevenfive - twofive + np.pi))
 
                 if verbose or save_png:
+                    p.clf()
                     ax1 = p.subplot(121, polar=True)
                     ax1.plot(2 * theta, R / R.max(), "kD")
                     ax1.fill_between(2 * theta, 0,
@@ -950,6 +953,7 @@ class fil_finder_2D(object):
                     print "Fit Errors: %s" % (fit_error)
                     print "Fit Type: %s" % (fit_type)
 
+                p.clf()
                 p.subplot(121)
                 p.plot(dist, radprof, "kD")
                 points = np.linspace(np.min(dist), np.max(dist), 2 * len(dist))
