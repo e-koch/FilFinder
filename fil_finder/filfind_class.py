@@ -565,9 +565,9 @@ class fil_finder_2D(object):
         Attributes
         ----------
         filament_arrays : list of numpy.ndarray
-                               Contains individual arrays of each skeleton
+            Contains individual arrays of each skeleton
         number_of_filaments : int
-                                   The number of individual filaments.
+            The number of individual filaments.
         array_offsets : list
             A list of coordinates for each filament array.This will
             be used to recombine the final skeletons into one array.
@@ -599,7 +599,7 @@ class fil_finder_2D(object):
         # Set the skeleton length threshold to some factor of the beam width
         if self.skel_thresh is None:
             self.skel_thresh = round(0.3 / self.imgscale)
-                # round( self.beamwidth * nbeam_lengths / self.imgscale)
+            # round( self.beamwidth * nbeam_lengths / self.imgscale)
         elif skel_thresh is not None:
             self.skel_thresh = skel_thresh
 
@@ -657,9 +657,9 @@ class fil_finder_2D(object):
         self.lengths = np.asarray(self.lengths)
 
         self.filament_arrays["final"] =\
-             make_final_skeletons(labeled_fil_arrays, interpts,
-                                  verbose=verbose, save_png=save_png,
-                                  save_name=self.save_name)
+            make_final_skeletons(labeled_fil_arrays, interpts,
+                                 verbose=verbose, save_png=save_png,
+                                 save_name=self.save_name)
 
         self.labelled_filament_arrays = labeled_fil_arrays
 
