@@ -50,7 +50,7 @@ def isolateregions(binary_array, size_threshold=0, pad_size=5,
     # Label skeletons
     labels, num = nd.label(binary_array, eight_con())
 
-    # Remove skeletons which have less pixels than the threshold.
+    # Remove skeletons which have fewer pixels than the threshold.
     if size_threshold != 0:
         sums = nd.sum(binary_array, labels, range(1, num + 1))
         remove_fils = np.where(sums <= size_threshold)[0]
@@ -64,8 +64,10 @@ def isolateregions(binary_array, size_threshold=0, pad_size=5,
     for n in range(1, num + 1):
         x, y = np.where(labels == n)
         # Make an array shaped to the skeletons size and padded on each edge
-        shapes = (x.max() - x.min() + 2 * pad_size,
-                  y.max() - y.min() + 2 * pad_size)
+        # the +1 is because, e.g., range(0, 5) only has 5 elements, but the
+        # indices we're using are range(0, 6)
+        shapes = (x.max() - x.min() + 1 + 2 * pad_size,
+                  y.max() - y.min() + 1 + 2 * pad_size)
         eachfil = np.zeros(shapes)
         eachfil[x - x.min() + pad_size, y - y.min() + pad_size] = 1
         # Fill in small holes
@@ -553,6 +555,7 @@ def make_final_skeletons(labelisofil, inters, verbose=False, save_png=False,
                 Warning("Must give a save_name when save_png is enabled. No"
                         " plots will be created.")
 
+            p.clf()
             p.imshow(cleaned_array, origin='lower', interpolation='nearest')
 
             if save_png:
@@ -561,7 +564,8 @@ def make_final_skeletons(labelisofil, inters, verbose=False, save_png=False,
                                        save_name+"_final_skeleton_"+str(n)+".png"))
             if verbose:
                 p.show()
-            p.clf()
+            if in_ipynb():
+                p.clf()
 
     return filament_arrays
 
