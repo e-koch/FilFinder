@@ -146,7 +146,8 @@ class fil_finder_2D(object):
 
         # Pad the image by the pad size. Avoids slicing difficulties
         # later on.
-        self.image = np.pad(self.image, self.pad_size, padwithnans)
+        if self.pad_size > 0:
+            self.image = np.pad(self.image, self.pad_size, padwithnans)
 
         # Make flattened image
         if flatten_thresh is None:

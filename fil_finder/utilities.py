@@ -140,7 +140,8 @@ def distance(x, x1, y, y1):
 
 def padwithzeros(vector, pad_width, iaxis, kwargs):
     vector[:pad_width[0]] = 0
-    vector[-pad_width[1]:] = 0
+    if pad_width[1] > 0:
+        vector[-pad_width[1]:] = 0
     return vector
 
 
