@@ -76,12 +76,12 @@ class fil_finder_2D(object):
         This is the percentile of the data to mask off. All intensities below
         are cut off from being included in the filamentary structure.
     adapt_thresh : int, optional
-        This is the size of the patch used in the adaptive thresholding.
-        Bright structure is not very sensitive to the choice of patch size,
-        but faint structure is very sensitive. If None, the patch size is set
-        to twice the width of a typical filament (~0.2 pc). As the width of
-        filaments is somewhat ubiquitous, this patch size generally segments
-        all filamentary structure in a given image.
+        This is the size in pixels of the patch used in the adaptive
+        thresholding.  Bright structure is not very sensitive to the choice of
+        patch size, but faint structure is very sensitive. If None, the patch
+        size is set to twice the width of a typical filament (~0.2 pc). As the
+        width of filaments is somewhat ubiquitous, this patch size generally
+        segments all filamentary structure in a given image.
     distance : float, optional
         The distance to the region being examined (in pc). If None, the
         analysis is carried out in pixel and angular units. In this case,
