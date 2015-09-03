@@ -187,7 +187,7 @@ class fil_finder_2D(object):
         self.width_fits = {"Parameters": [], "Errors": [], "Names": None}
         self.rht_curvature = {"Median": [], "IQR": []}
         self.filament_arrays = {}
-        
+
     @property
     def pad_size(self):
         return self._pad_size
