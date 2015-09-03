@@ -425,7 +425,7 @@ def longest_path(edge_list, nodes, verbose=False, lengths=None,
                 assert isinstance(skeleton_arrays, list)
                 import matplotlib.pyplot as p
                 if verbose:
-                    print "Filament: %s / %s" % (n+1, num)
+                    print "Filament: %s / %s" % (n + 1, num)
                 p.subplot(1, 2, 1)
                 p.imshow(skeleton_arrays[n], interpolation="nearest",
                          origin="lower")
@@ -445,7 +445,7 @@ def longest_path(edge_list, nodes, verbose=False, lengths=None,
                 if save_png:
                     try_mkdir(save_name)
                     p.savefig(os.path.join(save_name,
-                                           save_name+"_longest_path_"+str(n)+".png"))
+                                           save_name + "_longest_path_" + str(n) + ".png"))
                 if verbose:
                     p.show()
                 p.clf()
@@ -520,7 +520,7 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
             length = edge[2][2]
             av_intensity = edge[2][3]
             if length < length_thresh \
-              and (av_intensity / np.sum(intensities)) < relintens_thresh:
+                    and (av_intensity / np.sum(intensities)) < relintens_thresh:
                 edge_pts = np.where(labelisofil[n] == edge[2][0])
                 labelisofil[n][edge_pts] = 0
                 edge_list[n].remove(edge)
@@ -607,8 +607,8 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
                     while zip(product_gen(string.ascii_uppercase),
                               [1] * k)[-1][0] != label:
                         k += 1
-                    intersec_pts.extend(inters[k-1])
-                    skeleton[zip(*inters[k-1])] = 2
+                    intersec_pts.extend(inters[k - 1])
+                    skeleton[zip(*inters[k - 1])] = 2
 
             # Remove unnecessary pixels
             count = 0
@@ -637,7 +637,7 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
                         " plots will be created.")
             import matplotlib.pyplot as p
             if verbose:
-                print "Filament: %s / %s" % (num+1, len(labelisofil))
+                print "Filament: %s / %s" % (num + 1, len(labelisofil))
 
             p.subplot(121)
             p.imshow(skeleton, origin='lower', interpolation="nearest")
@@ -648,7 +648,7 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
             if save_png:
                 try_mkdir(save_name)
                 p.savefig(os.path.join(save_name,
-                                       save_name+"_main_length_"+str(num)+".png"))
+                                       save_name + "_main_length_" + str(num) + ".png"))
             if verbose:
                 p.show()
             p.clf()
