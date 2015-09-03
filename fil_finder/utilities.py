@@ -140,7 +140,8 @@ def distance(x, x1, y, y1):
 
 def padwithzeros(vector, pad_width, iaxis, kwargs):
     vector[:pad_width[0]] = 0
-    vector[-pad_width[1]:] = 0
+    if pad_width[1] > 0:
+        vector[-pad_width[1]:] = 0
     return vector
 
 
@@ -186,3 +187,13 @@ def try_mkdir(name):
 
     if not os.path.isdir(os.path.join(os.getcwd(), name)):
         os.mkdir(os.path.join(os.getcwd(), name))
+
+def in_ipynb():
+    try:
+        cfg = get_ipython().config
+        if cfg['IPKernelApp']['parent_appname'] == 'ipython-notebook':
+            return True
+        else:
+            return False
+    except NameError:
+        return False
