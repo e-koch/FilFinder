@@ -66,8 +66,8 @@ def isolateregions(binary_array, size_threshold=0, pad_size=5,
         # Make an array shaped to the skeletons size and padded on each edge
         # the +1 is because, e.g., range(0, 5) only has 5 elements, but the
         # indices we're using are range(0, 6)
-        shapes = (x.max() - x.min() + 1 + 2 * pad_size,
-                  y.max() - y.min() + 1 + 2 * pad_size)
+        shapes = (x.max() - x.min() + 2 * pad_size,
+                  y.max() - y.min() + 2 * pad_size)
         eachfil = np.zeros(shapes)
         eachfil[x - x.min() + pad_size, y - y.min() + pad_size] = 1
         # Fill in small holes
