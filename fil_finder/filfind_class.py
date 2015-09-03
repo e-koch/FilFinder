@@ -1267,6 +1267,36 @@ class fil_finder_2D(object):
                                     append=True)
         return self
 
+    @property
+    def mask_nopad(self):
+        return self.mask[self.pad_size:-self.pad_size,
+                         self.pad_size:-self.pad_size]
+
+    @property
+    def skeleton_nopad(self):
+        return self.skeleton[self.pad_size:-self.pad_size,
+                             self.pad_size:-self.pad_size]
+
+    @property
+    def skeleton_longpath_nopad(self):
+        return self.skeleton_longpath[self.pad_size:-self.pad_size,
+                                      self.pad_size:-self.pad_size]
+
+    @property
+    def flat_img_nopad(self):
+        return self.flat_img[self.pad_size:-self.pad_size,
+                             self.pad_size:-self.pad_size]
+
+    @property
+    def image_nopad(self):
+        return self.image[self.pad_size:-self.pad_size,
+                          self.pad_size:-self.pad_size]
+
+    @property
+    def medial_axis_distance_nopad(self):
+        return self.medial_axis_distance[self.pad_size:-self.pad_size,
+                                         self.pad_size:-self.pad_size]
+
     def save_fits(self, save_name=None, stamps=False, filename=None,
                   model_save=True):
         '''
