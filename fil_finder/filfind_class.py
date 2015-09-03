@@ -76,12 +76,12 @@ class fil_finder_2D(object):
         This is the percentile of the data to mask off. All intensities below
         are cut off from being included in the filamentary structure.
     adapt_thresh : int, optional
-        This is the size of the patch used in the adaptive thresholding.
-        Bright structure is not very sensitive to the choice of patch size,
-        but faint structure is very sensitive. If None, the patch size is set
-        to twice the width of a typical filament (~0.2 pc). As the width of
-        filaments is somewhat ubiquitous, this patch size generally segments
-        all filamentary structure in a given image.
+        This is the size in pixels of the patch used in the adaptive
+        thresholding.  Bright structure is not very sensitive to the choice of
+        patch size, but faint structure is very sensitive. If None, the patch
+        size is set to twice the width of a typical filament (~0.2 pc). As the
+        width of filaments is somewhat ubiquitous, this patch size generally
+        segments all filamentary structure in a given image.
     distance : float, optional
         The distance to the region being examined (in pc). If None, the
         analysis is carried out in pixel and angular units. In this case,
@@ -146,7 +146,8 @@ class fil_finder_2D(object):
 
         # Pad the image by the pad size. Avoids slicing difficulties
         # later on.
-        self.image = np.pad(self.image, self.pad_size, padwithnans)
+        if self.pad_size > 0:
+            self.image = np.pad(self.image, self.pad_size, padwithnans)
 
         # Make flattened image
         if flatten_thresh is None:
@@ -186,6 +187,16 @@ class fil_finder_2D(object):
         self.width_fits = {"Parameters": [], "Errors": [], "Names": None}
         self.rht_curvature = {"Median": [], "IQR": []}
         self.filament_arrays = {}
+        
+    @property
+    def pad_size(self):
+        return self._pad_size
+
+    @pad_size.setter
+    def pad_size(self, value):
+        if value <= 0:
+            raise ValueError("Pad size must be >0")
+        self._pad_size = value
 
     def create_mask(self, glob_thresh=None, adapt_thresh=None,
                     smooth_size=None, size_thresh=None, verbose=False,
@@ -420,6 +431,7 @@ class fil_finder_2D(object):
         if verbose or save_png:
             vmin = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 20)
             vmax = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 90)
+            p.clf()
             p.imshow(self.flat_img, interpolation=None, origin="lower",
                      cmap='binary', vmin=vmin, vmax=vmax)
             p.contour(self.mask, colors="r")
@@ -429,7 +441,8 @@ class fil_finder_2D(object):
                 p.savefig(os.path.join(self.save_name, self.save_name+"_mask.png"))
             if verbose:
                 p.show()
-            p.clf()
+            if in_ipynb():
+                p.clf()
 
         return self
 
@@ -484,6 +497,7 @@ class fil_finder_2D(object):
         if verbose or save_png:  # For examining results of skeleton
             vmin = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 20)
             vmax = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 90)
+            p.clf()
             p.imshow(self.flat_img, interpolation=None, origin="lower",
                      cmap='binary', vmin=vmin, vmax=vmax)
             p.contour(self.skeleton, colors="r")
@@ -493,7 +507,8 @@ class fil_finder_2D(object):
                                        self.save_name+"_initial_skeletons.png"))
             if verbose:
                 p.show()
-            p.clf()
+            if in_ipynb():
+                p.clf()
 
         return self
 
@@ -560,9 +575,9 @@ class fil_finder_2D(object):
         Attributes
         ----------
         filament_arrays : list of numpy.ndarray
-                               Contains individual arrays of each skeleton
+            Contains individual arrays of each skeleton
         number_of_filaments : int
-                                   The number of individual filaments.
+            The number of individual filaments.
         array_offsets : list
             A list of coordinates for each filament array.This will
             be used to recombine the final skeletons into one array.
@@ -594,7 +609,7 @@ class fil_finder_2D(object):
         # Set the skeleton length threshold to some factor of the beam width
         if self.skel_thresh is None:
             self.skel_thresh = round(0.3 / self.imgscale)
-                # round( self.beamwidth * nbeam_lengths / self.imgscale)
+            # round( self.beamwidth * nbeam_lengths / self.imgscale)
         elif skel_thresh is not None:
             self.skel_thresh = skel_thresh
 
@@ -652,9 +667,9 @@ class fil_finder_2D(object):
         self.lengths = np.asarray(self.lengths)
 
         self.filament_arrays["final"] =\
-             make_final_skeletons(labeled_fil_arrays, interpts,
-                                  verbose=verbose, save_png=save_png,
-                                  save_name=self.save_name)
+            make_final_skeletons(labeled_fil_arrays, interpts,
+                                 verbose=verbose, save_png=save_png,
+                                 save_name=self.save_name)
 
         self.labelled_filament_arrays = labeled_fil_arrays
 
@@ -818,6 +833,7 @@ class fil_finder_2D(object):
                         np.abs(sevenfive - twofive + np.pi))
 
                 if verbose or save_png:
+                    p.clf()
                     ax1 = p.subplot(121, polar=True)
                     ax1.plot(2 * theta, R / R.max(), "kD")
                     ax1.fill_between(2 * theta, 0,
@@ -839,7 +855,8 @@ class fil_finder_2D(object):
                                                self.save_name+"_rht_"+str(n)+".png"))
                     if verbose:
                         p.show()
-                    p.clf()
+                    if in_ipynb():
+                        p.clf()
 
         return self
 
@@ -947,6 +964,7 @@ class fil_finder_2D(object):
                     print "Fit Errors: %s" % (fit_error)
                     print "Fit Type: %s" % (fit_type)
 
+                p.clf()
                 p.subplot(121)
                 p.plot(dist, radprof, "kD")
                 points = np.linspace(np.min(dist), np.max(dist), 2 * len(dist))
@@ -984,7 +1002,8 @@ class fil_finder_2D(object):
                                            self.save_name+"_width_fit_"+str(n)+".png"))
                 if verbose:
                     p.show()
-                p.clf()
+                if in_ipynb():
+                    p.clf()
 
             # Final width check -- make sure length is longer than the width.
             # If it is, add the width onto the length since the adaptive
@@ -1247,6 +1266,36 @@ class fil_finder_2D(object):
                                     path="branch_"+str(n),
                                     append=True)
         return self
+
+    @property
+    def mask_nopad(self):
+        return self.mask[self.pad_size:-self.pad_size,
+                         self.pad_size:-self.pad_size]
+
+    @property
+    def skeleton_nopad(self):
+        return self.skeleton[self.pad_size:-self.pad_size,
+                             self.pad_size:-self.pad_size]
+
+    @property
+    def skeleton_longpath_nopad(self):
+        return self.skeleton_longpath[self.pad_size:-self.pad_size,
+                                      self.pad_size:-self.pad_size]
+
+    @property
+    def flat_img_nopad(self):
+        return self.flat_img[self.pad_size:-self.pad_size,
+                             self.pad_size:-self.pad_size]
+
+    @property
+    def image_nopad(self):
+        return self.image[self.pad_size:-self.pad_size,
+                          self.pad_size:-self.pad_size]
+
+    @property
+    def medial_axis_distance_nopad(self):
+        return self.medial_axis_distance[self.pad_size:-self.pad_size,
+                                         self.pad_size:-self.pad_size]
 
     def save_fits(self, save_name=None, stamps=False, filename=None,
                   model_save=True):
