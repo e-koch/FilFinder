@@ -513,7 +513,7 @@ class fil_finder_2D(object):
         return self
 
     def analyze_skeletons(self, relintens_thresh=0.2, nbeam_lengths=5,
-                          branch_nbeam_lengths=3,
+                          branch_nbeam_lengths=3, skel_pad=10,
                           skel_thresh=None, branch_thresh=None,
                           verbose=False, save_png=False):
         '''
@@ -563,6 +563,10 @@ class fil_finder_2D(object):
         branch_nbeam_lengths : float or int, optional
             Sets the minimum branch length based on the number of beam
             sizes specified.
+        skel_pad : int, optional
+            Number of pixels to pad the individual skeleton arrays by. For
+            the skeleton to graph conversion, the pad must always be greater
+            then 0.
         skel_thresh : float, optional
             Manually set the minimum skeleton threshold. Overrides all
             previous settings.
@@ -622,7 +626,7 @@ class fil_finder_2D(object):
 
         isolated_filaments, num, offsets = \
             isolateregions(self.skeleton, size_threshold=self.skel_thresh,
-                           pad_size=self.pad_size)
+                           pad_size=skel_pad)
         self.number_of_filaments = num
         self.array_offsets = offsets
 
@@ -682,12 +686,12 @@ class fil_finder_2D(object):
         self.skeleton = \
             recombine_skeletons(self.filament_arrays["final"],
                                 self.array_offsets, self.image.shape,
-                                self.pad_size, verbose=True)
+                                skel_pad, verbose=True)
 
         self.skeleton_longpath = \
             recombine_skeletons(self.filament_arrays["long path"],
                                 self.array_offsets, self.image.shape,
-                                self.pad_size, verbose=True)
+                                skel_pad, verbose=True)
 
         return self
 
