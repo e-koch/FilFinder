@@ -187,6 +187,16 @@ class fil_finder_2D(object):
         self.width_fits = {"Parameters": [], "Errors": [], "Names": None}
         self.rht_curvature = {"Median": [], "IQR": []}
         self.filament_arrays = {}
+        
+    @property
+    def pad_size(self):
+        return self._pad_size
+
+    @pad_size.setter
+    def pad_size(self, value):
+        if value <= 0:
+            raise ValueError("Pad size must be >0")
+        self._pad_size = value
 
     def create_mask(self, glob_thresh=None, adapt_thresh=None,
                     smooth_size=None, size_thresh=None, verbose=False,
