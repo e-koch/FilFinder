@@ -1284,31 +1284,43 @@ class fil_finder_2D(object):
 
     @property
     def mask_nopad(self):
+        if self.pad_size == 0:
+            return self.mask
         return self.mask[self.pad_size:-self.pad_size,
                          self.pad_size:-self.pad_size]
 
     @property
     def skeleton_nopad(self):
+        if self.pad_size == 0:
+            return self.skeleton
         return self.skeleton[self.pad_size:-self.pad_size,
                              self.pad_size:-self.pad_size]
 
     @property
     def skeleton_longpath_nopad(self):
+        if self.pad_size == 0:
+            return self.skeleton_longpath
         return self.skeleton_longpath[self.pad_size:-self.pad_size,
                                       self.pad_size:-self.pad_size]
 
     @property
     def flat_img_nopad(self):
+        if self.pad_size == 0:
+            self.flat_img
         return self.flat_img[self.pad_size:-self.pad_size,
                              self.pad_size:-self.pad_size]
 
     @property
     def image_nopad(self):
+        if self.pad_size == 0:
+            return self.image
         return self.image[self.pad_size:-self.pad_size,
                           self.pad_size:-self.pad_size]
 
     @property
     def medial_axis_distance_nopad(self):
+        if self.pad_size == 0:
+            return self.medial_axis_distance
         return self.medial_axis_distance[self.pad_size:-self.pad_size,
                                          self.pad_size:-self.pad_size]
 
