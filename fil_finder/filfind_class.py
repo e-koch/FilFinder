@@ -49,10 +49,12 @@ class fil_finder_2D(object):
         beamwidth.
     pad_size :  int, optional
         The size of the pad (in pixels) used to pad the individual
-        filament arrays. The default is set to 10 pixels. The amount of
-        padding can effect extent of the radial intensity profile as well
-        as ensuring that useful data is not cut off during adaptive
-        thresholding.
+        filament arrays. The default is set to 10 pixels.
+    skeleton_pad_size : int, optional
+        Number of pixels to pad the individual skeleton arrays by. For
+        the skeleton to graph conversion, the pad must always be greater
+        then 0. The amount of padding can slightly effect the extent of the
+        radial intensity profile..
     flatten_thresh : int, optional
         The percentile of the data (0-100) to set the normalization of the arctan
         transform. By default, a log-normal distribution is fit and the
@@ -114,7 +116,8 @@ class fil_finder_2D(object):
     """
 
     def __init__(self, image, hdr, beamwidth, skel_thresh=None,
-                 branch_thresh=None, pad_size=10, flatten_thresh=None,
+                 branch_thresh=None, pad_size=0, skeleton_pad_size=1,
+                 flatten_thresh=None,
                  smooth_size=None, size_thresh=None, glob_thresh=None,
                  adapt_thresh=None, distance=None, region_slice=None,
                  mask=None, freq=None, save_name="FilFinder_output"):
@@ -135,6 +138,7 @@ class fil_finder_2D(object):
         self.skel_thresh = skel_thresh
         self.branch_thresh = branch_thresh
         self.pad_size = pad_size
+        self.skeleton_pad_size = skeleton_pad_size
         self.freq = freq
         self.save_name = save_name
 
@@ -194,9 +198,23 @@ class fil_finder_2D(object):
 
     @pad_size.setter
     def pad_size(self, value):
-        if value <= 0:
+        if value < 0:
             raise ValueError("Pad size must be >0")
         self._pad_size = value
+
+    @property
+    def skeleton_pad_size(self):
+        return self._pad_size
+
+    @skeleton_pad_size.setter
+    def skeleton_pad_size(self, value):
+        if value < 0:
+            raise ValueError("Skeleton pad size must be >0")
+        self._pad_size = value
+
+    # @property
+    # def pad_size_difference(self):
+    #     return self._pad_size - self._skeleton_pad_size
 
     def create_mask(self, glob_thresh=None, adapt_thresh=None,
                     smooth_size=None, size_thresh=None, verbose=False,
@@ -513,7 +531,7 @@ class fil_finder_2D(object):
         return self
 
     def analyze_skeletons(self, relintens_thresh=0.2, nbeam_lengths=5,
-                          branch_nbeam_lengths=3, skel_pad=10,
+                          branch_nbeam_lengths=3,
                           skel_thresh=None, branch_thresh=None,
                           verbose=False, save_png=False):
         '''
@@ -563,10 +581,6 @@ class fil_finder_2D(object):
         branch_nbeam_lengths : float or int, optional
             Sets the minimum branch length based on the number of beam
             sizes specified.
-        skel_pad : int, optional
-            Number of pixels to pad the individual skeleton arrays by. For
-            the skeleton to graph conversion, the pad must always be greater
-            then 0.
         skel_thresh : float, optional
             Manually set the minimum skeleton threshold. Overrides all
             previous settings.
@@ -626,7 +640,7 @@ class fil_finder_2D(object):
 
         isolated_filaments, num, offsets = \
             isolateregions(self.skeleton, size_threshold=self.skel_thresh,
-                           pad_size=skel_pad)
+                           pad_size=self.skeleton_pad_size)
         self.number_of_filaments = num
         self.array_offsets = offsets
 
@@ -686,12 +700,12 @@ class fil_finder_2D(object):
         self.skeleton = \
             recombine_skeletons(self.filament_arrays["final"],
                                 self.array_offsets, self.image.shape,
-                                skel_pad, verbose=True)
+                                self.skeleton_pad_size, verbose=True)
 
         self.skeleton_longpath = \
             recombine_skeletons(self.filament_arrays["long path"],
                                 self.array_offsets, self.image.shape,
-                                skel_pad, verbose=True)
+                                self.skeleton_pad_size, verbose=True)
 
         return self
 
