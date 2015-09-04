@@ -352,11 +352,11 @@ class fil_finder_2D(object):
         else:
             nan_mask = np.logical_not(np.isnan(flat_copy))
 
+        # Remove nans in the copy
+        flat_copy[np.isnan(flat_copy)] = 0.0
+
         # Perform regridding
         if regrid:
-            # Remove nans in the copy
-            flat_copy[np.isnan(flat_copy)] = 0.0
-
             # Calculate the needed zoom to make the patch size ~40 pixels
             ratio = 40 / self.adapt_thresh
             # Round to the nearest factor of 2
