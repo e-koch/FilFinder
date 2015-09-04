@@ -492,7 +492,7 @@ class fil_finder_2D(object):
         '''
 
         self.skeleton, self.medial_axis_distance = \
-            medial_axis(self.mask, return_distance=return_distance)
+            medial_axis(self.mask, return_distance=True)
         self.medial_axis_distance = \
             self.medial_axis_distance * self.skeleton
         # Delete connection smaller than 2 pixels wide. Such a small
