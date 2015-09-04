@@ -16,7 +16,8 @@ class Test_FilFinder(TestCase):
 
         test1 = fil_finder_2D(img, hdr, 10.0, flatten_thresh=95,
                               distance=260, size_thresh=430,
-                              glob_thresh=20, save_name="test1")
+                              glob_thresh=20, save_name="test1",
+                              pad_size=10, skeleton_pad_size=10)
 
         test1.create_mask(border_masking=False)
         test1.medskel()
@@ -24,6 +25,8 @@ class Test_FilFinder(TestCase):
         test1.exec_rht(branches=True)
         test1.find_widths()
         test1.compute_filament_brightness()
+
+        assert test1.number_of_filaments == len(table1["Lengths"])
 
         for i, param in enumerate(test1.width_fits["Names"]):
             assert np.allclose(test1.width_fits["Parameters"][:, i],
@@ -50,7 +53,8 @@ class Test_FilFinder(TestCase):
 
         test2 = fil_finder_2D(img, hdr, 10.0, flatten_thresh=95,
                               distance=260, size_thresh=430,
-                              glob_thresh=20, save_name="test2")
+                              glob_thresh=20, save_name="test2",
+                              pad_size=10, skeleton_pad_size=10)
 
         test2.create_mask(border_masking=False)
         test2.medskel()
@@ -58,6 +62,8 @@ class Test_FilFinder(TestCase):
         test2.exec_rht(branches=False)
         test2.find_widths()
         test2.compute_filament_brightness()
+
+        assert test2.number_of_filaments == len(table2["Lengths"])
 
         for i, param in enumerate(test2.width_fits["Names"]):
             assert np.allclose(test2.width_fits["Parameters"][:, i],

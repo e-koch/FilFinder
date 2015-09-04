@@ -49,10 +49,14 @@ class fil_finder_2D(object):
         beamwidth.
     pad_size :  int, optional
         The size of the pad (in pixels) used to pad the individual
-        filament arrays. The default is set to 10 pixels. The amount of
-        padding can effect extent of the radial intensity profile as well
-        as ensuring that useful data is not cut off during adaptive
-        thresholding.
+        filament arrays. By default this is disabled. **If the data continue
+        up to the edge of the image, padding should not be enabled as this
+        causes deviations in the mask around the edges!**
+    skeleton_pad_size : int, optional
+        Number of pixels to pad the individual skeleton arrays by. For
+        the skeleton to graph conversion, the pad must always be greater
+        then 0. The amount of padding can slightly effect the extent of the
+        radial intensity profile..
     flatten_thresh : int, optional
         The percentile of the data (0-100) to set the normalization of the arctan
         transform. By default, a log-normal distribution is fit and the
@@ -114,7 +118,8 @@ class fil_finder_2D(object):
     """
 
     def __init__(self, image, hdr, beamwidth, skel_thresh=None,
-                 branch_thresh=None, pad_size=10, flatten_thresh=None,
+                 branch_thresh=None, pad_size=0, skeleton_pad_size=1,
+                 flatten_thresh=None,
                  smooth_size=None, size_thresh=None, glob_thresh=None,
                  adapt_thresh=None, distance=None, region_slice=None,
                  mask=None, freq=None, save_name="FilFinder_output"):
@@ -135,6 +140,7 @@ class fil_finder_2D(object):
         self.skel_thresh = skel_thresh
         self.branch_thresh = branch_thresh
         self.pad_size = pad_size
+        self.skeleton_pad_size = skeleton_pad_size
         self.freq = freq
         self.save_name = save_name
 
@@ -194,9 +200,20 @@ class fil_finder_2D(object):
 
     @pad_size.setter
     def pad_size(self, value):
-        if value <= 0:
+        if value < 0:
             raise ValueError("Pad size must be >0")
         self._pad_size = value
+
+    @property
+    def skeleton_pad_size(self):
+        return self._skeleton_pad_size
+
+    @skeleton_pad_size.setter
+    def skeleton_pad_size(self, value):
+        if value < 0:
+            raise ValueError("Skeleton pad size must be >0")
+        self._skeleton_pad_size = value
+
 
     def create_mask(self, glob_thresh=None, adapt_thresh=None,
                     smooth_size=None, size_thresh=None, verbose=False,
@@ -337,11 +354,11 @@ class fil_finder_2D(object):
         else:
             nan_mask = np.logical_not(np.isnan(flat_copy))
 
+        # Remove nans in the copy
+        flat_copy[np.isnan(flat_copy)] = 0.0
+
         # Perform regridding
         if regrid:
-            # Remove nans in the copy
-            flat_copy[np.isnan(flat_copy)] = 0.0
-
             # Calculate the needed zoom to make the patch size ~40 pixels
             ratio = 40 / self.adapt_thresh
             # Round to the nearest factor of 2
@@ -359,7 +376,7 @@ class fil_finder_2D(object):
 
         # Set the border to zeros for the adaptive thresholding. Avoid border
         # effects.
-        if zero_border:
+        if zero_border and self.pad_size > 0:
             smooth_img[:self.pad_size*ratio+1, :] = 0.0
             smooth_img[-self.pad_size*ratio-1:, :] = 0.0
             smooth_img[:, :self.pad_size*ratio+1] = 0.0
@@ -394,10 +411,10 @@ class fil_finder_2D(object):
 
         mask_objs, num, corners = \
             isolateregions(cleaned, fill_hole=True, rel_size=fill_hole_size,
-                           morph_smooth=True)
+                           morph_smooth=True, pad_size=self.skeleton_pad_size)
         self.mask = recombine_skeletons(mask_objs,
                                         corners, self.image.shape,
-                                        self.pad_size, verbose=True)
+                                        self.skeleton_pad_size, verbose=True)
 
         # WARNING!! Setting some image values to 0 to avoid negative weights.
         # This may cause issues, however it will allow for proper skeletons
@@ -446,7 +463,7 @@ class fil_finder_2D(object):
 
         return self
 
-    def medskel(self, return_distance=True, verbose=False, save_png=False):
+    def medskel(self, verbose=False, save_png=False):
         '''
 
         This function performs the medial axis transform (skeletonization)
@@ -461,9 +478,6 @@ class fil_finder_2D(object):
 
         Parameters
         ----------
-        return_distance : bool, optional
-            This sets whether the distance transform is returned from
-            skimage.morphology.medial_axis.
         verbose : bool, optional
             Enables plotting.
         save_png : bool, optional
@@ -477,22 +491,17 @@ class fil_finder_2D(object):
             The distance transform used to create the skeletons.
         '''
 
-        if return_distance:
-            self.skeleton, self.medial_axis_distance = medial_axis(
-                self.mask, return_distance=return_distance)
-            self.medial_axis_distance = self.medial_axis_distance * \
-                self.skeleton
-            # Delete connection smaller than 2 pixels wide. Such a small
-            # connection is more likely to be from limited pixel resolution
-            # rather than actual structure.
-            width_threshold = 1
-            narrow_pts = np.where(self.medial_axis_distance < width_threshold)
-            self.skeleton[narrow_pts] = 0  # Eliminate narrow connections
-            self.medial_axis_distance[narrow_pts] = 0
-
-        else:
-            self.skeleton = medial_axis(self.mask)
-            self.medial_axis_skeleton = None
+        self.skeleton, self.medial_axis_distance = \
+            medial_axis(self.mask, return_distance=True)
+        self.medial_axis_distance = \
+            self.medial_axis_distance * self.skeleton
+        # Delete connection smaller than 2 pixels wide. Such a small
+        # connection is more likely to be from limited pixel resolution
+        # rather than actual structure.
+        width_threshold = 1
+        narrow_pts = np.where(self.medial_axis_distance < width_threshold)
+        self.skeleton[narrow_pts] = 0  # Eliminate narrow connections
+        self.medial_axis_distance[narrow_pts] = 0
 
         if verbose or save_png:  # For examining results of skeleton
             vmin = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 20)
@@ -622,7 +631,7 @@ class fil_finder_2D(object):
 
         isolated_filaments, num, offsets = \
             isolateregions(self.skeleton, size_threshold=self.skel_thresh,
-                           pad_size=self.pad_size)
+                           pad_size=self.skeleton_pad_size)
         self.number_of_filaments = num
         self.array_offsets = offsets
 
@@ -682,12 +691,12 @@ class fil_finder_2D(object):
         self.skeleton = \
             recombine_skeletons(self.filament_arrays["final"],
                                 self.array_offsets, self.image.shape,
-                                self.pad_size, verbose=True)
+                                self.skeleton_pad_size, verbose=True)
 
         self.skeleton_longpath = \
             recombine_skeletons(self.filament_arrays["long path"],
                                 self.array_offsets, self.image.shape,
-                                self.pad_size, verbose=True)
+                                self.skeleton_pad_size, verbose=True)
 
         return self
 
@@ -1059,7 +1068,7 @@ class fil_finder_2D(object):
 
         return self
 
-    def filament_model(self, max_radius=25):
+    def filament_model(self, max_radius=25, use_nopad=True):
         '''
         Returns a model of the diffuse filamentary network based
         on the radial profiles.
@@ -1068,6 +1077,9 @@ class fil_finder_2D(object):
         ----------
         max_radius : int, optional
             Number of pixels to extend profiles to.
+        use_nopad : bool, optional
+            Returns the unpadded image size when enabled. Enabled by
+            default.
 
         Returns
         -------
@@ -1082,9 +1094,14 @@ class fil_finder_2D(object):
         params = self.width_fits['Parameters']
         scale = self.imgscale
 
+        if use_nopad:
+            skel_array = self.skeleton_nopad
+        else:
+            skel_array = self.skeleton
+
         # Create the distance transforms
         all_fils = dist_transform(self.filament_arrays["final"],
-                                  self.skeleton)[0]
+                                  skel_array)[0]
 
         model_image = np.zeros(all_fils.shape)
 
@@ -1269,31 +1286,43 @@ class fil_finder_2D(object):
 
     @property
     def mask_nopad(self):
+        if self.pad_size == 0:
+            return self.mask
         return self.mask[self.pad_size:-self.pad_size,
                          self.pad_size:-self.pad_size]
 
     @property
     def skeleton_nopad(self):
+        if self.pad_size == 0:
+            return self.skeleton
         return self.skeleton[self.pad_size:-self.pad_size,
                              self.pad_size:-self.pad_size]
 
     @property
     def skeleton_longpath_nopad(self):
+        if self.pad_size == 0:
+            return self.skeleton_longpath
         return self.skeleton_longpath[self.pad_size:-self.pad_size,
                                       self.pad_size:-self.pad_size]
 
     @property
     def flat_img_nopad(self):
+        if self.pad_size == 0:
+            self.flat_img
         return self.flat_img[self.pad_size:-self.pad_size,
                              self.pad_size:-self.pad_size]
 
     @property
     def image_nopad(self):
+        if self.pad_size == 0:
+            return self.image
         return self.image[self.pad_size:-self.pad_size,
                           self.pad_size:-self.pad_size]
 
     @property
     def medial_axis_distance_nopad(self):
+        if self.pad_size == 0:
+            return self.medial_axis_distance
         return self.medial_axis_distance[self.pad_size:-self.pad_size,
                                          self.pad_size:-self.pad_size]
 
@@ -1353,16 +1382,12 @@ class fil_finder_2D(object):
             str(self.adapt_thresh) + " pixels"
         new_hdr["COMMENT"] = "Original file name: " + filename
 
-        # Remove padding
-        mask = self.mask[self.pad_size:-self.pad_size,
-                         self.pad_size:-self.pad_size]
-
         try_mkdir(self.save_name)
 
         # Save mask
         fits.writeto(os.path.join(self.save_name,
                                   "".join([save_name, "_mask.fits"])),
-                     mask.astype(">i2"), new_hdr)
+                     self.mask_nopad.astype(">i2"), new_hdr)
 
         # Save skeletons. Includes final skeletons and the longest paths.
         try:
@@ -1379,17 +1404,11 @@ class fil_finder_2D(object):
 
         # Final Skeletons - create labels which match up with table output
 
-        # Remove padding
-        skeleton = self.skeleton[self.pad_size:-self.pad_size,
-                                 self.pad_size:-self.pad_size]
-        skeleton_long = self.skeleton_longpath[self.pad_size:-self.pad_size,
-                                               self.pad_size:-self.pad_size]
-
-        labels = nd.label(skeleton, eight_con())[0]
+        labels = nd.label(self.skeleton_nopad, eight_con())[0]
         hdu_skel.append(fits.PrimaryHDU(labels.astype(">i2"), header=new_hdr))
 
         # Longest Paths
-        labels_lp = nd.label(skeleton_long, eight_con())[0]
+        labels_lp = nd.label(self.skeleton_longpath_nopad, eight_con())[0]
         hdu_skel.append(fits.PrimaryHDU(labels_lp.astype(">i2"),
                                         header=new_hdr))
 
@@ -1456,11 +1475,7 @@ class fil_finder_2D(object):
                                          save_name+"_object_"+str(n+1)+".fits"))
 
         if model_save:
-            model = self.filament_model()
-
-            # Remove the padding
-            model = model[self.pad_size:-self.pad_size,
-                          self.pad_size:-self.pad_size]
+            model = self.filament_model(use_nopad=True)
 
             model_hdr = new_hdr.copy()
 
