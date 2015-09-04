@@ -25,6 +25,8 @@ class Test_FilFinder(TestCase):
         test1.find_widths()
         test1.compute_filament_brightness()
 
+        assert test1.number_of_filaments == len(table1["Lengths"])
+
         for i, param in enumerate(test1.width_fits["Names"]):
             assert np.allclose(test1.width_fits["Parameters"][:, i],
                                np.asarray(table1[param]))
@@ -58,6 +60,8 @@ class Test_FilFinder(TestCase):
         test2.exec_rht(branches=False)
         test2.find_widths()
         test2.compute_filament_brightness()
+
+        assert test2.number_of_filaments == len(table2["Lengths"])
 
         for i, param in enumerate(test2.width_fits["Names"]):
             assert np.allclose(test2.width_fits["Parameters"][:, i],
