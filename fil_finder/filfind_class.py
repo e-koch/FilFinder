@@ -204,17 +204,14 @@ class fil_finder_2D(object):
 
     @property
     def skeleton_pad_size(self):
-        return self._pad_size
+        return self._skeleton_pad_size
 
     @skeleton_pad_size.setter
     def skeleton_pad_size(self, value):
         if value < 0:
             raise ValueError("Skeleton pad size must be >0")
-        self._pad_size = value
+        self._skeleton_pad_size = value
 
-    # @property
-    # def pad_size_difference(self):
-    #     return self._pad_size - self._skeleton_pad_size
 
     def create_mask(self, glob_thresh=None, adapt_thresh=None,
                     smooth_size=None, size_thresh=None, verbose=False,
@@ -377,7 +374,7 @@ class fil_finder_2D(object):
 
         # Set the border to zeros for the adaptive thresholding. Avoid border
         # effects.
-        if zero_border:
+        if zero_border and self.pad_size > 0:
             smooth_img[:self.pad_size*ratio+1, :] = 0.0
             smooth_img[-self.pad_size*ratio-1:, :] = 0.0
             smooth_img[:, :self.pad_size*ratio+1] = 0.0
@@ -412,10 +409,10 @@ class fil_finder_2D(object):
 
         mask_objs, num, corners = \
             isolateregions(cleaned, fill_hole=True, rel_size=fill_hole_size,
-                           morph_smooth=True)
+                           morph_smooth=True, pad_size=self.skeleton_pad_size)
         self.mask = recombine_skeletons(mask_objs,
                                         corners, self.image.shape,
-                                        self.pad_size, verbose=True)
+                                        self.skeleton_pad_size, verbose=True)
 
         # WARNING!! Setting some image values to 0 to avoid negative weights.
         # This may cause issues, however it will allow for proper skeletons
