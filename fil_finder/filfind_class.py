@@ -1380,16 +1380,12 @@ class fil_finder_2D(object):
             str(self.adapt_thresh) + " pixels"
         new_hdr["COMMENT"] = "Original file name: " + filename
 
-        # Remove padding
-        mask = self.mask[self.pad_size:-self.pad_size,
-                         self.pad_size:-self.pad_size]
-
         try_mkdir(self.save_name)
 
         # Save mask
         fits.writeto(os.path.join(self.save_name,
                                   "".join([save_name, "_mask.fits"])),
-                     mask.astype(">i2"), new_hdr)
+                     self.mask_nopad.astype(">i2"), new_hdr)
 
         # Save skeletons. Includes final skeletons and the longest paths.
         try:
@@ -1406,17 +1402,11 @@ class fil_finder_2D(object):
 
         # Final Skeletons - create labels which match up with table output
 
-        # Remove padding
-        skeleton = self.skeleton[self.pad_size:-self.pad_size,
-                                 self.pad_size:-self.pad_size]
-        skeleton_long = self.skeleton_longpath[self.pad_size:-self.pad_size,
-                                               self.pad_size:-self.pad_size]
-
-        labels = nd.label(skeleton, eight_con())[0]
+        labels = nd.label(self.skeleton_nopad, eight_con())[0]
         hdu_skel.append(fits.PrimaryHDU(labels.astype(">i2"), header=new_hdr))
 
         # Longest Paths
-        labels_lp = nd.label(skeleton_long, eight_con())[0]
+        labels_lp = nd.label(self.skeleton_longpath_nopad, eight_con())[0]
         hdu_skel.append(fits.PrimaryHDU(labels_lp.astype(">i2"),
                                         header=new_hdr))
 
