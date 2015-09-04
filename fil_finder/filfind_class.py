@@ -1074,7 +1074,7 @@ class fil_finder_2D(object):
 
         return self
 
-    def filament_model(self, max_radius=25):
+    def filament_model(self, max_radius=25, use_nopad=True):
         '''
         Returns a model of the diffuse filamentary network based
         on the radial profiles.
@@ -1083,6 +1083,9 @@ class fil_finder_2D(object):
         ----------
         max_radius : int, optional
             Number of pixels to extend profiles to.
+        use_nopad : bool, optional
+            Returns the unpadded image size when enabled. Enabled by
+            default.
 
         Returns
         -------
@@ -1097,9 +1100,14 @@ class fil_finder_2D(object):
         params = self.width_fits['Parameters']
         scale = self.imgscale
 
+        if use_nopad:
+            skel_array = self.skeleton_nopad
+        else:
+            skel_array = self.skeleton
+
         # Create the distance transforms
         all_fils = dist_transform(self.filament_arrays["final"],
-                                  self.skeleton)[0]
+                                  skel_array)[0]
 
         model_image = np.zeros(all_fils.shape)
 
