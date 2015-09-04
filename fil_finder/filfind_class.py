@@ -461,7 +461,7 @@ class fil_finder_2D(object):
 
         return self
 
-    def medskel(self, return_distance=True, verbose=False, save_png=False):
+    def medskel(self, verbose=False, save_png=False):
         '''
 
         This function performs the medial axis transform (skeletonization)
@@ -476,9 +476,6 @@ class fil_finder_2D(object):
 
         Parameters
         ----------
-        return_distance : bool, optional
-            This sets whether the distance transform is returned from
-            skimage.morphology.medial_axis.
         verbose : bool, optional
             Enables plotting.
         save_png : bool, optional
@@ -492,22 +489,17 @@ class fil_finder_2D(object):
             The distance transform used to create the skeletons.
         '''
 
-        if return_distance:
-            self.skeleton, self.medial_axis_distance = medial_axis(
-                self.mask, return_distance=return_distance)
-            self.medial_axis_distance = self.medial_axis_distance * \
-                self.skeleton
-            # Delete connection smaller than 2 pixels wide. Such a small
-            # connection is more likely to be from limited pixel resolution
-            # rather than actual structure.
-            width_threshold = 1
-            narrow_pts = np.where(self.medial_axis_distance < width_threshold)
-            self.skeleton[narrow_pts] = 0  # Eliminate narrow connections
-            self.medial_axis_distance[narrow_pts] = 0
-
-        else:
-            self.skeleton = medial_axis(self.mask)
-            self.medial_axis_skeleton = None
+        self.skeleton, self.medial_axis_distance = \
+            medial_axis(self.mask, return_distance=return_distance)
+        self.medial_axis_distance = \
+            self.medial_axis_distance * self.skeleton
+        # Delete connection smaller than 2 pixels wide. Such a small
+        # connection is more likely to be from limited pixel resolution
+        # rather than actual structure.
+        width_threshold = 1
+        narrow_pts = np.where(self.medial_axis_distance < width_threshold)
+        self.skeleton[narrow_pts] = 0  # Eliminate narrow connections
+        self.medial_axis_distance[narrow_pts] = 0
 
         if verbose or save_png:  # For examining results of skeleton
             vmin = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 20)
