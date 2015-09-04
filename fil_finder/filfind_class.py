@@ -1481,11 +1481,7 @@ class fil_finder_2D(object):
                                          save_name+"_object_"+str(n+1)+".fits"))
 
         if model_save:
-            model = self.filament_model()
-
-            # Remove the padding
-            model = model[self.pad_size:-self.pad_size,
-                          self.pad_size:-self.pad_size]
+            model = self.filament_model(use_nopad=True)
 
             model_hdr = new_hdr.copy()
 
