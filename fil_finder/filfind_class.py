@@ -49,7 +49,9 @@ class fil_finder_2D(object):
         beamwidth.
     pad_size :  int, optional
         The size of the pad (in pixels) used to pad the individual
-        filament arrays. The default is set to 10 pixels.
+        filament arrays. By default this is disabled. **If the data continue
+        up to the edge of the image, padding should not be enabled as this
+        causes deviations in the mask around the edges!**
     skeleton_pad_size : int, optional
         Number of pixels to pad the individual skeleton arrays by. For
         the skeleton to graph conversion, the pad must always be greater
