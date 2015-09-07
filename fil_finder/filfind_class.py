@@ -201,7 +201,7 @@ class fil_finder_2D(object):
     @pad_size.setter
     def pad_size(self, value):
         if value < 0:
-            raise ValueError("Pad size must be >0")
+            raise ValueError("Pad size must be >=0")
         self._pad_size = value
 
     @property
@@ -210,7 +210,7 @@ class fil_finder_2D(object):
 
     @skeleton_pad_size.setter
     def skeleton_pad_size(self, value):
-        if value < 0:
+        if value <= 0:
             raise ValueError("Skeleton pad size must be >0")
         self._skeleton_pad_size = value
 
