@@ -69,11 +69,11 @@ Package Dependencies
 
 Requires:
 
- *   numpy 1.7.1
+ *   numpy >= 1.7.1
  *   matplotlib
- *   astropy
+ *   astropy >= 0.4.0
  *   scipy
- *   scikits-image 0.8.0
+ *   scikits-image >= 0.8.0
  *   networkx
 
 Optional:
