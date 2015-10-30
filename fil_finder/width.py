@@ -449,20 +449,26 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
 
     whichbins = np.digitize(width_distance, bins)
     bin_centers = (bins[1:] + bins[:-1]) / 2.0
-    radial_prof = np.array(
-        [np.median(width_value[(whichbins == bin)]) for bin in
-         range(1, int(nbins) + 1)])
 
-    if weighting == "number":
-        weights = np.array([whichbins[whichbins == bin].sum()
-                            for bin in range(1, int(nbins) + 1)])
-    elif weighting == "var":
-        weights = np.array(
-            [np.nanvar(width_value[whichbins == bin]) for bin in
-             range(1, int(nbins) + 1)])
-        weights[np.isnan(weights)] = 0.0  # Empty bins
+    radial_prof = np.zeros_like(bin_centers)
+    weights = np.zeros_like(bin_centers)
 
-    # Ignore empty bins
+    for nbin in xrange(1, int(nbins) + 1):
+
+        bin_posns = whichbins == nbin
+
+        # Skip any empty bins
+        if bin_posns.sum() == 0:
+            continue
+
+        radial_prof[nbin-1] = np.median(width_value[bin_posns])
+
+        if weighting == "number":
+            weights[nbin-1] = whichbins[bin_posns].sum()
+        elif weighting == "var":
+            weights[nbin-1] = np.nanvar(width_value[bin_posns])
+
+    # Remove all empty bins
     radial_prof = radial_prof[weights > 0]
     bin_centers = bin_centers[weights > 0]
     weights = weights[weights > 0]
