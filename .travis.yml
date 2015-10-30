@@ -20,7 +20,7 @@ install:
 
     # Now install dependencies
     - conda install --yes h5py
-    - conda install --yes numpy==1.9
+    - conda install --yes numpy
     - conda install --yes scipy
     - conda install --yes matplotlib
     - conda install --yes scikit-image
