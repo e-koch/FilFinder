@@ -1,5 +1,7 @@
 # Licensed under an MIT open source license - see LICENSE
 
+__version__ = "1.2.2"
+
 from cores import *
 from length import *
 from pixel_ident import *
