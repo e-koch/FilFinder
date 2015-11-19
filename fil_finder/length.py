@@ -1,11 +1,13 @@
 # Licensed under an MIT open source license - see LICENSE
 
+from .utilities import *
+from .pixel_ident import *
+
+
 import numpy as np
 from scipy.stats import nanmean
 import scipy.ndimage as nd
 import networkx as nx
-from utilities import *
-from pixel_ident import *
 import operator
 import string
 import copy

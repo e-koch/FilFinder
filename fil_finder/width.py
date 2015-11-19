@@ -1,6 +1,7 @@
 # Licensed under an MIT open source license - see LICENSE
 
-from utilities import *
+from .utilities import *
+
 import numpy as np
 import scipy.ndimage as nd
 import scipy.optimize as op

@@ -10,9 +10,10 @@ subtract_cores
 
 """
 
+from .utilities import *
+
 import numpy as np
 from scipy.ndimage import label
-from utilities import *
 
 
 def abs_thresh(arr,thresh_value,img_scale,img_freq):

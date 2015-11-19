@@ -1,8 +1,9 @@
 # Licensed under an MIT open source license - see LICENSE
 
+from .length import *
+
 import numpy as np
 import scipy.ndimage as nd
-from length import *
 import matplotlib.pyplot as p
 import copy
 
