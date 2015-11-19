@@ -2,7 +2,7 @@
 
 from unittest import TestCase
 
-from fil_finder import skeleton_length
+from fil_finder.length import skeleton_length
 
 import numpy as np
 
