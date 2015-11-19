@@ -2,7 +2,7 @@
 
 __version__ = "1.2.2"
 
-from cores import *
+# from cores import *
 from length import *
 from pixel_ident import *
 from utilities import *
