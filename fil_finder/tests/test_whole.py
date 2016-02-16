@@ -3,7 +3,7 @@
 from unittest import TestCase
 
 import numpy as np
-# import numpy.testing as npt
+import numpy.testing as npt
 
 from fil_finder import fil_finder_2D
 
@@ -29,10 +29,10 @@ class Test_FilFinder(TestCase):
         assert test1.number_of_filaments == len(table1["Lengths"])
 
         for i, param in enumerate(test1.width_fits["Names"]):
-            assert np.allclose(test1.width_fits["Parameters"][:, i],
-                               np.asarray(table1[param]))
-            assert np.allclose(test1.width_fits["Errors"][:, i],
-                               np.asarray(table1[param+" Error"]))
+            npt.assert_allclose(test1.width_fits["Parameters"][:, i],
+                                np.asarray(table1[param]))
+            npt.assert_allclose(test1.width_fits["Errors"][:, i],
+                                np.asarray(table1[param+" Error"]))
 
         assert np.allclose(test1.lengths,
                            np.asarray(table1['Lengths']))
