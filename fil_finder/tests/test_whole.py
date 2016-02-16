@@ -66,10 +66,10 @@ class Test_FilFinder(TestCase):
         assert test2.number_of_filaments == len(table2["Lengths"])
 
         for i, param in enumerate(test2.width_fits["Names"]):
-            assert np.allclose(test2.width_fits["Parameters"][:, i],
-                               np.asarray(table2[param]))
-            assert np.allclose(test2.width_fits["Errors"][:, i],
-                               np.asarray(table2[param+" Error"]))
+            npt.assert_allclose(test2.width_fits["Parameters"][:, i],
+                                np.asarray(table2[param]))
+            npt.assert_allclose(test2.width_fits["Errors"][:, i],
+                                np.asarray(table2[param+" Error"]))
 
         assert np.allclose(test2.lengths,
                            np.asarray(table2['Lengths']))
