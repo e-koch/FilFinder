@@ -2,7 +2,7 @@
 1.3 (unreleased)
 ----------------
 
-- [#17] - Allow longest path skeletons to be used for width fitting. Also fixed a fitting bug where bad guesses at the initial width led to terrible fits. Fixed a bug in the non-parametric width where the target width was not using 1/e of the maximum.
+- [#17] - Allow longest path skeletons to be used for width fitting. Also fixed a fitting bug where bad guesses at the initial width led to terrible fits. Fixed a bug in the non-parametric width where the target width was not using e^-0.5 of the maximum.
 
 - [#16] - Remove graphviz drawing of graphs
 
