@@ -347,7 +347,7 @@ def pre_graph(labelisofil, branch_properties, interpts, ends):
     return edge_list, nodes
 
 
-def longest_path(edge_list, nodes, verbose=False, lengths=None,
+def longest_path(edge_list, nodes, verbose=False,
                  skeleton_arrays=None, save_png=False, save_name=None):
     '''
     Takes the output of pre_graph and runs the shortest path algorithm.
@@ -363,12 +363,7 @@ def longest_path(edge_list, nodes, verbose=False, lengths=None,
         been separated as they are labeled differently.
 
     verbose : bool, optional
-        If True, enables the plotting of the graph. *Recommend pygraphviz
-        be installed for best results.*
-
-    lengths : list, optional
-        Contains the lengths of each branch. Required only for graphviz
-        plotting of the graphs.
+        If True, enables the plotting of the graph.
 
     skeleton_arrays : list, optional
         List of the skeleton arrays. Required when verbose=True.
@@ -434,10 +429,7 @@ def longest_path(edge_list, nodes, verbose=False, lengths=None,
 
                 p.subplot(1, 2, 2)
                 elist = [(u, v) for (u, v, d) in G.edges(data=True)]
-                try:
-                    pos = nx.graphviz_layout(G)  # , arg=str(lengths[n]))
-                except ImportError:
-                    pos = nx.spring_layout(G)
+                pos = nx.spring_layout(G)
                 nx.draw_networkx_nodes(G, pos, node_size=200)
                 nx.draw_networkx_edges(G, pos, edgelist=elist, width=2)
                 nx.draw_networkx_labels(
