@@ -307,8 +307,7 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
 
     # Find the width by looking for where the intensity drops to 1/e from the
     # peak
-    target_intensity = (peak_intens - bkg_intens) / \
-        (2 * np.sqrt(2 * np.log(2))) + bkg_intens
+    target_intensity = ((peak_intens - bkg_intens) / np.exp(1)) + bkg_intens
     fwhm_width = interp_bins[
         np.where(interp_profile ==
                  find_nearest(interp_profile, target_intensity))][0]
