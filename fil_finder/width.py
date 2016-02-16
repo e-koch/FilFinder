@@ -140,7 +140,7 @@ def gauss_model(distance, rad_profile, weights, img_beam):
         Identifies a failed fit.
     '''
 
-    p0 = (np.max(rad_profile), np.std(rad_profile), np.min(rad_profile))
+    p0 = (np.max(rad_profile), np.std(distance), np.min(rad_profile))
     parameters = ["Amplitude", "Width", "Background", "FWHM"]
 
     def gaussian(x, *p):
