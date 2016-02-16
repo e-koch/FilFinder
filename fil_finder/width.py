@@ -1,6 +1,6 @@
 # Licensed under an MIT open source license - see LICENSE
 
-from .utilities import *
+from .utilities import find_nearest
 
 import numpy as np
 import scipy.ndimage as nd
@@ -307,10 +307,9 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
 
     # Find the width by looking for where the intensity drops to 1/e from the
     # peak
-    target_intensity = ((peak_intens - bkg_intens) / np.exp(1)) + bkg_intens
-    fwhm_width = interp_bins[
-        np.where(interp_profile ==
-                 find_nearest(interp_profile, target_intensity))][0]
+    target_intensity = ((peak_intens - bkg_intens) / np.exp(0.5)) + bkg_intens
+    width = interp_bins[np.where(interp_profile ==
+                        find_nearest(interp_profile, target_intensity))][0]
 
     # Estimate the width error by looking +/-5 percentile around the target
     # intensity
@@ -319,16 +318,14 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
         rad_profile, np.min((100, target_percentile + 5)))
     lower = scoreatpercentile(rad_profile, np.max((0, target_percentile - 5)))
 
-    fwhm_error = np.max(unbin_dist[(unbin_prof > lower) * (unbin_prof < upper)]) -\
-        np.min(unbin_dist[(unbin_prof > lower) * (unbin_prof < upper)])
+    error_range_pts = np.logical_and(unbin_prof > lower, unbin_prof < upper)
+    width_error = np.max(unbin_dist[error_range_pts]) -\
+        np.min(unbin_dist[error_range_pts])
 
     # Deconvolve the width with the beam size.
     factor = 2 * np.sqrt(2 * np.log(2))  # FWHM factor
 
-    width = fwhm_width / factor
-    width_error = fwhm_error / factor
-
-    deconv = fwhm_width ** 2. - img_beam ** 2.
+    deconv = (width*factor) ** 2. - img_beam ** 2.
     if deconv > 0:
         fwhm_width = np.sqrt(deconv)
         fwhm_error = (factor * width * width_error) / fwhm_width
@@ -337,16 +334,20 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
         fwhm_width = 0.0
         fwhm_error = 0.0
 
-    # Check where the "background" and "peak" are. If the peak distance is greater,
-    # we are simply looking at a bad radial profile.
+    # Check where the "background" and "peak" are. If the peak distance is
+    # greater, we are simply looking at a bad radial profile.
     bkg_dist = np.median(
-        interp_bins[np.where(interp_profile == find_nearest(interp_profile, bkg_intens))])
+        interp_bins[np.where(interp_profile ==
+                             find_nearest(interp_profile, bkg_intens))])
     peak_dist = np.median(
-        interp_bins[np.where(interp_profile == find_nearest(interp_profile, peak_intens))])
+        interp_bins[np.where(interp_profile ==
+                    find_nearest(interp_profile, peak_intens))])
     bkg_error = np.std(
         unbin_prof[unbin_dist >= find_nearest(unbin_dist, bkg_dist)])
     peak_error = np.std(
         unbin_prof[unbin_dist <= find_nearest(unbin_dist, peak_dist)])
+
+    # Check if there are unrealistic estimates
     if peak_dist > bkg_dist or fwhm_error > fwhm_width:
         fail_flag = True
 
