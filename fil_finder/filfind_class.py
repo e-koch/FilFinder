@@ -869,7 +869,7 @@ class fil_finder_2D(object):
         return self
 
     def find_widths(self, fit_model=gauss_model, try_nonparam=True,
-                    verbose=False, save_png=False):
+                    use_longest_paths=False, verbose=False, save_png=False):
         '''
 
         The final step of the algorithm is to find the widths of each
@@ -894,7 +894,11 @@ class fil_finder_2D(object):
             Function to fit to the radial profile.
         try_nonparam : bool, optional
             If True, uses a non-parametric method to find the properties of
-            the radial profile in cases where the model fails.\
+            the radial profile in cases where the model fails.
+        use_longest_paths : bool, optional
+            Optionally use the longest path skeletons for the width fitting.
+            Note that this will disregard all branches off of the longest
+            path.
         verbose : bool, optional
             Enables plotting.
         save_png : bool, optional
@@ -912,8 +916,13 @@ class fil_finder_2D(object):
 
         '''
 
+        if use_longest_paths:
+            skel_arrays = self.filament_arrays["long path"]
+        else:
+            skel_arrays = self.filament_arrays["final"]
+
         dist_transform_all, dist_transform_separate = \
-            dist_transform(self.filament_arrays["final"],
+            dist_transform(skel_arrays,
                            self.skeleton)
 
         for n in range(self.number_of_filaments):
