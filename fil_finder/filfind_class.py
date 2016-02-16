@@ -651,8 +651,7 @@ class fil_finder_2D(object):
                          verbose=verbose,
                          save_png=save_png,
                          save_name=self.save_name,
-                         skeleton_arrays=labeled_fil_arrays,
-                         lengths=self.branch_properties["length"])
+                         skeleton_arrays=labeled_fil_arrays)
 
         updated_lists = \
             prune_graph(G, nodes, edge_list, max_path, labeled_fil_arrays,

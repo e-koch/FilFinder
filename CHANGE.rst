@@ -2,8 +2,7 @@
 1.3 (unreleased)
 ----------------
 
-New Features
-^^^^^^^^^^^^
+- [#16] - Remove graphviz drawing of graphs
 
 
 1.2.1 (2015-10-30): Patch for Numpy 1.10
