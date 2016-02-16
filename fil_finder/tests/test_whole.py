@@ -30,9 +30,9 @@ class Test_FilFinder(TestCase):
 
         for i, param in enumerate(test1.width_fits["Names"]):
             npt.assert_allclose(test1.width_fits["Parameters"][:, i],
-                                np.asarray(table1[param]))
+                                np.asarray(table1[param]), rtol=1e-4)
             npt.assert_allclose(test1.width_fits["Errors"][:, i],
-                                np.asarray(table1[param+" Error"]))
+                                np.asarray(table1[param+" Error"]), rtol=1e-4)
 
         assert np.allclose(test1.lengths,
                            np.asarray(table1['Lengths']))
@@ -67,9 +67,9 @@ class Test_FilFinder(TestCase):
 
         for i, param in enumerate(test2.width_fits["Names"]):
             npt.assert_allclose(test2.width_fits["Parameters"][:, i],
-                                np.asarray(table2[param]))
+                                np.asarray(table2[param]), rtol=1e-4)
             npt.assert_allclose(test2.width_fits["Errors"][:, i],
-                                np.asarray(table2[param+" Error"]))
+                                np.asarray(table2[param+" Error"]), rtol=1e-4)
 
         assert np.allclose(test2.lengths,
                            np.asarray(table2['Lengths']))
