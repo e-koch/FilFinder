@@ -415,18 +415,25 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
     for i in range(len(x)):
         # Check overall distance transform to make sure pixel belongs to proper
         # filament
-        if img[x_full[i], y_full[i]]!=0.0 and np.isfinite(img[x_full[i], y_full[i]]):
-            if dist_transform_sep[x[i], y[i]] <= dist_transform_all[x_full[i], y_full[i]]:
-                width_value.append(img[x_full[i], y_full[i]])
-                width_distance.append(dist_transform_sep[x[i], y[i]])
+        img_val = img[x_full[i], y_full[i]]
+        sep_dist = dist_transform_sep[x[i], y[i]]
+        glob_dist = dist_transform_all[x_full[i], y_full[i]]
+        if img_val != 0.0 and np.isfinite(img_val):
+            if sep_dist <= glob_dist:
+                width_value.append(img_val)
+                width_distance.append(sep_dist)
             else:
                 nonlocalpix.append([x[i], y[i], x_full[i], y_full[i]])
 
-    if pad_to_distance>0.0 and np.max(width_distance)*img_scale < pad_to_distance:
-        pad = int(
-            (pad_to_distance - np.max(width_distance) * img_scale) * img_scale ** -1)
+    need_pad = np.max(width_distance)*img_scale < pad_to_distance
+
+    if pad_to_distance > 0.0 and need_pad:
+        pad_dist = pad_to_distance - np.max(width_distance) * img_scale
+        pad = int(pad_dist * img_scale ** -1)
         for pix in nonlocalpix:
-            if dist_transform_sep[pix[0], pix[1]] <= dist_transform_all[pix[2], pix[3]] + pad:
+            sep_dist = dist_transform_sep[pix[0], pix[1]]
+            glob_dist = dist_transform_all[pix[2], pix[3]]
+            if sep_dist <= glob_dist + pad:
                 width_value.append(img[pix[2], pix[3]])
                 width_distance.append(dist_transform_sep[pix[0], pix[1]])
 
