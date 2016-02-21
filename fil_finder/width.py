@@ -99,9 +99,9 @@ def cyl_model(distance, rad_profile, img_beam):
     # Deconvolve the width with the beam size.
     # deconv = (2.35*abs(fit[1])**2.) - img_beam**2.
     # if deconv>0:
-    # 	fit[1] = np.sqrt(deconv)
+    #   fit[1] = np.sqrt(deconv)
     # else:
-    # 	fit[1] = "Neg. FWHM"
+    #   fit[1] = "Neg. FWHM"
     fail_flag = False
     if cov is None or (fit_errors > fit).any():
         fail_flag = True
@@ -491,7 +491,7 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
 
 
 def _smooth_and_cut(bins, values, kern_size, weights, interp_factor=10,
-                    pad_cut=5):
+                    pad_cut=5, smooth_size=0.05, min_width=0.1):
     '''
     Smooth the radial profile and cut if it increases at increasing
     distance. Also checks for profiles with a plateau between two decreasing
@@ -514,6 +514,21 @@ def _smooth_and_cut(bins, values, kern_size, weights, interp_factor=10,
     pad_cut : int, optional
         Add additional bins after the cut is found. The smoothing often cuts
         out some bins which follow the desired profile.
+    smooth_size : float, optional
+        Set the smoothing size when finding local extrema. It is recommended
+        this be set to about half of min_width.
+    min_width : float, optional
+        Ignore local minima below this minimum width.
+
+    Returns
+    -------
+    cut_bins : numpy.ndarray
+        Bins for the profile with a possible cutoff.
+    cut_values : numpy.ndarray
+        Values in each bin with a possible cutoff.
+    cut_weights : numpy.ndarray
+        Weights for each bin with a possible cutoff.
+
     '''
 
     from scipy.ndimage import gaussian_filter1d
@@ -539,13 +554,15 @@ def _smooth_and_cut(bins, values, kern_size, weights, interp_factor=10,
     new_cut = None
 
     # Look for local max and mins (must hold True for range of ~0.05 pc)
-    loc_mins = argrelmin(grad,
-                         order=int(0.05/(smooth_bins[1] - smooth_bins[0])))[0]
-    loc_maxs = argrelmax(grad,
-                         order=int(0.05/(smooth_bins[1] - smooth_bins[0])))[0]
+    loc_mins = \
+        argrelmin(grad,
+                  order=int(smooth_size/(smooth_bins[1] - smooth_bins[0])))[0]
+    loc_maxs = \
+        argrelmax(grad,
+                  order=int(smooth_size/(smooth_bins[1] - smooth_bins[0])))[0]
 
-    # Discard below 0.1 pc.
-    loc_mins = loc_mins[smooth_bins[loc_mins] > 0.1]
+    # Discard below some minimum width (defaults to 0.1 pc).
+    loc_mins = loc_mins[smooth_bins[loc_mins] > min_width]
     loc_maxs = loc_maxs
 
     if loc_mins.size > 0 and loc_maxs.size > 0:
