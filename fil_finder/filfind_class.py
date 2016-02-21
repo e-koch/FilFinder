@@ -870,7 +870,8 @@ class fil_finder_2D(object):
         return self
 
     def find_widths(self, fit_model=gauss_model, try_nonparam=True,
-                    use_longest_paths=False, verbose=False, save_png=False):
+                    use_longest_paths=False, verbose=False, save_png=False,
+                    **kwargs):
         '''
 
         The final step of the algorithm is to find the widths of each
@@ -932,7 +933,8 @@ class fil_finder_2D(object):
             dist, radprof, weights, unbin_dist, unbin_radprof = \
                 radial_profile(self.image, dist_transform_all,
                                dist_transform_separate[n],
-                               self.array_offsets[n], self.imgscale)
+                               self.array_offsets[n], self.imgscale,
+                               **kwargs)
 
             if fit_model == cyl_model:
                 if self.freq is None:
