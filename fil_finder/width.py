@@ -359,8 +359,8 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
 
 def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
                    img_scale, bins=None, bintype="linear", weighting="number",
-                   return_unbinned=True, auto_cut=True,
-                   pad_to_distance=0.15, max_distance=0.3):
+                   return_unbinned=True, auto_cut=True, pad_to_distance=0.15,
+                   max_distance=0.3, auto_cut_kwargs={}):
     '''
     Fits the radial profiles to all filaments in the image.
 
@@ -424,7 +424,7 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
 
     if pad_to_distance>0.0 and np.max(width_distance)*img_scale < pad_to_distance:
         pad = int(
-            (0.15 - np.max(width_distance) * img_scale) * img_scale ** -1)
+            (pad_to_distance - np.max(width_distance) * img_scale) * img_scale ** -1)
         for pix in nonlocalpix:
             if dist_transform_sep[pix[0], pix[1]] <= dist_transform_all[pix[2], pix[3]] + pad:
                 width_value.append(img[pix[2], pix[3]])
@@ -480,7 +480,8 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
 
     if auto_cut:
         bin_centers, radial_prof, weights = \
-            _smooth_and_cut(bin_centers, radial_prof, 0.1, weights)
+            _smooth_and_cut(bin_centers, radial_prof, weights,
+                            **auto_cut_kwargs)
 
     if return_unbinned:
         width_distance = width_distance[np.isfinite(width_value)]
@@ -490,7 +491,7 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
         return bin_centers, radial_prof, weights
 
 
-def _smooth_and_cut(bins, values, kern_size, weights, interp_factor=10,
+def _smooth_and_cut(bins, values, weights, kern_size=0.1, interp_factor=10,
                     pad_cut=5, smooth_size=0.05, min_width=0.1):
     '''
     Smooth the radial profile and cut if it increases at increasing
@@ -503,12 +504,12 @@ def _smooth_and_cut(bins, values, kern_size, weights, interp_factor=10,
         Bins for the profile.
     values : numpy.ndarray
         Values in each bin.
-    kern_size : int or float
-        If >1, is the number of bins to use in the smoothing. If <1, takes
-        fraction of the data for smoothing.
     weights : numpy.ndarray
         Weights for each bin. These are only clipped to the same position as
         the rest of the profile. Otherwise, no alteration is made.
+    kern_size : int or float, optional
+        If >1, is the number of bins to use in the smoothing. If <1, takes
+        fraction of the data for smoothing.
     interp_factor : int, optional
         The factor to increase the number of bins by for interpolation.
     pad_cut : int, optional
