@@ -601,7 +601,7 @@ def recombine_skeletons(skeletons, offsets, orig_size, pad_size,
 
     num = len(skeletons)
 
-    master_array = np.zeros(orig_size)
+    master_array = np.zeros(orig_size, dtype=bool)
     for n in range(num):
         x_off, y_off = offsets[n][0]  # These are the coordinates of the bottom
                                      # left in the master array.
@@ -741,4 +741,4 @@ def remove_spurs(mask, min_distance=9):
     reconst = mo.reconstruction(seed, dist_trans, method='erosion') - \
         min_distance
 
-    return mo.dilation(reconst > 0, selem=mo.disk(min_distance))
+    return mo.binary_dilation(reconst > 0, selem=mo.disk(min_distance))
