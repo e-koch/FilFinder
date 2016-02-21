@@ -99,9 +99,9 @@ def cyl_model(distance, rad_profile, img_beam):
     # Deconvolve the width with the beam size.
     # deconv = (2.35*abs(fit[1])**2.) - img_beam**2.
     # if deconv>0:
-    # 	fit[1] = np.sqrt(deconv)
+    #   fit[1] = np.sqrt(deconv)
     # else:
-    # 	fit[1] = "Neg. FWHM"
+    #   fit[1] = "Neg. FWHM"
     fail_flag = False
     if cov is None or (fit_errors > fit).any():
         fail_flag = True
@@ -359,8 +359,8 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
 
 def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
                    img_scale, bins=None, bintype="linear", weighting="number",
-                   return_unbinned=True, auto_cut=True,
-                   pad_to_distance=0.15, max_distance=0.3):
+                   return_unbinned=True, auto_cut=True, pad_to_distance=0.15,
+                   max_distance=0.3, auto_cut_kwargs={}):
     '''
     Fits the radial profiles to all filaments in the image.
 
@@ -415,18 +415,25 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
     for i in range(len(x)):
         # Check overall distance transform to make sure pixel belongs to proper
         # filament
-        if img[x_full[i], y_full[i]]!=0.0 and np.isfinite(img[x_full[i], y_full[i]]):
-            if dist_transform_sep[x[i], y[i]] <= dist_transform_all[x_full[i], y_full[i]]:
-                width_value.append(img[x_full[i], y_full[i]])
-                width_distance.append(dist_transform_sep[x[i], y[i]])
+        img_val = img[x_full[i], y_full[i]]
+        sep_dist = dist_transform_sep[x[i], y[i]]
+        glob_dist = dist_transform_all[x_full[i], y_full[i]]
+        if img_val != 0.0 and np.isfinite(img_val):
+            if sep_dist <= glob_dist:
+                width_value.append(img_val)
+                width_distance.append(sep_dist)
             else:
                 nonlocalpix.append([x[i], y[i], x_full[i], y_full[i]])
 
-    if pad_to_distance>0.0 and np.max(width_distance)*img_scale < pad_to_distance:
-        pad = int(
-            (0.15 - np.max(width_distance) * img_scale) * img_scale ** -1)
+    need_pad = np.max(width_distance)*img_scale < pad_to_distance
+
+    if pad_to_distance > 0.0 and need_pad:
+        pad_dist = pad_to_distance - np.max(width_distance) * img_scale
+        pad = int(pad_dist * img_scale ** -1)
         for pix in nonlocalpix:
-            if dist_transform_sep[pix[0], pix[1]] <= dist_transform_all[pix[2], pix[3]] + pad:
+            sep_dist = dist_transform_sep[pix[0], pix[1]]
+            glob_dist = dist_transform_all[pix[2], pix[3]]
+            if sep_dist <= glob_dist + pad:
                 width_value.append(img[pix[2], pix[3]])
                 width_distance.append(dist_transform_sep[pix[0], pix[1]])
 
@@ -480,7 +487,8 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
 
     if auto_cut:
         bin_centers, radial_prof, weights = \
-            _smooth_and_cut(bin_centers, radial_prof, 0.1, weights)
+            _smooth_and_cut(bin_centers, radial_prof, weights,
+                            **auto_cut_kwargs)
 
     if return_unbinned:
         width_distance = width_distance[np.isfinite(width_value)]
@@ -490,8 +498,8 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
         return bin_centers, radial_prof, weights
 
 
-def _smooth_and_cut(bins, values, kern_size, weights, interp_factor=10,
-                    pad_cut=5):
+def _smooth_and_cut(bins, values, weights, kern_size=0.1, interp_factor=10,
+                    pad_cut=5, smooth_size=0.05, min_width=0.1):
     '''
     Smooth the radial profile and cut if it increases at increasing
     distance. Also checks for profiles with a plateau between two decreasing
@@ -503,17 +511,32 @@ def _smooth_and_cut(bins, values, kern_size, weights, interp_factor=10,
         Bins for the profile.
     values : numpy.ndarray
         Values in each bin.
-    kern_size : int or float
-        If >1, is the number of bins to use in the smoothing. If <1, takes
-        fraction of the data for smoothing.
     weights : numpy.ndarray
         Weights for each bin. These are only clipped to the same position as
         the rest of the profile. Otherwise, no alteration is made.
+    kern_size : int or float, optional
+        If >1, is the number of bins to use in the smoothing. If <1, takes
+        fraction of the data for smoothing.
     interp_factor : int, optional
         The factor to increase the number of bins by for interpolation.
     pad_cut : int, optional
         Add additional bins after the cut is found. The smoothing often cuts
         out some bins which follow the desired profile.
+    smooth_size : float, optional
+        Set the smoothing size when finding local extrema. It is recommended
+        this be set to about half of min_width.
+    min_width : float, optional
+        Ignore local minima below this minimum width.
+
+    Returns
+    -------
+    cut_bins : numpy.ndarray
+        Bins for the profile with a possible cutoff.
+    cut_values : numpy.ndarray
+        Values in each bin with a possible cutoff.
+    cut_weights : numpy.ndarray
+        Weights for each bin with a possible cutoff.
+
     '''
 
     from scipy.ndimage import gaussian_filter1d
@@ -539,13 +562,15 @@ def _smooth_and_cut(bins, values, kern_size, weights, interp_factor=10,
     new_cut = None
 
     # Look for local max and mins (must hold True for range of ~0.05 pc)
-    loc_mins = argrelmin(grad,
-                         order=int(0.05/(smooth_bins[1] - smooth_bins[0])))[0]
-    loc_maxs = argrelmax(grad,
-                         order=int(0.05/(smooth_bins[1] - smooth_bins[0])))[0]
+    loc_mins = \
+        argrelmin(grad,
+                  order=int(smooth_size/(smooth_bins[1] - smooth_bins[0])))[0]
+    loc_maxs = \
+        argrelmax(grad,
+                  order=int(smooth_size/(smooth_bins[1] - smooth_bins[0])))[0]
 
-    # Discard below 0.1 pc.
-    loc_mins = loc_mins[smooth_bins[loc_mins] > 0.1]
+    # Discard below some minimum width (defaults to 0.1 pc).
+    loc_mins = loc_mins[smooth_bins[loc_mins] > min_width]
     loc_maxs = loc_maxs
 
     if loc_mins.size > 0 and loc_maxs.size > 0:
