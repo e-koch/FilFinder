@@ -2,6 +2,9 @@
 1.3 (unreleased)
 ----------------
 
+- Added preliminary functionality to return radial filament profiles for each
+position in the longest path skeleton.
+
 - [#19] - Generalize radial profile cutting.
 
 - [#17] - Allow longest path skeletons to be used for width fitting. Also fixed a fitting bug where bad guesses at the initial width led to terrible fits. Fixed a bug in the non-parametric width where the target width was not using e^-0.5 of the maximum.
