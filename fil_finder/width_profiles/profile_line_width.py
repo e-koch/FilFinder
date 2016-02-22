@@ -43,7 +43,51 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
                      distance=250.*u.pc, num_avg=3, verbose=False,
                      bright_unit="Jy km/s", noise=None):
     '''
-    Calculate radial profiles along the main extent of a skeleton.
+    Calculate radial profiles along the main extent of a skeleton (ie. the
+    longest path). The skeleton must contain a single branch with no
+    intersections.
+
+    Parameters
+    ----------
+    skeleton : np.ndarray
+        Boolean array containing the skeleton
+    image : np.ndarray
+        Image to compute the profiles from. Must match the spatial extent
+        of the skeleton array.
+    header : FITS header
+        Accompanying header for the image.
+    max_dist : astropy Quantity, optional
+        The angular or physical (when distance is given) extent to create the
+        profile away from the centre skeleton pixel. The entire profile will
+        be twice this value (for each side of the profile).
+    distance : astropy Quantity, optional
+        Physical distance to the region in the image. If None is given,
+        results will be in angular units based on the header.
+    num_avg : int, optional
+        Number of points before and after a pixel that is used when computing
+        the normal vector. Using at least three points is recommended due to
+        small pixel instabilities in the skeletons.
+    verbose : bool, optional
+        Enable plotting of the profile and the accompanying for each pixel in
+        the skeleton.
+    bright_unit : string or astropy Unit
+        Brightness unit of the image.
+    noise : np.ndarray, optional
+        RMS array for the accompanying image. When provided, the errors
+        are calculated along each of the profiles and used as weights in the
+        fitting.
+
+    Returns
+    -------
+    line_distances : list
+        Distances along the profiles.
+    line_profiles : list
+        Radial profiles.
+    profile_extents : list
+        Contains the pixel position of the start of the profile,
+        the skeleton pixel, and the end of the profile.
+    tab : astropy QTable
+        Table of the fit results and errors with appropriate units.
     '''
 
     deg_per_pix = np.abs(header["CDELT2"]) * u.deg/u.pixel
@@ -363,18 +407,16 @@ def gaussian(x, *p):
 
 def gauss_fit(distance, rad_profile, sigma=None):
     '''
-    Fits a Gaussian to the radial profile of each filament.
+    Fits a Gaussian to the radial profile.
 
     Parameters
     ----------
-    distance : list
+    distance : np.ndarray
         Distances from the skeleton.
-    rad_profile : list
+    rad_profile : np.ndarray
         Intensity values from the image.
-    weights : list
-        Weights to be used for the fit.
-    img_beam : float
-        FWHM of the beam size.
+    sigma : np.ndarray
+        Errors to be used for the fit. Assumes these are 1-sigma errors.
 
     Returns
     -------
@@ -382,16 +424,11 @@ def gauss_fit(distance, rad_profile, sigma=None):
         Fit values.
     fit_errors : numpy.ndarray
         Fit errors.
-    gaussian : function
-        Function used to fit the profile.
-    parameters : list
-        Names of the parameters.
-    fail_flag : bool
-        Identifies a failed fit.
+    red_chisq : float
+        The reduced chi-squared value for the fit.
     '''
 
     p0 = (np.max(rad_profile), np.std(distance), np.min(rad_profile))
-    parameters = ["Amplitude", "Width", "Background", "FWHM"]
 
     try:
         fit, cov, info, _, _ = \
@@ -401,8 +438,6 @@ def gauss_fit(distance, rad_profile, sigma=None):
         fit_errors = np.sqrt(np.diag(cov))
         red_chisq = (info['fvec']**2).sum()/(len(info['fvec'])-len(fit))
 
-        return fit, fit_errors, red_chisq
-
     except Exception as e:
         print("curve_fit failed with " + str(e))
         # p.plot(distance, rad_profile)
@@ -411,4 +446,5 @@ def gauss_fit(distance, rad_profile, sigma=None):
         fit = np.asarray([np.NaN] * len(p0))
         fit_errors = np.asarray([np.NaN] * len(p0))
         red_chisq = np.NaN
-        return fit, fit_errors, np.NaN
+
+    return fit, fit_errors, red_chisq
