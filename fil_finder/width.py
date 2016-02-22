@@ -581,7 +581,7 @@ def _smooth_and_cut(bins, values, weights, kern_size=0.1, interp_factor=10,
             difference = loc_min - loc_maxs
             if (difference > 0).any():
                 new_cut = loc_maxs[np.argmin(difference[difference > 0])]
-                if smooth_bins[new_cut] > 0.1:
+                if smooth_bins[new_cut] > min_width:
                     break
 
             i += 1
