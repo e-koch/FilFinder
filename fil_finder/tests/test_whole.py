@@ -16,8 +16,7 @@ class Test_FilFinder(TestCase):
 
         test1 = fil_finder_2D(img, hdr, 10.0, flatten_thresh=95,
                               distance=260, size_thresh=430,
-                              glob_thresh=20, save_name="test1",
-                              pad_size=10, skeleton_pad_size=10)
+                              glob_thresh=20, save_name="test1")
 
         test1.create_mask(border_masking=False)
         test1.medskel()
@@ -53,8 +52,7 @@ class Test_FilFinder(TestCase):
 
         test2 = fil_finder_2D(img, hdr, 10.0, flatten_thresh=95,
                               distance=260, size_thresh=430,
-                              glob_thresh=20, save_name="test2",
-                              pad_size=10, skeleton_pad_size=10)
+                              glob_thresh=20, save_name="test2")
 
         test2.create_mask(border_masking=False)
         test2.medskel()

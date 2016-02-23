@@ -383,7 +383,7 @@ class fil_finder_2D(object):
             smooth_img[:, -self.pad_size*ratio-1:] = 0.0
 
         adapt = threshold_adaptive(smooth_img,
-                                   round(ratio * self.adapt_thresh),
+                                   round_to_odd(ratio * self.adapt_thresh),
                                    method="mean")
 
         if regrid:

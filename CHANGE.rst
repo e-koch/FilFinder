@@ -2,6 +2,8 @@
 1.3 (unreleased)
 ----------------
 
+- [#21] - Enforce odd patch sizes for adaptive thresholding. New unit test data to reflect the slight change from using an odd patch size in the test cases.
+
 - Added preliminary functionality to return radial filament profiles for each
 position in the longest path skeleton.
 
