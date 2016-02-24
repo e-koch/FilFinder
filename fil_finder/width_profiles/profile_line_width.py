@@ -42,7 +42,8 @@ eight_conn_posns = [0, 2, 6, 8]
 
 def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
                      distance=250.*u.pc, num_avg=3, verbose=False,
-                     bright_unit="Jy km/s", noise=None):
+                     bright_unit="Jy km/s", noise=None,
+                     min_width=0.01*u.pc):
     '''
     Calculate radial profiles along the main extent of a skeleton (ie. the
     longest path). The skeleton must contain a single branch with no
@@ -175,17 +176,17 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
         left_dists, left_profile, noise_left_profile = \
             _smooth_and_cut(left_dists, left_profile,
                             weights=noise_left_profile,
-                            kern_size=max_dist.value,
-                            smooth_size=max_dist.value/2.,
-                            min_width=max_dist.value,
+                            kern_size=min_width.value,
+                            smooth_size=min_width.value/2.,
+                            min_width=min_width.value,
                             pad_cut=pad_cut)
 
         right_dists, right_profile, noise_right_profile =  \
             _smooth_and_cut(right_dists, right_profile,
                             weights=noise_right_profile,
-                            kern_size=max_dist.value,
-                            smooth_size=max_dist.value/2.,
-                            min_width=max_dist.value,
+                            kern_size=min_width.value,
+                            smooth_size=min_width.value/2.,
+                            min_width=min_width.value,
                             pad_cut=pad_cut)
 
         total_profile = np.append(left_profile[::-1], right_profile) * \
@@ -228,7 +229,8 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
 
             p.subplot(122)
             p.plot(total_dists, total_profile, 'bD')
-            pts = np.linspace(total_dists.min(), total_dists.max(), 100)
+            pts = np.linspace(total_dists.value.min(), total_dists.value.max(),
+                              100)
             p.plot(pts, gaussian(pts, *profile_fit), 'r')
 
             if distance is not None:
