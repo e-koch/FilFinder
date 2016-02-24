@@ -500,7 +500,7 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
 
 def _smooth_and_cut(bins, values, weights=None, kern_size=0.1,
                     interp_factor=10, pad_cut=5, smooth_size=0.05,
-                    min_width=0.1):
+                    min_width=0.1, plateau_cut=True):
     '''
     Smooth the radial profile and cut if it increases at increasing
     distance. Also checks for profiles with a plateau between two decreasing
@@ -528,6 +528,11 @@ def _smooth_and_cut(bins, values, weights=None, kern_size=0.1,
         this be set to about half of min_width.
     min_width : float, optional
         Ignore local minima below this minimum width.
+    plateau_cut : bool, optional
+        Increases the sensitivity to local extrema changes in the gradient
+        (ie. does not require a crossing point in the gradient). This is
+        especially useful for average radial profiles of entire skeletons,
+        but causes too much cutting for individual skeleton pixel profiles.
 
     Returns
     -------
@@ -575,15 +580,16 @@ def _smooth_and_cut(bins, values, weights=None, kern_size=0.1,
     loc_mins = loc_mins[smooth_bins[loc_mins] > min_width]
     loc_maxs = loc_maxs
 
-    if loc_mins.size > 0 and loc_maxs.size > 0:
-        for loc_min in loc_mins:
-            difference = loc_min - loc_maxs
-            if (difference > 0).any():
-                new_cut = loc_maxs[np.argmin(difference[difference > 0])]
-                if smooth_bins[new_cut] > min_width:
-                    break
-        else:
-            new_cut = 0
+    if plateau_cut:
+        if loc_mins.size > 0 and loc_maxs.size > 0:
+            for loc_min in loc_mins:
+                difference = loc_min - loc_maxs
+                if (difference > 0).any():
+                    new_cut = loc_maxs[np.argmin(difference[difference > 0])]
+                    if smooth_bins[new_cut] > min_width:
+                        break
+            else:
+                new_cut = 0
 
     if new_cut == 0:
         new_cut = None
