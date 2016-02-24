@@ -173,7 +173,7 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
             noise_left_profile = None
             noise_right_profile = None
 
-        left_dists, left_profile, noise_left_profile = \
+        left_output = \
             _smooth_and_cut(left_dists, left_profile,
                             weights=noise_left_profile,
                             kern_size=min_width.value,
@@ -181,13 +181,20 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
                             min_width=min_width.value,
                             pad_cut=pad_cut)
 
-        right_dists, right_profile, noise_right_profile =  \
+        right_output =  \
             _smooth_and_cut(right_dists, right_profile,
                             weights=noise_right_profile,
                             kern_size=min_width.value,
                             smooth_size=min_width.value/2.,
                             min_width=min_width.value,
                             pad_cut=pad_cut)
+
+        if noise is not None:
+            left_dists, left_profile, noise_left_profile = left_output
+            right_dists, right_profile, noise_right_profile = right_output
+        else:
+            left_dists, left_profile = left_output
+            right_dists, right_profile = right_output
 
         total_profile = np.append(left_profile[::-1], right_profile) * \
             bright_unit
