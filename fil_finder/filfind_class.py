@@ -1016,6 +1016,8 @@ class fil_finder_2D(object):
                          cmap='binary')
                 p.colorbar()
 
+                p.tight_layout()
+
                 if save_png:
                     try_mkdir(self.save_name)
                     p.savefig(os.path.join(self.save_name,
