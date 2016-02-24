@@ -179,7 +179,7 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
                             kern_size=min_width.value,
                             smooth_size=min_width.value/2.,
                             min_width=min_width.value,
-                            pad_cut=pad_cut)
+                            pad_cut=pad_cut, plateau_cut=False)
 
         right_output =  \
             _smooth_and_cut(right_dists, right_profile,
@@ -187,7 +187,7 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
                             kern_size=min_width.value,
                             smooth_size=min_width.value/2.,
                             min_width=min_width.value,
-                            pad_cut=pad_cut)
+                            pad_cut=pad_cut, plateau_cut=False)
 
         if noise is not None:
             left_dists, left_profile, noise_left_profile = left_output
