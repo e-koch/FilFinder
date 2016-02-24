@@ -562,12 +562,13 @@ def _smooth_and_cut(bins, values, weights, kern_size=0.1, interp_factor=10,
     new_cut = None
 
     # Look for local max and mins (must hold True for range of ~0.05 pc)
+    order_est = int(smooth_size/(smooth_bins[1] - smooth_bins[0]))
     loc_mins = \
         argrelmin(grad,
-                  order=int(smooth_size/(smooth_bins[1] - smooth_bins[0])))[0]
+                  order=max(1, order_est))[0]
     loc_maxs = \
         argrelmax(grad,
-                  order=int(smooth_size/(smooth_bins[1] - smooth_bins[0])))[0]
+                  order=max(1, order_est))[0]
 
     # Discard below some minimum width (defaults to 0.1 pc).
     loc_mins = loc_mins[smooth_bins[loc_mins] > min_width]
