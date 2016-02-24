@@ -231,7 +231,7 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
             p.plot(total_dists, total_profile, 'bD')
             pts = np.linspace(total_dists.value.min(), total_dists.value.max(),
                               100)
-            p.plot(pts, gaussian(pts, *profile_fit), 'r')
+            p.plot(pts, gaussian_unequal_bkgs(pts, *profile_fit), 'r')
 
             if distance is not None:
                 unit = (u.pix*phys_per_pix).unit.to_string()
@@ -246,10 +246,11 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
     red_chisqs = np.asarray(red_chisqs)
 
     # Create an astropy table of the fit results
-    param_names = ["Amplitude", "Mean", "Std Dev", "Background"]
+    param_names = ["Amplitude", "Mean", "Std Dev", "Background Right",
+                   "Background Left"]
     param_errs = [par + " Error" for par in param_names]
     colnames = param_names + param_errs
-    in_bright_units = [True, False, False, True] * 2
+    in_bright_units = [True, False, False, True, True] * 2
     tab = QTable()
 
     tab["Number"] = np.arange(profile_fits.shape[0])
@@ -421,7 +422,7 @@ def avg_pts(pts):
     return avg_pt
 
 
-def gaussian(x, *p):
+def gaussian_unequal_bkgs(x, *p):
     '''
     Parameters
     ----------
@@ -434,8 +435,12 @@ def gaussian(x, *p):
         * p[2] Width
         * p[3] Background
     '''
-    return (p[0]-p[3]) * np.exp(-1 * np.power(x - p[1], 2) /
-                                (2 * np.power(p[2], 2))) + p[3]
+    term1 = (p[0]-p[3]) * np.exp(-1 * np.power(x[x <= 0] - p[1], 2) /
+                                 (2 * np.power(p[2], 2))) + p[3]
+    term2 = (p[0]-p[4]) * np.exp(-1 * np.power(x[x > 0] - p[1], 2) /
+                                 (2 * np.power(p[2], 2))) + p[4]
+
+    return np.append(term1, term2)
 
 
 def gauss_fit(distance, rad_profile, sigma=None):
@@ -461,11 +466,12 @@ def gauss_fit(distance, rad_profile, sigma=None):
         The reduced chi-squared value for the fit.
     '''
 
-    p0 = (np.max(rad_profile), 0.0, np.std(distance), np.min(rad_profile))
+    p0 = (np.max(rad_profile), 0.0, np.std(distance), np.min(rad_profile),
+          np.min(rad_profile))
 
     try:
         fit, cov, info, _, _ = \
-            curve_fit(gaussian, distance, rad_profile, p0=p0,
+            curve_fit(gaussian_unequal_bkgs, distance, rad_profile, p0=p0,
                       maxfev=100*(len(distance)+1), sigma=sigma,
                       absolute_sigma=True, full_output=True)
         fit_errors = np.sqrt(np.diag(cov))
