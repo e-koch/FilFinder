@@ -129,6 +129,17 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
     # Get the points in the skeleton (in order)
     skel_pts = walk_through_skeleton(skeleton)
 
+    # Find filament extents for plotting
+    if verbose:
+        pix = np.where(skeleton)
+        yshape, xshape = skeleton.shape
+        ymax = np.max(pix[0])+max_pixel if np.max(pix[0])+max_pixel < yshape \
+            else yshape
+        ymin = np.min(pix[0])-max_pixel if np.min(pix[0])-max_pixel > 0 else 0
+        xmax = np.max(pix[1])+max_pixel if np.max(pix[1])+max_pixel < xshape \
+            else xshape
+        xmin = np.min(pix[1])-max_pixel if np.min(pix[1])-max_pixel > 0 else 0
+
     line_profiles = []
     line_distances = []
     profile_extents = []
@@ -227,12 +238,13 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
         red_chisqs.append(red_chisq)
 
         if verbose:
+
             p.subplot(121)
-            p.imshow(image, origin='lower')
-            p.contour(skeleton, colors='r')
-            p.plot(skel_pts[i][1], skel_pts[i][0], 'bD')
-            p.plot(line_pts[0][1], line_pts[0][0], 'bD')
-            p.plot(line_pts[1][1], line_pts[1][0], 'bD')
+            p.imshow(image[ymin:ymax, xmin:xmax], origin='lower')
+            p.contour(skeleton[ymin:ymax, xmin:xmax], colors='r')
+            p.plot(skel_pts[i][1]-xmin, skel_pts[i][0]-ymin, 'bD')
+            p.plot(line_pts[0][1]-xmin, line_pts[0][0]-ymin, 'bD')
+            p.plot(line_pts[1][1]-xmin, line_pts[1][0]-ymin, 'bD')
 
             p.subplot(122)
             p.plot(total_dists, total_profile, 'bD')
