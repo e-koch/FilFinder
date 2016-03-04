@@ -2,6 +2,14 @@
 
 from fil_finder import fil_finder_2D
 from astropy.io.fits import getdata
+import os
+
+# Remove the old outputs
+dir_path = os.path.dirname(__file__)
+test1_path = os.path.join(dir_path, "test1")
+for file in os.listdir(test1_path):
+    if file.startswith("test1_"):
+        os.remove(os.path.join(test1_path, file))
 
 img, hdr = getdata("filaments_updatedhdr.fits", header=True)
 
@@ -21,6 +29,11 @@ test1.save_table(save_name="test1",
 test1.save_fits(save_name="test1")
 
 # This one does not
+
+test2_path = os.path.join(dir_path, "test2")
+for file in os.listdir(test2_path):
+    if file.startswith("test2_"):
+        os.remove(os.path.join(test2_path, file))
 
 test2 = fil_finder_2D(img, hdr, 10.0, flatten_thresh=95, distance=260,
                       size_thresh=430, glob_thresh=20, save_name="test2")
