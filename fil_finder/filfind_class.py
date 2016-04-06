@@ -23,6 +23,7 @@ from .utilities import *
 from .width import *
 from .rollinghough import rht
 from .analysis import Analysis
+from .io_funcs import input_data
 
 
 class fil_finder_2D(object):
@@ -33,9 +34,10 @@ class fil_finder_2D(object):
 
     Parameters
     ------
-    image : numpy.ndarray
-        A 2D array of the data to be analyzed.
-    hdr   : dictionary
+    image : numpy.ndarray or astropy.io.fits.PrimaryHDU
+        A 2D array of the data to be analyzed. If a FITS HDU is passed, the
+        header is automatically loaded.
+    hdr : FITS header
         The header from fits file containing the data.
     beamwidth : float
         The FWHM beamwidth (in arcseconds) of the instrument used to
@@ -117,18 +119,22 @@ class fil_finder_2D(object):
 
     """
 
-    def __init__(self, image, hdr, beamwidth, skel_thresh=None,
+    def __init__(self, image, header, beamwidth, skel_thresh=None,
                  branch_thresh=None, pad_size=0, skeleton_pad_size=1,
                  flatten_thresh=None,
                  smooth_size=None, size_thresh=None, glob_thresh=None,
                  adapt_thresh=None, distance=None, region_slice=None,
                  mask=None, freq=None, save_name="FilFinder_output"):
 
-        img_dim = len(image.shape)
-        if img_dim < 2 or img_dim > 2:
-            raise TypeError(
-                "Image must be 2D array. Input array has %s dimensions."
-                % (img_dim))
+        # Accepts a numpy array or fits.PrimaryHDU
+        output = input_data(image)
+
+        self.image = output["data"]
+        if "header" in output:
+            self.header = output["header"]
+        else:
+            self.header = header
+
         if region_slice is None:
             self.image = image
         else:
@@ -136,7 +142,6 @@ class fil_finder_2D(object):
                       slice(region_slice[2], region_slice[3], None))
             self.image = np.pad(image[slices], 1, padwithzeros)
 
-        self.header = hdr
         self.skel_thresh = skel_thresh
         self.branch_thresh = branch_thresh
         self.pad_size = pad_size
