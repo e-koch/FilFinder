@@ -218,7 +218,7 @@ class fil_finder_2D(object):
                     else:
                         self.beamwidth = (beamwidth.to(u.deg) /
                                           (self.header["CDELT2"] * u.deg)).value
-                    self.beamwidth = beamwidth
+                    self.beamwidth = beamwidth.value /FWHM_FACTOR
                     self.imgscale = 1.0
                     self.pixel_unit_flag = True
                 else:
