@@ -1,13 +1,5 @@
 # Licensed under an MIT open source license - see LICENSE
 
-from cores import *
-from length import *
-from pixel_ident import *
-from utilities import *
-from width import *
-from rollinghough import rht
-from analysis import Analysis
-
 import numpy as np
 import matplotlib.pyplot as p
 import scipy.ndimage as nd
@@ -23,6 +15,14 @@ from copy import deepcopy
 import os
 import time
 import warnings
+
+from .cores import *
+from .length import *
+from .pixel_ident import *
+from .utilities import *
+from .width import *
+from .rollinghough import rht
+from .analysis import Analysis
 
 
 class fil_finder_2D(object):
