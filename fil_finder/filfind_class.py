@@ -1438,7 +1438,13 @@ class fil_finder_2D(object):
             filename = save_name
 
         # Create header based off of image header.
-        new_hdr = deepcopy(self.header)
+        if self.header is not None:
+            new_hdr = deepcopy(self.header)
+        else:
+            new_hdr = fits.Header()
+            new_hdr["NAXIS"] = 2
+            new_hdr["NAXIS1"] = self.mask_nopad.shape[1]
+            new_hdr["NAXIS2"] = self.mask_nopad.shape[0]
 
         try:  # delete the original history
             del new_hdr["HISTORY"]
@@ -1528,7 +1534,14 @@ class fil_finder_2D(object):
                                        ylow:yhigh]
 
                 # ADD IN SOME HEADERS!
-                prim_hdr = deepcopy(self.header)
+                if self.header is not None:
+                    prim_hdr = deepcopy(self.header)
+                else:
+                    prim_hdr = fits.Header()
+                    prim_hdr["NAXIS"] = 2
+                    prim_hdr["NAXIS1"] = img_stamp.shape[1]
+                    prim_hdr["NAXIS2"] = img_stamp.shape[0]
+
                 prim_hdr["COMMENT"] = "Outputted from fil_finder."
                 prim_hdr["COMMENT"] = \
                     "Extent in original array: (" + \
