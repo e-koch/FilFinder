@@ -4,6 +4,7 @@ from unittest import TestCase
 
 import numpy as np
 import numpy.testing as npt
+import astropy.units as u
 
 from fil_finder import fil_finder_2D
 
@@ -14,8 +15,9 @@ class Test_FilFinder(TestCase):
 
     def test_with_rht_branches(self):
 
-        test1 = fil_finder_2D(img, hdr, 10.0, flatten_thresh=95,
-                              distance=260, size_thresh=430,
+        test1 = fil_finder_2D(img, header=hdr, beamwidth=10.0*u.arcsec,
+                              flatten_thresh=95,
+                              distance=260*u.pc, size_thresh=430,
                               glob_thresh=20, save_name="test1")
 
         test1.create_mask(border_masking=False)
@@ -50,8 +52,9 @@ class Test_FilFinder(TestCase):
     def test_without_rht_branches(self):
         # Non-branches
 
-        test2 = fil_finder_2D(img, hdr, 10.0, flatten_thresh=95,
-                              distance=260, size_thresh=430,
+        test2 = fil_finder_2D(img, header=hdr, beamwidth=10.0*u.arcsec,
+                              flatten_thresh=95,
+                              distance=260*u.pc, size_thresh=430,
                               glob_thresh=20, save_name="test2")
 
         test2.create_mask(border_masking=False)
