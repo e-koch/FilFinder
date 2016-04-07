@@ -25,7 +25,7 @@ from .rollinghough import rht
 from .analysis import Analysis
 from .io_funcs import input_data
 
-FWHM_FACTOR = 2* np.sqrt(2 * np.log(2.))
+FWHM_FACTOR = 2 * np.sqrt(2 * np.log(2.))
 
 
 class fil_finder_2D(object):
@@ -191,7 +191,7 @@ class fil_finder_2D(object):
                                     " when no header is given.")
                 else:
                     Warning("Assuming given beamwidth is in pixels.")
-            self.beamwidth = beamwidth
+            self.beamwidth = beamwidth.value / FWHM_FACTOR
             self.angular_scale = 1.0
             self.imgscale = 1.0
             self.pixel_unit_flag = True
@@ -199,7 +199,7 @@ class fil_finder_2D(object):
         else:
             # Check for the beam info in the header
             if "BMAJ" in self.header:
-                beamwidth = self.header["BMAJ"]
+                beamwidth = self.header["BMAJ"] * u.deg
             else:
                 if beamwidth is None:
                     raise TypeError("Beamwidth was not found in the header."
@@ -211,47 +211,46 @@ class fil_finder_2D(object):
                             "pixels.")
                     beamwidth *= u.pix
 
-                if distance is None:
-                    Warning("No distance given. Results will be in pixel units.")
-                    if beamwidth.unit == u.pix:
-                        self.beamwidth = beamwidth
-                    else:
-                        self.beamwidth = (beamwidth.to(u.deg) /
-                                          (self.header["CDELT2"] * u.deg)).value
-                    self.beamwidth = beamwidth.value /FWHM_FACTOR
-                    self.imgscale = 1.0
-                    self.pixel_unit_flag = True
+            if distance is None:
+                Warning("No distance given. Results will be in pixel units.")
+                if beamwidth.unit == u.pix:
+                    self.beamwidth = beamwidth.value / FWHM_FACTOR
                 else:
-                    if not isinstance(distance, u.Quantity):
-                        Warning("No unit for distance given. Assuming pc.")
-                        distance *= u.pc
+                    self.beamwidth = ((beamwidth.to(u.deg) / FWHM_FACTOR) /
+                                      (self.header["CDELT2"] * u.deg)).value
+                self.imgscale = 1.0
+                self.pixel_unit_flag = True
+            else:
+                if not isinstance(distance, u.Quantity):
+                    Warning("No unit for distance given. Assuming pc.")
+                    distance *= u.pc
 
-                    # Image scale in pc.
-                    self.imgscale = self.header['CDELT2'] * \
-                        (np.pi / 180.0) * distance.to(u.pc).value
+                # Image scale in pc.
+                self.imgscale = self.header['CDELT2'] * \
+                    (np.pi / 180.0) * distance.to(u.pc).value
 
-                    width = beamwidth / FWHM_FACTOR
-                    if beamwidth.unit == u.pix:
-                        self.beamwidth = width.value * self.imgscale
-                    else:
-                        # Try to convert straight to pc
+                width = beamwidth / FWHM_FACTOR
+                if beamwidth.unit == u.pix:
+                    self.beamwidth = width.value * self.imgscale
+                else:
+                    # Try to convert straight to pc
+                    try:
+                        self.beamwidth = width.to(u.pc).value
+                        _try_ang_units = False
+                    except u.UnitConversionError:
+                        _try_ang_units = True
+
+                    # If that fails, try converting from an angular unit
+                    if _try_ang_units:
                         try:
-                            self.beamwidth = width.to(u.pc).value
-                            _try_ang_units = False
+                            self.beamwidth = \
+                                (width.to(u.arcsec).value / 206265.) * \
+                                distance.value
                         except u.UnitConversionError:
-                            _try_ang_units = True
-
-                        # If that fails, try converting from an angular unit
-                        if _try_ang_units:
-                            try:
-                                self.beamwidth = \
-                                    (width.to(u.arcsec).value / 206265.) * \
-                                    distance.value
-                            except u.UnitConversionError:
-                                raise u.UnitConversionError("Cannot convert the "
-                                                            "given beamwidth in "
-                                                            " physical or angular units.")
-                    self.pixel_unit_flag = False
+                            raise u.UnitConversionError("Cannot convert the "
+                                                        "given beamwidth in "
+                                                        " physical or angular units.")
+                self.pixel_unit_flag = False
 
             # Angular conversion (sr/pixel^2)
             self.angular_scale = \
