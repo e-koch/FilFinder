@@ -39,8 +39,10 @@ class fil_finder_2D(object):
     image : numpy.ndarray or astropy.io.fits.PrimaryHDU
         A 2D array of the data to be analyzed. If a FITS HDU is passed, the
         header is automatically loaded.
-    hdr : FITS header
-        The header from fits file containing the data.
+    header : FITS header, optional
+        The header from fits file containing the data. If no header is provided,
+        and it could not be loaded from ``image``, all results will be returned
+        in pixel units.
     beamwidth : float or astropy.units.Quantity, optional
         The FWHM beamwidth with an appropriately attached unit. By default,
         the beam is read from a provided header. If the beam cannot be read
