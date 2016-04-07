@@ -1,13 +1,5 @@
 # Licensed under an MIT open source license - see LICENSE
 
-from cores import *
-from length import *
-from pixel_ident import *
-from utilities import *
-from width import *
-from rollinghough import rht
-from analysis import Analysis
-
 import numpy as np
 import matplotlib.pyplot as p
 import scipy.ndimage as nd
@@ -18,11 +10,22 @@ from skimage.morphology import remove_small_objects, medial_axis
 from scipy.stats import scoreatpercentile
 from astropy.io import fits
 from astropy.table import Table
-import astropy.units as u
+from astropy import units as u
 from copy import deepcopy
 import os
 import time
 import warnings
+
+from .cores import *
+from .length import *
+from .pixel_ident import *
+from .utilities import *
+from .width import *
+from .rollinghough import rht
+from .analysis import Analysis
+from .io_funcs import input_data
+
+FWHM_FACTOR = 2 * np.sqrt(2 * np.log(2.))
 
 
 class fil_finder_2D(object):
@@ -33,13 +36,18 @@ class fil_finder_2D(object):
 
     Parameters
     ------
-    image : numpy.ndarray
-        A 2D array of the data to be analyzed.
-    hdr   : dictionary
-        The header from fits file containing the data.
-    beamwidth : float
-        The FWHM beamwidth (in arcseconds) of the instrument used to
-        take the data.
+    image : numpy.ndarray or astropy.io.fits.PrimaryHDU
+        A 2D array of the data to be analyzed. If a FITS HDU is passed, the
+        header is automatically loaded.
+    header : FITS header, optional
+        The header from fits file containing the data. If no header is provided,
+        and it could not be loaded from ``image``, all results will be returned
+        in pixel units.
+    beamwidth : float or astropy.units.Quantity, optional
+        The FWHM beamwidth with an appropriately attached unit. By default,
+        the beam is read from a provided header. If the beam cannot be read
+        from the header, or a header is not provided, this input must be
+        given. If a float is given, it is assumed to be in pixel units.
     skel_thresh : float, optional
         Given in pixel units.Below this cut off, skeletons with less pixels
         will be deleted. The default value is 0.3 pc converted to pixels.
@@ -117,26 +125,29 @@ class fil_finder_2D(object):
 
     """
 
-    def __init__(self, image, hdr, beamwidth, skel_thresh=None,
+    def __init__(self, image, header=None, beamwidth=None, skel_thresh=None,
                  branch_thresh=None, pad_size=0, skeleton_pad_size=1,
                  flatten_thresh=None,
                  smooth_size=None, size_thresh=None, glob_thresh=None,
                  adapt_thresh=None, distance=None, region_slice=None,
                  mask=None, freq=None, save_name="FilFinder_output"):
 
-        img_dim = len(image.shape)
-        if img_dim < 2 or img_dim > 2:
-            raise TypeError(
-                "Image must be 2D array. Input array has %s dimensions."
-                % (img_dim))
+        # Accepts a numpy array or fits.PrimaryHDU
+        output = input_data(image)
+
+        self.image = output["data"]
+        if "header" in output:
+            self.header = output["header"]
+        else:
+            self.header = header
+
         if region_slice is None:
             self.image = image
         else:
             slices = (slice(region_slice[0], region_slice[1], None),
                       slice(region_slice[2], region_slice[3], None))
-            self.image = np.pad(image[slices], 1, padwithzeros)
+            self.image = np.pad(self.image[slices], 1, padwithzeros)
 
-        self.header = hdr
         self.skel_thresh = skel_thresh
         self.branch_thresh = branch_thresh
         self.pad_size = pad_size
@@ -169,21 +180,83 @@ class fil_finder_2D(object):
 
         self.flat_img = np.arctan(self.image / thresh_val)
 
-        if distance is None:
-            print "No distance given. Results will be in pixel units."
-            self.imgscale = 1.0  # pixel
-            # where CDELT2 is in degrees
-            self.beamwidth = beamwidth * (hdr["CDELT2"] * 3600) ** (-1)
-            self.pixel_unit_flag = True
-        else:
-            self.imgscale = (hdr['CDELT2'] * (np.pi / 180.0) * distance)  # pc
-            self.beamwidth = (
-                beamwidth / np.sqrt(8 * np.log(2.))) * \
-                (1 / 206265.) * distance
-            self.pixel_unit_flag = False
+        if self.header is None:
+            Warning("No header given. Results will be in pixel units.")
 
-        # Angular conversion (sr/pixel^2)
-        self.angular_scale = ((hdr['CDELT2'] * u.degree) ** 2.).to(u.sr).value
+            if beamwidth is None:
+                raise TypeError("Beamwidth in pixels must be given when no"
+                                " header is provided.")
+            elif isinstance(beamwidth, u.Quantity):
+                # Can only use pixel inputs in this case
+                if beamwidth.unit != u.pix:
+                    raise TypeError("Beamwidth must be given in pixel units"
+                                    " when no header is given.")
+                else:
+                    Warning("Assuming given beamwidth is in pixels.")
+            self.beamwidth = beamwidth.value / FWHM_FACTOR
+            self.angular_scale = 1.0
+            self.imgscale = 1.0
+            self.pixel_unit_flag = True
+
+        else:
+            # Check for the beam info in the header
+            if "BMAJ" in self.header:
+                beamwidth = self.header["BMAJ"] * u.deg
+            else:
+                if beamwidth is None:
+                    raise TypeError("Beamwidth was not found in the header."
+                                    " Must provide a value with the"
+                                    " 'beamwidth' argument.")
+
+                if not isinstance(beamwidth, u.Quantity):
+                    Warning("No unit provided for the beamwidth. Assuming "
+                            "pixels.")
+                    beamwidth *= u.pix
+
+            if distance is None:
+                Warning("No distance given. Results will be in pixel units.")
+                if beamwidth.unit == u.pix:
+                    self.beamwidth = beamwidth.value / FWHM_FACTOR
+                else:
+                    self.beamwidth = ((beamwidth.to(u.deg) / FWHM_FACTOR) /
+                                      (self.header["CDELT2"] * u.deg)).value
+                self.imgscale = 1.0
+                self.pixel_unit_flag = True
+            else:
+                if not isinstance(distance, u.Quantity):
+                    Warning("No unit for distance given. Assuming pc.")
+                    distance *= u.pc
+
+                # Image scale in pc.
+                self.imgscale = self.header['CDELT2'] * \
+                    (np.pi / 180.0) * distance.to(u.pc).value
+
+                width = beamwidth / FWHM_FACTOR
+                if beamwidth.unit == u.pix:
+                    self.beamwidth = width.value * self.imgscale
+                else:
+                    # Try to convert straight to pc
+                    try:
+                        self.beamwidth = width.to(u.pc).value
+                        _try_ang_units = False
+                    except u.UnitConversionError:
+                        _try_ang_units = True
+
+                    # If that fails, try converting from an angular unit
+                    if _try_ang_units:
+                        try:
+                            self.beamwidth = \
+                                (width.to(u.arcsec).value / 206265.) * \
+                                distance.value
+                        except u.UnitConversionError:
+                            raise u.UnitConversionError("Cannot convert the "
+                                                        "given beamwidth in "
+                                                        " physical or angular units.")
+                self.pixel_unit_flag = False
+
+            # Angular conversion (sr/pixel^2)
+            self.angular_scale = \
+                ((self.header['CDELT2'] * u.degree) ** 2.).to(u.sr).value
 
         self.glob_thresh = glob_thresh
         self.adapt_thresh = adapt_thresh
@@ -1366,7 +1439,13 @@ class fil_finder_2D(object):
             filename = save_name
 
         # Create header based off of image header.
-        new_hdr = deepcopy(self.header)
+        if self.header is not None:
+            new_hdr = deepcopy(self.header)
+        else:
+            new_hdr = fits.Header()
+            new_hdr["NAXIS"] = 2
+            new_hdr["NAXIS1"] = self.mask_nopad.shape[1]
+            new_hdr["NAXIS2"] = self.mask_nopad.shape[0]
 
         try:  # delete the original history
             del new_hdr["HISTORY"]
@@ -1456,7 +1535,14 @@ class fil_finder_2D(object):
                                        ylow:yhigh]
 
                 # ADD IN SOME HEADERS!
-                prim_hdr = deepcopy(self.header)
+                if self.header is not None:
+                    prim_hdr = deepcopy(self.header)
+                else:
+                    prim_hdr = fits.Header()
+                    prim_hdr["NAXIS"] = 2
+                    prim_hdr["NAXIS1"] = img_stamp.shape[1]
+                    prim_hdr["NAXIS2"] = img_stamp.shape[0]
+
                 prim_hdr["COMMENT"] = "Outputted from fil_finder."
                 prim_hdr["COMMENT"] = \
                     "Extent in original array: (" + \

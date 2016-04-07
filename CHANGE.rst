@@ -1,6 +1,7 @@
 
 1.3 (unreleased)
 ----------------
+- [#24] - Allow for `fits.PrimaryHDUs` to be given. Headers are now optional; units default to pixel units in this case. `beamwidth` and `distance` are expected to be `astropy.units.Quantity` objects with appropriate units!
 - [#23] - Fix error in length when using new version of skimage.
 - [#22] - Fix FWHM error calculation.
 
