@@ -498,8 +498,9 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
         return bin_centers, radial_prof, weights
 
 
-def _smooth_and_cut(bins, values, weights, kern_size=0.1, interp_factor=10,
-                    pad_cut=5, smooth_size=0.05, min_width=0.1):
+def _smooth_and_cut(bins, values, weights=None, kern_size=0.1,
+                    interp_factor=10, pad_cut=5, smooth_size=0.05,
+                    min_width=0.1, plateau_cut=True):
     '''
     Smooth the radial profile and cut if it increases at increasing
     distance. Also checks for profiles with a plateau between two decreasing
@@ -511,7 +512,7 @@ def _smooth_and_cut(bins, values, weights, kern_size=0.1, interp_factor=10,
         Bins for the profile.
     values : numpy.ndarray
         Values in each bin.
-    weights : numpy.ndarray
+    weights : numpy.ndarray, optional
         Weights for each bin. These are only clipped to the same position as
         the rest of the profile. Otherwise, no alteration is made.
     kern_size : int or float, optional
@@ -527,6 +528,11 @@ def _smooth_and_cut(bins, values, weights, kern_size=0.1, interp_factor=10,
         this be set to about half of min_width.
     min_width : float, optional
         Ignore local minima below this minimum width.
+    plateau_cut : bool, optional
+        Increases the sensitivity to local extrema changes in the gradient
+        (ie. does not require a crossing point in the gradient). This is
+        especially useful for average radial profiles of entire skeletons,
+        but causes too much cutting for individual skeleton pixel profiles.
 
     Returns
     -------
@@ -562,75 +568,67 @@ def _smooth_and_cut(bins, values, weights, kern_size=0.1, interp_factor=10,
     new_cut = None
 
     # Look for local max and mins (must hold True for range of ~0.05 pc)
+    order_est = int(smooth_size/(smooth_bins[1] - smooth_bins[0]))
     loc_mins = \
         argrelmin(grad,
-                  order=int(smooth_size/(smooth_bins[1] - smooth_bins[0])))[0]
+                  order=max(1, order_est))[0]
     loc_maxs = \
         argrelmax(grad,
-                  order=int(smooth_size/(smooth_bins[1] - smooth_bins[0])))[0]
+                  order=max(1, order_est))[0]
 
     # Discard below some minimum width (defaults to 0.1 pc).
     loc_mins = loc_mins[smooth_bins[loc_mins] > min_width]
     loc_maxs = loc_maxs
 
-    if loc_mins.size > 0 and loc_maxs.size > 0:
-        i = 0
-        while True:
-            loc_min = loc_mins[i]
-
-            difference = loc_min - loc_maxs
-            if (difference > 0).any():
-                new_cut = loc_maxs[np.argmin(difference[difference > 0])]
-                if smooth_bins[new_cut] > min_width:
-                    break
-
-            i += 1
-
-            if i == loc_mins.size:
-                break
+    if plateau_cut:
+        if loc_mins.size > 0 and loc_maxs.size > 0:
+            for loc_min in loc_mins:
+                difference = loc_min - loc_maxs
+                if (difference > 0).any():
+                    new_cut = loc_maxs[np.argmin(difference[difference > 0])]
+                    if smooth_bins[new_cut] > min_width:
+                        break
+            else:
+                new_cut = 0
 
     if new_cut == 0:
         new_cut = None
 
     if cut.size == 0:
         if new_cut is None:
-            return bins, values, weights
+            cut_posn = bins.size
         else:
             cut_posn = _nearest_idx(bins, smooth_bins[new_cut])
 
-            end_diff = bins.size - cut_posn
-            if end_diff < pad_cut:
-                cut_posn += end_diff
-            else:
-                cut_posn += pad_cut
-
-            cut_bins = bins[:cut_posn]
-            cut_vals = values[:cut_posn]
-            cut_weights = weights[:cut_posn]
-
-            return cut_bins, cut_vals, cut_weights
-
     else:
-        if new_cut is None:
-            cut_used = cut[0]
-        elif new_cut >= cut[0]:
-            cut_used = cut[0]
+        above_min = np.array([smooth_bins[c] > min_width for c in cut])
+
+        if not np.any(above_min):
+            cut_posn = bins.size
         else:
-            cut_used = new_cut
+            min_cut_posn = np.where(above_min)[0][0]
+            if new_cut is None:
+                cut_used = cut[min_cut_posn]
+            elif new_cut >= cut[min_cut_posn]:
+                cut_used = cut[min_cut_posn]
+            else:
+                cut_used = new_cut
 
-        cut_posn = _nearest_idx(bins, smooth_bins[cut_used])
+            cut_posn = _nearest_idx(bins, smooth_bins[cut_used])
 
-        end_diff = bins.size - cut_posn
-        if end_diff < pad_cut:
-            cut_posn += end_diff
-        else:
-            cut_posn += pad_cut
+    end_diff = bins.size - cut_posn
+    if end_diff < pad_cut:
+        cut_posn += end_diff
+    else:
+        cut_posn += pad_cut
 
-        cut_bins = bins[:cut_posn]
-        cut_vals = values[:cut_posn]
+    cut_bins = bins[:cut_posn]
+    cut_vals = values[:cut_posn]
+    if weights is not None:
         cut_weights = weights[:cut_posn]
-
         return cut_bins, cut_vals, cut_weights
+    else:
+        return cut_bins, cut_vals
 
 
 def _nearest_idx(array, value):

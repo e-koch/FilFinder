@@ -7,6 +7,7 @@ import astropy.units as u
 from astropy.table import QTable
 
 from .profile import profile_line
+from ..width import _smooth_and_cut
 
 eight_conn = np.ones((3, 3))
 
@@ -41,7 +42,8 @@ eight_conn_posns = [0, 2, 6, 8]
 
 def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
                      distance=250.*u.pc, num_avg=3, verbose=False,
-                     bright_unit="Jy km/s", noise=None):
+                     bright_unit="Jy km/s", noise=None,
+                     min_width=0.01*u.pc):
     '''
     Calculate radial profiles along the main extent of a skeleton (ie. the
     longest path). The skeleton must contain a single branch with no
@@ -127,6 +129,17 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
     # Get the points in the skeleton (in order)
     skel_pts = walk_through_skeleton(skeleton)
 
+    # Find filament extents for plotting
+    if verbose:
+        pix = np.where(skeleton)
+        yshape, xshape = skeleton.shape
+        ymax = np.max(pix[0])+max_pixel if np.max(pix[0])+max_pixel < yshape \
+            else yshape
+        ymin = np.min(pix[0])-max_pixel if np.min(pix[0])-max_pixel > 0 else 0
+        xmax = np.max(pix[1])+max_pixel if np.max(pix[1])+max_pixel < xshape \
+            else xshape
+        xmin = np.min(pix[1])-max_pixel if np.min(pix[1])-max_pixel > 0 else 0
+
     line_profiles = []
     line_distances = []
     profile_extents = []
@@ -151,29 +164,66 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
         right_profile, right_dists = \
             profile_line(image, skel_pts[i], line_pts[1])
 
+        if distance is not None:
+            left_dists = (left_dists * u.pix * phys_per_pix).value
+            right_dists = (right_dists * u.pix * phys_per_pix).value
+        else:
+            left_dists = (left_dists * u.pix * deg_per_pix).value
+            right_dists = (right_dists * u.pix * deg_per_pix).value
+
+        pad_cut = np.floor(0.1*left_dists.size).astype(int)
+
+        if noise is not None:
+            noise_left_profile, _ = \
+                profile_line(noise, skel_pts[i], line_pts[0])
+            noise_right_profile, _ = \
+                profile_line(noise, skel_pts[i], line_pts[1])
+
+        else:
+            noise_profile = None
+            noise_left_profile = None
+            noise_right_profile = None
+
+        left_output = \
+            _smooth_and_cut(left_dists, left_profile,
+                            weights=noise_left_profile,
+                            kern_size=min_width.value,
+                            smooth_size=min_width.value/2.,
+                            min_width=min_width.value,
+                            pad_cut=pad_cut, plateau_cut=False)
+
+        right_output =  \
+            _smooth_and_cut(right_dists, right_profile,
+                            weights=noise_right_profile,
+                            kern_size=min_width.value,
+                            smooth_size=min_width.value/2.,
+                            min_width=min_width.value,
+                            pad_cut=pad_cut, plateau_cut=False)
+
+        if noise is not None:
+            left_dists, left_profile, noise_left_profile = left_output
+            right_dists, right_profile, noise_right_profile = right_output
+        else:
+            left_dists, left_profile = left_output
+            right_dists, right_profile = right_output
+
         total_profile = np.append(left_profile[::-1], right_profile) * \
             bright_unit
 
         if noise is not None:
-            left_profile, _ = \
-                profile_line(noise, skel_pts[i], line_pts[0])
-            right_profile, _ = \
-                profile_line(noise, skel_pts[i], line_pts[1])
-            noise_profile = np.append(left_profile[::-1], right_profile) * \
-                bright_unit
-        else:
-            noise_profile = None
+            noise_profile = np.append(noise_left_profile[::-1],
+                                      noise_right_profile) * bright_unit
+            if len(total_profile) != len(noise_profile):
+                raise ValueError("Intensity and noise profile lengths do not"
+                                 " match. Have you applied the same mask to"
+                                 " both?")
 
         if distance is not None:
-            total_dists = np.append(-left_dists[::-1], right_dists) \
-                * u.pix * phys_per_pix
+            total_dists = np.append(-left_dists[::-1], right_dists) * \
+                u.pix * phys_per_pix.unit
         else:
-            total_dists = np.append(-left_dists[::-1], right_dists) \
-                * u.pix * deg_per_pix
-
-        if len(total_profile) != len(noise_profile):
-            raise ValueError("Intensity and noise profile lengths do not"
-                             " match. Have you applied the same mask to both?")
+            total_dists = np.append(-left_dists[::-1], right_dists) * \
+                u.pix * deg_per_pix.unit
 
         line_profiles.append(total_profile)
         line_distances.append(total_dists)
@@ -188,17 +238,19 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
         red_chisqs.append(red_chisq)
 
         if verbose:
+
             p.subplot(121)
-            p.imshow(image, origin='lower')
-            p.contour(skeleton, colors='r')
-            p.plot(skel_pts[i][1], skel_pts[i][0], 'bD')
-            p.plot(line_pts[0][1], line_pts[0][0], 'bD')
-            p.plot(line_pts[1][1], line_pts[1][0], 'bD')
+            p.imshow(image[ymin:ymax, xmin:xmax], origin='lower')
+            p.contour(skeleton[ymin:ymax, xmin:xmax], colors='r')
+            p.plot(skel_pts[i][1]-xmin, skel_pts[i][0]-ymin, 'bD')
+            p.plot(line_pts[0][1]-xmin, line_pts[0][0]-ymin, 'bD')
+            p.plot(line_pts[1][1]-xmin, line_pts[1][0]-ymin, 'bD')
 
             p.subplot(122)
             p.plot(total_dists, total_profile, 'bD')
-            pts = np.linspace(total_dists.min(), total_dists.max(), 100)
-            p.plot(pts, gaussian(pts, *profile_fit), 'r')
+            pts = np.linspace(total_dists.value.min(), total_dists.value.max(),
+                              100)
+            p.plot(pts, gaussian_unequal_bkgs(pts, *profile_fit), 'r')
 
             if distance is not None:
                 unit = (u.pix*phys_per_pix).unit.to_string()
@@ -213,10 +265,11 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
     red_chisqs = np.asarray(red_chisqs)
 
     # Create an astropy table of the fit results
-    param_names = ["Amplitude", "Std Dev", "Background"]
+    param_names = ["Amplitude", "Mean", "Std Dev", "Background Right",
+                   "Background Left"]
     param_errs = [par + " Error" for par in param_names]
     colnames = param_names + param_errs
-    in_bright_units = [True, False, True] * 2
+    in_bright_units = [True, False, False, True, True] * 2
     tab = QTable()
 
     tab["Number"] = np.arange(profile_fits.shape[0])
@@ -388,7 +441,7 @@ def avg_pts(pts):
     return avg_pt
 
 
-def gaussian(x, *p):
+def gaussian_unequal_bkgs(x, *p):
     '''
     Parameters
     ----------
@@ -401,8 +454,12 @@ def gaussian(x, *p):
         * p[2] Width
         * p[3] Background
     '''
-    return (p[0]-p[2]) * np.exp(-1 * np.power(x, 2) /
-                                (2 * np.power(p[1], 2))) + p[2]
+    term1 = (p[0]-p[3]) * np.exp(-1 * np.power(x[x <= 0] - p[1], 2) /
+                                 (2 * np.power(p[2], 2))) + p[3]
+    term2 = (p[0]-p[4]) * np.exp(-1 * np.power(x[x > 0] - p[1], 2) /
+                                 (2 * np.power(p[2], 2))) + p[4]
+
+    return np.append(term1, term2)
 
 
 def gauss_fit(distance, rad_profile, sigma=None):
@@ -428,11 +485,12 @@ def gauss_fit(distance, rad_profile, sigma=None):
         The reduced chi-squared value for the fit.
     '''
 
-    p0 = (np.max(rad_profile), np.std(distance), np.min(rad_profile))
+    p0 = (np.max(rad_profile), 0.0, np.std(distance), np.min(rad_profile),
+          np.min(rad_profile))
 
     try:
         fit, cov, info, _, _ = \
-            curve_fit(gaussian, distance, rad_profile, p0=p0,
+            curve_fit(gaussian_unequal_bkgs, distance, rad_profile, p0=p0,
                       maxfev=100*(len(distance)+1), sigma=sigma,
                       absolute_sigma=True, full_output=True)
         fit_errors = np.sqrt(np.diag(cov))

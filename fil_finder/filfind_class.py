@@ -484,7 +484,8 @@ class fil_finder_2D(object):
 
         mask_objs, num, corners = \
             isolateregions(cleaned, fill_hole=True, rel_size=fill_hole_size,
-                           morph_smooth=True, pad_size=self.skeleton_pad_size)
+                           morph_smooth=True, pad_size=self.skeleton_pad_size,
+                           morph_smooth_distance=self.beamwidth/(2.*self.imgscale))
         self.mask = recombine_skeletons(mask_objs,
                                         corners, self.image.shape,
                                         self.skeleton_pad_size, verbose=True)
@@ -1087,6 +1088,8 @@ class fil_finder_2D(object):
                 p.imshow(img_slice, interpolation=None, vmin=vmin, origin='lower',
                          cmap='binary')
                 p.colorbar()
+
+                p.tight_layout()
 
                 if save_png:
                     try_mkdir(self.save_name)

@@ -4,12 +4,14 @@ from .length import *
 
 import numpy as np
 import scipy.ndimage as nd
+import skimage.morphology as mo
 import matplotlib.pyplot as p
 import copy
 
 
 def isolateregions(binary_array, size_threshold=0, pad_size=5,
-                   fill_hole=False, rel_size=0.1, morph_smooth=False):
+                   fill_hole=False, rel_size=0.1, morph_smooth=False,
+                   morph_smooth_distance=3):
     '''
 
     Labels regions in a boolean array and returns individual arrays for each
@@ -67,16 +69,15 @@ def isolateregions(binary_array, size_threshold=0, pad_size=5,
         # Make an array shaped to the skeletons size and padded on each edge
         # the +1 is because, e.g., range(0, 5) only has 5 elements, but the
         # indices we're using are range(0, 6)
-        shapes = (x.max() - x.min() + 2 * pad_size,
-                  y.max() - y.min() + 2 * pad_size)
+        shapes = (x.max() - x.min() + 2 * pad_size + 1,
+                  y.max() - y.min() + 2 * pad_size + 1)
         eachfil = np.zeros(shapes)
         eachfil[x - x.min() + pad_size, y - y.min() + pad_size] = 1
         # Fill in small holes
         if fill_hole:
             eachfil = _fix_small_holes(eachfil, rel_size=rel_size)
         if morph_smooth:
-            eachfil = nd.binary_opening(eachfil, np.ones((3, 3)))
-            eachfil = nd.binary_closing(eachfil, np.ones((3, 3)))
+            eachfil = remove_spurs(eachfil, min_distance=morph_smooth_distance)
         output_arrays.append(eachfil)
         # Keep the coordinates from the original image
         lower = (x.min() - pad_size, y.min() - pad_size)
@@ -600,7 +601,7 @@ def recombine_skeletons(skeletons, offsets, orig_size, pad_size,
 
     num = len(skeletons)
 
-    master_array = np.zeros(orig_size)
+    master_array = np.zeros(orig_size, dtype=bool)
     for n in range(num):
         x_off, y_off = offsets[n][0]  # These are the coordinates of the bottom
                                      # left in the master array.
@@ -705,3 +706,39 @@ def _fix_small_holes(mask_array, rel_size=0.1):
         mask_array[np.where(lab_holes == label)] = 1
 
     return mask_array
+
+
+def remove_spurs(mask, min_distance=9):
+    '''
+    Remove spurious mask features with morphological reconstruction.
+    This removes small features along the edges of a mask, making the
+    skeleton of the object far more robust.
+
+    *NOTE: The shape is restored with a dilation using a circular element.
+    If a large distance is given, the output shape will be dominated by the
+    structure element shape!*
+
+    Parameters
+    ----------
+    mask : np.ndarray
+        Boolean array.
+    min_distance : float or int, optional
+        Features below this minimum distance from the mask edge will be
+        removed.
+
+    Returns
+    -------
+    reconstructed mask - np.ndarray
+
+    '''
+
+    # Distance transform of the mask
+    dist_trans = nd.distance_transform_edt(mask)
+
+    # We don't want to return local maxima within the minimum distance
+    # Use reconstruction to remove.
+    seed = dist_trans + min_distance
+    reconst = mo.reconstruction(seed, dist_trans, method='erosion') - \
+        min_distance
+
+    return mo.binary_dilation(reconst > 0, selem=mo.disk(min_distance))
