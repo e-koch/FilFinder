@@ -76,3 +76,19 @@ class Test_FilFinder_Units(TestCase):
         imgscale = 1.0
         npt.assert_equal(test1.imgscale, imgscale)
         npt.assert_equal(test1.beamwidth, beamwidth.value)
+
+    def test_header_beam(self):
+
+        beam_hdr = hdr.copy()
+        # It only looks for BMAJ at the moment.
+        beam_hdr["BMAJ"] = 10.0
+
+        test1 = fil_finder_2D(img, header=beam_hdr, beamwidth=None,
+                              flatten_thresh=95,
+                              distance=None, size_thresh=430,
+                              glob_thresh=20, save_name="test1")
+
+        beamwidth = (10.0 * u.deg / (hdr["CDELT2"] * u.deg)) / FWHM_FACTOR
+        imgscale = 1.0
+        npt.assert_equal(test1.imgscale, imgscale)
+        npt.assert_equal(test1.beamwidth, beamwidth.value)
