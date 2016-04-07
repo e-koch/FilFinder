@@ -214,7 +214,7 @@ class fil_finder_2D(object):
                 if distance is None:
                     Warning("No distance given. Results will be in pixel units.")
                     if beamwidth.unit == u.pix:
-                        self.beamwidth = beamwidth.value
+                        self.beamwidth = beamwidth
                     else:
                         self.beamwidth = (beamwidth.to(u.deg) /
                                           (self.header["CDELT2"] * u.deg)).value
