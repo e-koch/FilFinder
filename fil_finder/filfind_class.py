@@ -246,7 +246,7 @@ class fil_finder_2D(object):
                             try:
                                 self.beamwidth = \
                                     (width.to(u.arcsec).value / 206265.) * \
-                                    distance
+                                    distance.value
                             except u.UnitConversionError:
                                 raise u.UnitConversionError("Cannot convert the "
                                                             "given beamwidth in "
