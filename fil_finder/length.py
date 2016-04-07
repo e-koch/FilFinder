@@ -58,7 +58,7 @@ def skeleton_length(skeleton):
     '''
 
     # 4-connected labels
-    four_labels = me.label(skeleton, 4, background=0)
+    four_labels = nd.label(skeleton)[0]
 
     four_sizes = nd.sum(skeleton, four_labels, range(np.max(four_labels) + 1))
 
@@ -78,13 +78,13 @@ def skeleton_length(skeleton):
     # Remaining pixels are only 8-connected
     # Lengths is same as before, multiplied by sqrt(2)
 
-    eight_labels = me.label(skel_copy, 8, background=0)
+    eight_labels = nd.label(skel_copy, eight_con())[0]
 
     eight_sizes = nd.sum(
         skel_copy, eight_labels, range(np.max(eight_labels) + 1))
 
     eight_length = (
-        (np.sum(eight_sizes) - 1) - np.max(eight_labels)) * np.sqrt(2)
+        np.sum(eight_sizes) - np.max(eight_labels)) * np.sqrt(2)
 
     # If there are no 4-connected pixels, we don't need the hit-miss portion.
     if four_length == 0.0:
