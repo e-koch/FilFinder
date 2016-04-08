@@ -11,6 +11,25 @@ FilFinder
 
 **Check out our gallery page: [FilFinder Gallery](http://e-koch.github.io/FilFinder_Results/)**
 
+If you make use of FilFinder in a publication, please cite our accompanying paper:
+```
+@ARTICLE{2015MNRAS.452.3435K,
+   author = {{Koch}, E.~W. and {Rosolowsky}, E.~W.},
+    title = "{Filament identification through mathematical morphology}",
+  journal = {\mnras},
+archivePrefix = "arXiv",
+   eprint = {1507.02289},
+ keywords = {techniques: image processing, stars: formation, ISM: structure, submillimetre: ISM},
+     year = 2015,
+    month = oct,
+   volume = 452,
+    pages = {3435-3450},
+      doi = {10.1093/mnras/stv1521},
+   adsurl = {http://adsabs.harvard.edu/abs/2015MNRAS.452.3435K},
+  adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+```
+
 Brief Description
 -----------------
 **Please note: FilFinder currently only supports python 2.x. Support for python3 is planned, but not yet available.**
