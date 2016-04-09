@@ -86,8 +86,8 @@ class Test_FilFinder(TestCase):
         assert np.allclose(test2.branch_properties["number"],
                            np.asarray(table2['Branches']))
 
-        assert np.allclose(test2.rht_curvature['Median'],
+        assert np.allclose(test2.rht_curvature['Orientation'],
                            np.asarray(table2['Orientation']))
 
-        assert np.allclose(test2.rht_curvature['IQR'],
+        assert np.allclose(test2.rht_curvature['Curvature'],
                            np.asarray(table2['Curvature']))
