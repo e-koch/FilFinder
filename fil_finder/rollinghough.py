@@ -37,6 +37,9 @@ def rht(mask, radius, ntheta=180, background_percentile=25, verbose=False):
     R : numpy.ndarray
         Transform output.
 
+    quantiles : numpy.ndarray.
+        Contains the 25%, mean, and 75% percentile angles.
+
     '''
 
     pad_mask = np.pad(mask.astype(float), radius, padwithnans)
