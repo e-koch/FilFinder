@@ -242,13 +242,11 @@ Curvature and Direction
 
 Following this step, we use a version of the `Rolling Hough Transform
 (RHT) <http://adsabs.harvard.edu/abs/2014ApJ...789...82C>`__ to find the
-orientation of the filaments (median of transform) and their curvature
+orientation of the filaments (circular mean of transform) and their curvature
 (IQR of transform).
 
 The polar plots shown plot :math:`2\theta`. The transform itself is
-limited to :math:`(-\pi/2, \pi/2)` since the direction is ambiguous. The
-first plot shows the transform distribution for that filament. Beside it
-is the CDF of that distribution.
+limited to :math:`(-\pi/2, \pi/2)` since the direction is ambiguous. :math:`\theta=0` is defined along the positive y axis. The first plot shows the transform distribution for that filament. Beside it is the CDF of that distribution.
 
 By default, the transform is applied on the longest path of the
 skeleton. It can also be applied on a per-branch basis by enabling the
@@ -313,7 +311,7 @@ Background, FWHM.**
 
     1 in 9
     Fit Parameters: [ 0.95279165  0.02563813  0.1323161   0.06013541]
-    Fit Errors: [ 0.01423218  0.00146024  0.01652742  0.00146601]
+    Fit Errors: [ 0.01423218  0.00146024  0.01652742  0.00343860]
     Fit Type: gaussian
 
 .. image:: images/FilFinder_Tutorial_26_4.png
