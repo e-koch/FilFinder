@@ -264,7 +264,7 @@ class fil_finder_2D(object):
         self.size_thresh = size_thresh
 
         self.width_fits = {"Parameters": [], "Errors": [], "Names": None}
-        self.rht_curvature = {"Median": [], "IQR": []}
+        self.rht_curvature = {"Orientation": [], "Curvature": []}
         self.filament_arrays = {}
 
     @property
@@ -825,10 +825,11 @@ class fil_finder_2D(object):
 
         '''
 
-        if not self.rht_curvature["Median"]:
+        if not self.rht_curvature["Orientation"]:
             pass
         else:
-            self.rht_curvature = {"Median": [], "IQR": []}
+            self.rht_curvature = {"Orientation": [],
+                                  "Curvature": []}
 
         # Flag branch output
         self._rht_branches_flag = False
@@ -843,7 +844,7 @@ class fil_finder_2D(object):
         # fliplr aligns angles with image when shown in ds9
             if branches:
                 # We need intermediary arrays now
-                medians = np.array([])
+                means = np.array([])
                 iqrs = np.array([])
                 intensity = np.array([])
                 lengths = np.array([])
@@ -875,28 +876,31 @@ class fil_finder_2D(object):
                         rht(labeled_fil_array == val,
                             radius, ntheta, background_percentile)
 
-                    twofive, median, sevenfive = quantiles
+                    twofive, mean, sevenfive = quantiles
 
-                    medians = np.append(medians, median)
+                    means = np.append(means, mean)
                     if sevenfive > twofive:
                         iqrs = \
                             np.append(iqrs,
                                       np.abs(sevenfive - twofive))
-                    else:  #
+                    else:
                         iqrs = \
                             np.append(iqrs,
                                       np.abs(sevenfive - twofive) + np.pi)
-                    intensity = np.append(intensity, branch_properties["intensity"][0][val-1])
-                    lengths = np.append(lengths, branch_properties["length"][0][val-1])
+                    intensity = \
+                        np.append(intensity,
+                                  branch_properties["intensity"][0][val-1])
+                    lengths = np.append(lengths,
+                                        branch_properties["length"][0][val-1])
 
-                self.rht_curvature["Median"].append(medians)
-                self.rht_curvature["IQR"].append(iqrs)
+                self.rht_curvature["Orientation"].append(means)
+                self.rht_curvature["Curvature"].append(iqrs)
                 self.rht_curvature["Intensity"].append(intensity)
                 self.rht_curvature["Length"].append(lengths)
 
                 if verbose or save_png:
-                    Warning("No verbose mode available when running RHT on individual"
-                            " branches. No plots will be saved.")
+                    Warning("No verbose mode available when running RHT on "
+                            "individual branches. No plots will be saved.")
 
             else:
                 skel_arr = np.fliplr(self.filament_arrays["long path"][n])
@@ -905,12 +909,12 @@ class fil_finder_2D(object):
 
                 twofive, median, sevenfive = quantiles
 
-                self.rht_curvature["Median"].append(median)
+                self.rht_curvature["Orientation"].append(median)
                 if sevenfive > twofive:
-                    self.rht_curvature["IQR"].append(
+                    self.rht_curvature["Curvature"].append(
                         np.abs(sevenfive - twofive))  # Interquartile range
                 else:  #
-                    self.rht_curvature["IQR"].append(
+                    self.rht_curvature["Curvature"].append(
                         np.abs(sevenfive - twofive + np.pi))
 
                 if verbose or save_png:
@@ -1287,8 +1291,8 @@ class fil_finder_2D(object):
 
         if not self._rht_branches_flag:
             data = {"Lengths": self.lengths,
-                    "Orientation": self.rht_curvature["Median"],
-                    "Curvature": self.rht_curvature["IQR"],
+                    "Orientation": self.rht_curvature["Orientation"],
+                    "Curvature": self.rht_curvature["Curvature"],
                     "Branches": self.branch_properties["number"],
                     "Fit Type": self.width_fits["Type"],
                     "Total Intensity": self.total_intensity,
@@ -1310,8 +1314,8 @@ class fil_finder_2D(object):
             branch_data = \
                 {"Branch Length": self.rht_curvature["Length"],
                  "Branch Intensity": self.rht_curvature["Intensity"],
-                 "Curvature": self.rht_curvature["IQR"],
-                 "Orientation": self.rht_curvature["Median"]}
+                 "Curvature": self.rht_curvature["Curvature"],
+                 "Orientation": self.rht_curvature["Orientation"]}
 
         for i, param in enumerate(self.width_fits["Names"]):
             data[param] = self.width_fits["Parameters"][:, i]
