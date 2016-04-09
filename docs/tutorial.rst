@@ -14,6 +14,7 @@ Load in the algorithm and along with astropy to read in the FITS file.
 .. code:: python
 
     from astropy.io import fits
+    from astropy import units as u
     from fil_finder import fil_finder_2D
     import matplotlib.pylab as pylab
     pylab.rcParams['figure.figsize'] = (20.0, 16.0)
@@ -21,33 +22,27 @@ Load in the algorithm and along with astropy to read in the FITS file.
     %matplotlib inline
 
 
-Load in the FITS file containing the simulated image. FilFinder expects
-a numpy array as an input, along with the image header.
+FilFinder accepts two forms of the input data:
+
+1. A numpy array and the header.
 
 .. code:: python
 
     img, hdr = fits.getdata("filaments_updatedhdr.fits", header=True)
-Alternatively, the data can be read in using:
+2. Or the HDU
 
 .. code:: python
 
     fits_hdu = fits.open("filaments_updatedhdr.fits")[0]
-    img, hdr = fits_hdu.data, fits_hdu.header
-Next we initialize the fil\_finder\_2D object.
 
-The algorithm requires 3 inputs to begin: the image, header and FWHM
-beamwidth. In the code below, these are specified by:
+When provided with the FITS HDU, the attached header is used. The algorithm requires only the image, however all results will be returned in pixel units without also giving the FITS header and the distance.
 
-1. img - numpy array of the image
-2. hdr - the associated header of the image
-3. 10.0 - the FWHM beamwidth in arcseconds
+The FWHM beamwidth is provided throught the `beamwidth` keyword. This can be passed any angular units available in the `astropy.units` package. **If no units are given, pixel units are assumed.**.
 
-The distance is specified with the ``distance`` keyword (in pc). It is
-optional, however the output will all be in terms of pixel units. Many
+The distance is specified with the ``distance`` keyword. As for the `beamwidth`, a distance unit can be provided. **If no unit is given, parsecs are assumed.** Many
 of the default settings for parameters are dependent on physical
 scaling; **if no distance is provided, all parameters that have defaults
-must be specified**. If values are not given, an error will be raised
-specifying which parameter must be set.
+must be specified**. Errors are raised which indicate which parameters need to be set.
 
 While the algorithm has multiple parameters, these are automatically set
 to default values which we found work well with the 250 & 350 micron
@@ -89,7 +84,16 @@ and a shortened version of some of the parameters is given here:
 
 .. code:: python
 
-    fils = fil_finder_2D(img, hdr, 10.0, distance=260, glob_thresh=20, flatten_thresh=95)
+    fils = fil_finder_2D(img, header=hdr, beamwidth=10.0*u.arcsec,
+                         distance=260*u.pc, glob_thresh=20, flatten_thresh=95)
+
+Or by giving an HDU,
+
+.. code:: python
+
+    fils = fil_finder_2D(fits_hdu, beamwidth=10.0*u.arcsec,
+                         distance=260*u.pc, glob_thresh=20, flatten_thresh=95)
+
 
 The algorithm has several steps, which will be outlined below. Using the
 ``run`` function will perform all the steps in one with the algorithm
