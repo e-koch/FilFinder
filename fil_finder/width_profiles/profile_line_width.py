@@ -171,9 +171,11 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
             total_dists = np.append(-left_dists[::-1], right_dists) \
                 * u.pix * deg_per_pix
 
-        if len(total_profile) != len(noise_profile):
-            raise ValueError("Intensity and noise profile lengths do not"
-                             " match. Have you applied the same mask to both?")
+        if noise is not None:
+            if len(total_profile) != len(noise_profile):
+                raise ValueError("Intensity and noise profile lengths do not"
+                                 " match. Have you applied the same mask to"
+                                 " both?")
 
         line_profiles.append(total_profile)
         line_distances.append(total_dists)
