@@ -199,7 +199,8 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
 
             p.subplot(122)
             p.plot(total_dists, total_profile, 'bD')
-            pts = np.linspace(total_dists.min(), total_dists.max(), 100)
+            pts = np.linspace(total_dists.min().value,
+                              total_dists.max().value, 100)
             p.plot(pts, gaussian(pts, *profile_fit), 'r')
 
             if distance is not None:
