@@ -6,7 +6,7 @@ import astropy.units as u
 import numpy as np
 
 
-hdu = fits.open("filaments_updatedhdr.fits")
+hdu = fits.open("filaments_updatedhdr.fits")[0]
 img, hdr = hdu.data, hdu.header
 
 # Add some noise
