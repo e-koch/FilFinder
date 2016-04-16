@@ -1,11 +1,13 @@
 # Licensed under an MIT open source license - see LICENSE
 
 from fil_finder import fil_finder_2D
-from astropy.io.fits import getdata
+from astropy.io import fits
+import astropy.units as u
 import numpy as np
 
 
-img, hdr = getdata("filaments_updatedhdr.fits", header=True)
+hdu = fits.open("filaments_updatedhdr.fits")
+img, hdr = hdu.data, hdu.header
 
 # Add some noise
 np.random.seed(500)
@@ -13,7 +15,8 @@ noiseimg = img + np.random.normal(0, 0.05, size=img.shape)
 
 # Utilize fil_finder_2D class
 # See filfind_class.py for inputs
-test = fil_finder_2D(noiseimg, hdr, 10.0, flatten_thresh=95, distance=260,
+test = fil_finder_2D(noiseimg, header=hdr, beamwidth=10.0*u.arcsec,
+                     flatten_thresh=95, distance=260*u.pc,
                      glob_thresh=20)
 test.create_mask(verbose=True, border_masking=False, size_thresh=430)
 # test = fil_finder_2D(noiseimg, hdr, 10.0, flatten_thresh=95, distance=260)
