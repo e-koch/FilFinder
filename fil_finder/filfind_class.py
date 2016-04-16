@@ -25,7 +25,13 @@ from .rollinghough import rht
 from .analysis import Analysis
 from .io_funcs import input_data
 
-FWHM_FACTOR = 2 * np.sqrt(2 * np.log(2.))
+# The try/except is here to deal with TypeErrors when building the docs on RTD
+# This isn't really a solution... but it is lazy and does the job until I
+# add astropy_helpers.
+try:
+    FWHM_FACTOR = 2 * np.sqrt(2 * np.log(2.))
+except TypeError:
+    FWHM_FACTOR = np.NaN
 
 
 class fil_finder_2D(object):
