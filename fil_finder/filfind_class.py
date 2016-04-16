@@ -11,6 +11,7 @@ from scipy.stats import scoreatpercentile
 from astropy.io import fits
 from astropy.table import Table
 from astropy import units as u
+from astropy.wcs import WCS
 from copy import deepcopy
 import os
 import time
@@ -143,9 +144,11 @@ class fil_finder_2D(object):
 
         self.image = output["data"]
         if "header" in output:
-            self.header = output["header"]
+            self._header = output["header"]
         else:
-            self.header = header
+            self._header = header
+
+        self._wcs = WCS(self.header)
 
         if region_slice is None:
             self.image = image
@@ -225,7 +228,7 @@ class fil_finder_2D(object):
                     self.beamwidth = beamwidth.value / FWHM_FACTOR
                 else:
                     self.beamwidth = ((beamwidth.to(u.deg) / FWHM_FACTOR) /
-                                      (self.header["CDELT2"] * u.deg)).value
+                                      (self.wcs.wcs.cdelt[-1] * u.deg)).value
                 self.imgscale = 1.0
                 self.pixel_unit_flag = True
             else:
@@ -234,7 +237,7 @@ class fil_finder_2D(object):
                     distance *= u.pc
 
                 # Image scale in pc.
-                self.imgscale = self.header['CDELT2'] * \
+                self.imgscale = self.wcs.wcs.cdelt[-1] * \
                     (np.pi / 180.0) * distance.to(u.pc).value
 
                 width = beamwidth / FWHM_FACTOR
@@ -257,12 +260,13 @@ class fil_finder_2D(object):
                         except u.UnitConversionError:
                             raise u.UnitConversionError("Cannot convert the "
                                                         "given beamwidth in "
-                                                        " physical or angular units.")
+                                                        " physical or angular"
+                                                        " units.")
                 self.pixel_unit_flag = False
 
             # Angular conversion (sr/pixel^2)
             self.angular_scale = \
-                ((self.header['CDELT2'] * u.degree) ** 2.).to(u.sr).value
+                ((self.wcs.wcs.cdelt[-1] * u.degree) ** 2.).to(u.sr).value
 
         self.glob_thresh = glob_thresh
         self.adapt_thresh = adapt_thresh
@@ -272,6 +276,14 @@ class fil_finder_2D(object):
         self.width_fits = {"Parameters": [], "Errors": [], "Names": None}
         self.rht_curvature = {"Orientation": [], "Curvature": []}
         self.filament_arrays = {}
+
+    @property
+    def wcs(self):
+        return self._wcs
+
+    @property
+    def header(self):
+        return self._header
 
     @property
     def pad_size(self):
