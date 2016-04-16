@@ -30,7 +30,7 @@ MOCK_MODULES = ['numpy', 'scipy', 'scipy.ndimage', 'scipy.stats',
                 'astropy.io', 'astropy.io.fits', 'astropy.table',
                 'astropy.units', 'networkx']
 for mod_name in MOCK_MODULES:
-    sys.modules[mod_name] = mock.Mock()
+    sys.modules[mod_name] = mock.Mock(return_value=0.0)
 
 
 # -- General configuration -----------------------------------------------------
