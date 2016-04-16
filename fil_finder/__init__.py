@@ -4,3 +4,4 @@ __version__ = "1.2.2"
 
 from .analysis import Analysis
 from .filfind_class import fil_finder_2D
+from .width_profiles import filament_profile
