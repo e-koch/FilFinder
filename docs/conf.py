@@ -27,8 +27,8 @@ MOCK_MODULES = ['numpy', 'scipy', 'scipy.ndimage', 'scipy.stats',
                 'matplotlib', 'matplotlib.pyplot', 'matplotlib.ticker',
                 'aplpy', "skimage.morphology",
                 'skimage.filters', 'skimage', 'astropy',
-                'astropy.io', 'astropy.table', 'astropy.units',
-                'networkx']
+                'astropy.io', 'astropy.io.fits', 'astropy.table',
+                'astropy.units', 'networkx']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
 
