@@ -64,6 +64,7 @@ Contents:
    install.rst
    tutorial.rst
    fil_finder_2d.rst
+   filament_profiles.rst
    length.rst
    pixel_ident.rst
    width.rst
