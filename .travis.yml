@@ -42,24 +42,10 @@ matrix:
         - python: 2.7
           env: NP_VER=1.10 ASTRO_VER=1.1
 
-before_install:
-    - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
-    - chmod +x miniconda.sh
-    - ./miniconda.sh -b -p $HOME/miniconda
-    - export PATH="$HOME/miniconda/bin:$PATH"
-    - hash -r
-    - conda config --set always_yes yes --set changeps1 no
-    - conda update -q conda
-    - conda info -a
-
 install:
-    # Create a new environment
-    - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION pip cython pytest
-    - source activate test
+    - git clone git://github.com/astropy/ci-helpers.git
+    - source ci-helpers/travis/setup_conda_$TRAVIS_OS_NAME.sh
 
-    # Now install dependencies
-    - conda install --yes $CONDA_ADDITIONAL
-    - conda install --yes numpy=$NP_VER astropy=$ASTRO_VER
 
 script:
     - python setup.py $SETUP_CMD
