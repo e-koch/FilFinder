@@ -63,14 +63,7 @@ Contents:
 
    install.rst
    tutorial.rst
-   fil_finder_2d.rst
-   filament_profiles.rst
-   length.rst
-   pixel_ident.rst
-   width.rst
-   curve_direc.rst
-   analysis.rst
-
+   filfinder.rst
 
 
 Indices and tables
