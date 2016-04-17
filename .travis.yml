@@ -3,7 +3,6 @@ language: python
 sudo: false
 
 python:
-    - 2.6
     - 2.7
 
 # The apt packages below are needed for sphinx builds. A full list of packages
