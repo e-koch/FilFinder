@@ -73,7 +73,7 @@ def profile_line(img, src, dst, linewidth=1,
            [1, 1, 1, 2, 2, 2],
            [1, 1, 1, 2, 2, 2],
            [0, 0, 0, 0, 0, 0]])
-    >>> profile_line(img, (2, 1), (2, 4))
+    >>> profile_line(img, (2, 1), (2, 4)) # doctest: +SKIP
     array([ 1.,  1.,  2.,  2.])
 
     Notes

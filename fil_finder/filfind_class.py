@@ -124,11 +124,13 @@ class fil_finder_2D(object):
     Examples
     --------
     >>> from fil_finder import fil_finder_2D
-    >>> from astropy.io.fits import getdata
-    >>> img,hdr = getdata("/srv/astro/erickoch/gould_belt/chamaeleonI-250.fits", header=True)
-    >>> filfind = fil_finder_2D(img, hdr, 15.1, distance=170,
-                                region_slice=[620,1400,430,1700], save_name='chamaeleonI-250')
-    >>> filfind.run(verbose=False)
+    >>> from astropy.io import fits
+    >>> import astropy.units as u
+    >>> img,hdr = fits.open("twod.fits")[0] # doctest: +SKIP
+    >>> filfind = fil_finder_2D(img, hdr, beamwidth=15*u.arcsec, # doctest: +SKIP
+                                distance=170*u.pc, # doctest: +SKIP
+                                save_name='twod_filaments') # doctest: +SKIP
+    >>> filfind.run(verbose=False) # doctest: +SKIP
 
     """
 
