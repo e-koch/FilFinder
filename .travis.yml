@@ -20,7 +20,7 @@ addons:
 env:
     global:
         - SETUP_CMD='test'
-        - CONDA_ADDITIONAL='numpy astropy scipy matplotlib networkx scikit-image h5py'
+        - CONDA_ADDITIONAL='scipy matplotlib networkx scikit-image h5py'
         - NP_VER=1.10
         - ASTRO_VER=1.0
     matrix:
@@ -30,9 +30,8 @@ matrix:
     include:
         # Check for sphinx doc build warnings - we do this first because it
         # may run for a long time
-        - python: 2.7
-          env: SETUP_CMD='build_sphinx -w'
-               CONDA_ADDITIONAL=$CONDA_ADDITIONAL' mock'
+        # - python: 2.7
+        #   env: SETUP_CMD='build_sphinx -w'
 
         - python: 2.7
           env: NP_VER=1.9 ASTRO_VER=1.0
@@ -43,10 +42,24 @@ matrix:
         - python: 2.7
           env: NP_VER=1.10 ASTRO_VER=1.1
 
-install:
-    - git clone git://github.com/astropy/ci-helpers.git
-    - source ci-helpers/travis/setup_conda_$TRAVIS_OS_NAME.sh
+before_install:
+    - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+    - chmod +x miniconda.sh
+    - ./miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda update -q conda
+    - conda info -a
 
+install:
+    # Create a new environment
+    - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION pip cython pytest
+    - source activate test
+
+    # Now install dependencies
+    - conda install --yes $CONDA_ADDITIONAL
+    - conda install --yes numpy=$NP_VER astropy=$ASTRO_VER
 
 script:
     - python setup.py $SETUP_CMD
