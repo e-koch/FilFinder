@@ -1,6 +1,7 @@
 # Licensed under an MIT open source license - see LICENSE
 
-__version__ = "1.2.2"
+from ._astropy_init import *
 
-from .analysis import Analysis
-from .filfind_class import fil_finder_2D
+if not _ASTROPY_SETUP_:
+    from .analysis import Analysis
+    from .filfind_class import fil_finder_2D

@@ -63,3 +63,9 @@ docs/_build/
 
 *.DS_Store
 *.ipynb_checkpoints
+
+*/version.py
+*/cython_version.py
+htmlcov
+.coverage
+MANIFEST
