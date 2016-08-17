@@ -1023,14 +1023,36 @@ class fil_finder_2D(object):
             dist_transform(skel_arrays,
                            self.skeleton)
 
+        # Prepare the storage
+        self.width_fits["Parameters"] = np.empty(
+            (self.number_of_filaments, 4))
+        self.width_fits["Errors"] = np.empty(
+            (self.number_of_filaments, 4))
+        self.width_fits["Type"] = np.empty(
+            (self.number_of_filaments), dtype="S")
+        self.total_intensity = np.empty(
+            (self.number_of_filaments, ))
+
         for n in range(self.number_of_filaments):
 
             # Need the unbinned data for the non-parametric fit.
-            dist, radprof, weights, unbin_dist, unbin_radprof = \
+            out = \
                 radial_profile(self.image, dist_transform_all,
                                dist_transform_separate[n],
                                self.array_offsets[n], self.imgscale,
                                **kwargs)
+
+            if out is not None:
+                dist, radprof, weights, unbin_dist, unbin_radprof = out
+            else:
+                self.total_intensity[n] = np.NaN
+
+                self.width_fits["Parameters"][n, :] = \
+                    [np.NaN] * 4
+                self.width_fits["Errors"][n, :] = \
+                    [np.NaN] * 4
+                self.width_fits["Type"][n] = 'g'
+                continue
 
             if fit_model == cyl_model:
                 if self.freq is None:
@@ -1061,17 +1083,6 @@ class fil_finder_2D(object):
                                    self.beamwidth, 5, 99)
                 # Change the fit type.
                 fit_type = "nonparam"
-
-            if n == 0:
-                # Prepare the storage
-                self.width_fits["Parameters"] = np.empty(
-                    (self.number_of_filaments, len(parameter_names)))
-                self.width_fits["Errors"] = np.empty(
-                    (self.number_of_filaments, len(parameter_names)))
-                self.width_fits["Type"] = np.empty(
-                    (self.number_of_filaments), dtype="S")
-                self.total_intensity = np.empty(
-                    (self.number_of_filaments, ))
 
             if verbose or save_png:
                 if verbose:
