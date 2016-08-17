@@ -7,6 +7,7 @@ import scipy.ndimage as nd
 import scipy.optimize as op
 from scipy.integrate import quad
 from scipy.stats import scoreatpercentile, percentileofscore
+from warnings import warn
 
 
 def dist_transform(labelisofil, filclean_all):
@@ -409,8 +410,8 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
     width_distance = []
     nonlocalpix = []
     x, y = np.where(np.isfinite(dist_transform_sep))
-    x_full = x + offsets[0][0]  # Transform into coordinates of master image
-    y_full = y + offsets[0][1]
+    x_full = x + offsets[0][0] - 1  # Transform into coordinates of master image
+    y_full = y + offsets[0][1] - 1
 
     for i in range(len(x)):
         # Check overall distance transform to make sure pixel belongs to proper
@@ -424,6 +425,10 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
                 width_distance.append(sep_dist)
             else:
                 nonlocalpix.append([x[i], y[i], x_full[i], y_full[i]])
+
+    if len(width_distance) == 0:
+        warn("No valid pixels for radial profile found.")
+        return None
 
     need_pad = np.max(width_distance)*img_scale < pad_to_distance
 
