@@ -869,7 +869,7 @@ class fil_finder_2D(object):
                 intensity = np.array([])
                 lengths = np.array([])
                 # See above comment (613-614)
-                skel_arr = np.fliplr(self.filament_arrays["final"][n])
+                skel_arr = np.fliplr(self.filament_arrays["final"][n]).copy()
                 # Return the labeled skeleton without intersections
                 output = \
                     pix_identify([skel_arr], 1)[-2:]
