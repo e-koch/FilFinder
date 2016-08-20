@@ -409,8 +409,10 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
     width_value = []
     width_distance = []
     nonlocalpix = []
-    x, y = np.where(np.isfinite(dist_transform_sep))
-    x_full = x + offsets[0][0] - 1  # Transform into coordinates of master image
+    x, y = np.where(np.isfinite(dist_transform_sep) *
+                    (dist_transform_sep <= max_distance / img_scale))
+    # Transform into coordinates of master image
+    x_full = x + offsets[0][0] - 1
     y_full = y + offsets[0][1] - 1
 
     for i in range(len(x)):
@@ -430,7 +432,7 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
         warn("No valid pixels for radial profile found.")
         return None
 
-    need_pad = np.max(width_distance)*img_scale < pad_to_distance
+    need_pad = np.max(width_distance) * img_scale < pad_to_distance
 
     if pad_to_distance > 0.0 and need_pad:
         pad_dist = pad_to_distance - np.max(width_distance) * img_scale
@@ -444,11 +446,6 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
 
     width_value = np.asarray(width_value)
     width_distance = np.asarray(width_distance)
-
-    if max_distance is not None:
-        width_value = width_value[width_distance <= max_distance/img_scale]
-        width_distance = \
-            width_distance[width_distance <= max_distance/img_scale]
 
     # Binning
     if bins is None:
