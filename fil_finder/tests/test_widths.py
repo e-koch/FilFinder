@@ -80,7 +80,7 @@ def test_radial_profile_output(theta):
     dist, radprof, weights, unbin_dist, unbin_radprof = \
         radial_profile(model, dist_transform, dist_transform,
                        ((1, 1), (model.shape[0] // 2, model.shape[1] // 2)),
-                       1.0, auto_cut=False, max_distance=20)
+                       img_scale=1.0, auto_cut=False, max_distance=20)
 
     params, errors, _, _, fail = \
         gauss_model(dist, radprof, np.ones_like(dist), 1.0)
@@ -99,7 +99,48 @@ def test_radial_profile_cutoff(cutoff):
     dist, radprof, weights, unbin_dist, unbin_radprof = \
         radial_profile(model, dist_transform, dist_transform,
                        ((1, 1), (model.shape[0] // 2, model.shape[1] // 2)),
-                       1.0, auto_cut=False, max_distance=cutoff)
+                       img_scale=1.0, auto_cut=False, max_distance=cutoff)
 
     assert unbin_dist.max() == cutoff
     assert dist.max() < cutoff
+
+
+@pytest.mark.parametrize(('padding'), [(5.0), (10.0), (20.0)])
+def test_radial_profile_padding(padding, max_distance=20.0):
+
+    model, skeleton = generate_filament_model(width=10.0,
+                                              amplitude=1.0, background=0.0)
+
+    dist_transform = nd.distance_transform_edt((~skeleton).astype(np.int))
+
+    dist, radprof, weights, unbin_dist, unbin_radprof = \
+        radial_profile(model, dist_transform, dist_transform,
+                       ((1, 1), (model.shape[0] // 2, model.shape[1] // 2)),
+                       img_scale=1.0, auto_cut=False,
+                       max_distance=max_distance, pad_to_distance=padding)
+
+    print(padding, unbin_dist.max(), dist.max())
+
+    if padding <= max_distance:
+        assert unbin_dist.max() == max_distance
+        assert dist.max() < max_distance
+    else:
+        assert unbin_dist.max() == padding
+        assert dist.max() < padding
+
+
+@pytest.mark.xfail(raises=ValueError)
+def test_radial_profile_fail_pad(padding=30.0, max_distance=20.0):
+    '''
+    Cannot pad greater than max_distance
+    '''
+    model, skeleton = generate_filament_model(width=10.0,
+                                              amplitude=1.0, background=0.0)
+
+    dist_transform = nd.distance_transform_edt((~skeleton).astype(np.int))
+
+    dist, radprof, weights, unbin_dist, unbin_radprof = \
+        radial_profile(model, dist_transform, dist_transform,
+                       ((1, 1), (model.shape[0] // 2, model.shape[1] // 2)),
+                       img_scale=1.0, auto_cut=False,
+                       max_distance=max_distance, pad_to_distance=padding)
