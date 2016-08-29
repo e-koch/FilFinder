@@ -359,9 +359,9 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
 
 
 def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
-                   img_scale, bins=None, bintype="linear", weighting="number",
-                   return_unbinned=True, auto_cut=True, pad_to_distance=0.15,
-                   max_distance=0.3, auto_cut_kwargs={}):
+                   img_scale=1.0, bins=None, bintype="linear",
+                   weighting="number", return_unbinned=True, auto_cut=True,
+                   pad_to_distance=0.15, max_distance=0.3, auto_cut_kwargs={}):
     '''
     Fits the radial profiles to all filaments in the image.
 
@@ -391,8 +391,10 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
     auto_cut : bool, optional
         Enables the auto cutting routines.
     pad_to_distance : float, optional
-        Pad the profile out to the specified distance (in pc).
-        If set to 0.0, the profile will not be padded.
+        Include pixels in the profile whose distance in dist_transform_sep
+        is less than dist_transform_all + pad_to_distance. This is useful
+        for creating profiles in crowded regions. If set to 0.0, no padding
+        is done. Must be less than max_distance.
     max_distance : float, optional
         Cuts the profile at the specified physical distance (in pc).
 
@@ -406,14 +408,22 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
         Weights evaluated for each bin.
     '''
 
+    if max_distance <= 0.0:
+        raise ValueError("max_distance must be positive.")
+
+    if pad_to_distance < 0.0 or pad_to_distance > max_distance:
+        raise ValueError("pad_to_distance must be positive and less than "
+                         "max_distance.")
+
     width_value = []
     width_distance = []
-    nonlocalpix = []
     x, y = np.where(np.isfinite(dist_transform_sep) *
                     (dist_transform_sep <= max_distance / img_scale))
     # Transform into coordinates of master image
     x_full = x + offsets[0][0] - 1
     y_full = y + offsets[0][1] - 1
+
+    pad_pixel_distance = int(pad_to_distance * img_scale ** -1)
 
     for i in range(len(x)):
         # Check overall distance transform to make sure pixel belongs to proper
@@ -422,27 +432,13 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
         sep_dist = dist_transform_sep[x[i], y[i]]
         glob_dist = dist_transform_all[x_full[i], y_full[i]]
         if img_val != 0.0 and np.isfinite(img_val):
-            if sep_dist <= glob_dist:
+            if sep_dist <= glob_dist + pad_pixel_distance:
                 width_value.append(img_val)
                 width_distance.append(sep_dist)
-            else:
-                nonlocalpix.append([x[i], y[i], x_full[i], y_full[i]])
 
     if len(width_distance) == 0:
         warn("No valid pixels for radial profile found.")
         return None
-
-    need_pad = np.max(width_distance) * img_scale < pad_to_distance
-
-    if pad_to_distance > 0.0 and need_pad:
-        pad_dist = pad_to_distance - np.max(width_distance) * img_scale
-        pad = int(pad_dist * img_scale ** -1)
-        for pix in nonlocalpix:
-            sep_dist = dist_transform_sep[pix[0], pix[1]]
-            glob_dist = dist_transform_all[pix[2], pix[3]]
-            if sep_dist <= glob_dist + pad:
-                width_value.append(img[pix[2], pix[3]])
-                width_distance.append(dist_transform_sep[pix[0], pix[1]])
 
     width_value = np.asarray(width_value)
     width_distance = np.asarray(width_distance)
