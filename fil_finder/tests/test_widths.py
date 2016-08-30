@@ -119,8 +119,6 @@ def test_radial_profile_padding(padding, max_distance=20.0):
                        img_scale=1.0, auto_cut=False,
                        max_distance=max_distance, pad_to_distance=padding)
 
-    print(padding, unbin_dist.max(), dist.max())
-
     if padding <= max_distance:
         assert unbin_dist.max() == max_distance
         assert dist.max() < max_distance
