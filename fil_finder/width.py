@@ -91,7 +91,7 @@ def cyl_model(distance, rad_profile, img_beam):
 
     try:
         fit, cov = op.curve_fit(
-            model, distance, rad_profile, p0=p0, maxfev=100*(len(distance)+1))
+            model, distance, rad_profile, p0=p0, maxfev=100 * (len(distance) + 1))
         fit_errors = np.sqrt(np.diag(cov))
     except:
         fit, cov = p0, None
@@ -156,12 +156,12 @@ def gauss_model(distance, rad_profile, weights, img_beam):
             * p[1] Width
             * p[2] Background
         '''
-        return (p[0]-p[2]) * np.exp(-1 * np.power(x, 2) /
-                                    (2 * np.power(p[1], 2))) + p[2]
+        return (p[0] - p[2]) * np.exp(-1 * np.power(x, 2) /
+                                      (2 * np.power(p[1], 2))) + p[2]
 
     try:
         fit, cov = op.curve_fit(gaussian, distance, rad_profile, p0=p0,
-                                maxfev=100*(len(distance)+1), sigma=weights)
+                                maxfev=100 * (len(distance) + 1), sigma=weights)
         fit_errors = np.sqrt(np.diag(cov))
     except:
         print "curve_fit failed."
@@ -310,7 +310,7 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
     # peak
     target_intensity = ((peak_intens - bkg_intens) / np.exp(0.5)) + bkg_intens
     width = interp_bins[np.where(interp_profile ==
-                        find_nearest(interp_profile, target_intensity))][0]
+                                 find_nearest(interp_profile, target_intensity))][0]
 
     # Estimate the width error by looking +/-5 percentile around the target
     # intensity
@@ -326,7 +326,7 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
     # Deconvolve the width with the beam size.
     factor = 2 * np.sqrt(2 * np.log(2))  # FWHM factor
 
-    deconv = (width*factor) ** 2. - img_beam ** 2.
+    deconv = (width * factor) ** 2. - img_beam ** 2.
     if deconv > 0:
         fwhm_width = np.sqrt(deconv)
         fwhm_error = (factor**2 * width * width_error) / fwhm_width
@@ -342,7 +342,7 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
                              find_nearest(interp_profile, bkg_intens))])
     peak_dist = np.median(
         interp_bins[np.where(interp_profile ==
-                    find_nearest(interp_profile, peak_intens))])
+                             find_nearest(interp_profile, peak_intens))])
     bkg_error = np.std(
         unbin_prof[unbin_dist >= find_nearest(unbin_dist, bkg_dist)])
     peak_error = np.std(
@@ -467,12 +467,12 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
         if bin_posns.sum() == 0:
             continue
 
-        radial_prof[nbin-1] = np.median(width_value[bin_posns])
+        radial_prof[nbin - 1] = np.median(width_value[bin_posns])
 
         if weighting == "number":
-            weights[nbin-1] = whichbins[bin_posns].sum()
+            weights[nbin - 1] = whichbins[bin_posns].sum()
         elif weighting == "var":
-            weights[nbin-1] = np.nanvar(width_value[bin_posns])
+            weights[nbin - 1] = np.nanvar(width_value[bin_posns])
 
     # Remove all empty bins
     radial_prof = radial_prof[weights > 0]
@@ -546,53 +546,53 @@ def _smooth_and_cut(bins, values, weights, kern_size=0.1, interp_factor=10,
 
     smooth_val = gaussian_filter1d(values, kern_size)
 
-    smooth_bins = np.linspace(bins.min(), bins.max(), interp_factor*bins.size)
+    smooth_bins = np.linspace(bins.min(), bins.max(),
+                              interp_factor * bins.size)
 
     smooth_val = np.interp(smooth_bins, bins, smooth_val)
 
-    grad = np.gradient(smooth_val, smooth_bins[1]-smooth_bins[0])
+    grad = np.gradient(smooth_val, smooth_bins[1] - smooth_bins[0])
 
     grad = gaussian_filter1d(grad, kern_size)
 
     cut = crossings_nonzero_all(grad)
+    cut = cut[smooth_bins[cut] > min_width]
 
-    # Check for evidence of second drop-off
-    new_cut = None
-
-    # Look for local max and mins (must hold True for range of ~0.05 pc)
-    loc_mins = \
-        argrelmin(grad,
-                  order=int(smooth_size/(smooth_bins[1] - smooth_bins[0])))[0]
-    loc_maxs = \
-        argrelmax(grad,
-                  order=int(smooth_size/(smooth_bins[1] - smooth_bins[0])))[0]
-
-    # Discard below some minimum width (defaults to 0.1 pc).
-    loc_mins = loc_mins[smooth_bins[loc_mins] > min_width]
-    loc_maxs = loc_maxs
-
-    if loc_mins.size > 0 and loc_maxs.size > 0:
-        i = 0
-        while True:
-            loc_min = loc_mins[i]
-
-            difference = loc_min - loc_maxs
-            if (difference > 0).any():
-                new_cut = loc_maxs[np.argmin(difference[difference > 0])]
-                if smooth_bins[new_cut] > min_width:
-                    break
-
-            i += 1
-
-            if i == loc_mins.size:
-                break
-
-    if new_cut == 0:
-        new_cut = None
-
+    # If there are no zero crossing, do one more check for a plateau followed
+    # by a second drop.
     if cut.size == 0:
-        if new_cut is None:
+        # Look for local max and mins (must hold True for range set by
+        # smooth_size
+        bin_diff = smooth_bins[1] - smooth_bins[0]
+        loc_mins = argrelmin(grad, order=int(smooth_size / bin_diff))[0]
+        loc_maxs = argrelmax(grad, order=int(smooth_size / bin_diff))[0]
+
+        # Discard below some minimum width (defaults to 0.1 pc).
+        loc_mins = loc_mins[smooth_bins[loc_mins] > min_width]
+        loc_maxs = loc_maxs
+
+        if loc_mins.size > 0 and loc_maxs.size > 0:
+            i = 0
+            while True:
+                loc_min = loc_mins[i]
+
+                difference = loc_min - loc_maxs
+                if (difference > 0).any():
+                    new_cut = loc_maxs[np.argmin(difference[difference > 0])]
+                    if smooth_bins[new_cut] > min_width:
+                        break
+
+                i += 1
+
+                if i == loc_mins.size:
+                    break
+        else:
+            new_cut = None
+
+        # If there was no cut found, return the original bins and such
+        if new_cut is None or new_cut == 0:
             return bins, values, weights
+        # Otherwise, apply the cut
         else:
             cut_posn = _nearest_idx(bins, smooth_bins[new_cut])
 
@@ -609,12 +609,7 @@ def _smooth_and_cut(bins, values, weights, kern_size=0.1, interp_factor=10,
             return cut_bins, cut_vals, cut_weights
 
     else:
-        if new_cut is None:
-            cut_used = cut[0]
-        elif new_cut >= cut[0]:
-            cut_used = cut[0]
-        else:
-            cut_used = new_cut
+        cut_used = cut[0]
 
         cut_posn = _nearest_idx(bins, smooth_bins[cut_used])
 
@@ -632,7 +627,7 @@ def _smooth_and_cut(bins, values, weights, kern_size=0.1, interp_factor=10,
 
 
 def _nearest_idx(array, value):
-    return (np.abs(array-value)).argmin()
+    return (np.abs(array - value)).argmin()
 
 
 def crossings_nonzero_all(data):
