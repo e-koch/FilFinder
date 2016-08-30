@@ -142,3 +142,29 @@ def test_radial_profile_fail_pad(padding=30.0, max_distance=20.0):
                        ((1, 1), (model.shape[0] // 2, model.shape[1] // 2)),
                        img_scale=1.0, auto_cut=False,
                        max_distance=max_distance, pad_to_distance=padding)
+
+
+def test_radial_profile_autocut():
+    '''
+    Test a case where auto-cutting is needed.
+    '''
+
+    model, skeleton = generate_filament_model(width=10.0,
+                                              amplitude=1.0, background=0.0)
+
+    model += np.roll(model, -30, axis=0).copy()
+
+    # all_skeleton += np.roll(skeleton, -30, axis=0)
+
+    dist_transform = nd.distance_transform_edt((~skeleton).astype(np.int))
+
+    dist, radprof, weights, unbin_dist, unbin_radprof = \
+        radial_profile(model, dist_transform, dist_transform,
+                       ((1, 1), (model.shape[0] // 2, model.shape[1] // 2)),
+                       img_scale=1.0, auto_cut=True,
+                       max_distance=40.0, auto_cut_kwargs={'smooth_size': 3.0,
+                                                           'kern_size': 3.0,
+                                                           'pad_cut': 0})
+
+    # By-eye, this should be 18-19
+    assert np.logical_and(dist.max() < 19., dist.max() > 18.)
