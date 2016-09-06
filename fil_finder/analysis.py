@@ -1,7 +1,6 @@
 # Licensed under an MIT open source license - see LICENSE
 
 import numpy as np
-from scipy.stats import nanmean, nanmedian, nanstd
 from astropy.table import Table
 from matplotlib.ticker import MaxNLocator
 import matplotlib.pyplot as p
@@ -107,7 +106,8 @@ class Analysis(object):
           if num_bins is None:
             num_bins = np.sqrt(len(data))
 
-          data_stats[column] = [nanmean(data), nanstd(data), nanmedian(data)]
+          data_stats[column] = [np.nanmean(data), np.nanstd(data),
+                                np.nanmedian(data)]
 
           if self.subplot:
             if use_prettyplotlib:

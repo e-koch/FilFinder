@@ -67,8 +67,8 @@ def isolateregions(binary_array, size_threshold=0, pad_size=5,
         # Make an array shaped to the skeletons size and padded on each edge
         # the +1 is because, e.g., range(0, 5) only has 5 elements, but the
         # indices we're using are range(0, 6)
-        shapes = (x.max() - x.min() + 2 * pad_size,
-                  y.max() - y.min() + 2 * pad_size)
+        shapes = (x.max() - x.min() + 2 * pad_size + 1,
+                  y.max() - y.min() + 2 * pad_size + 1)
         eachfil = np.zeros(shapes)
         eachfil[x - x.min() + pad_size, y - y.min() + pad_size] = 1
         # Fill in small holes
@@ -79,7 +79,7 @@ def isolateregions(binary_array, size_threshold=0, pad_size=5,
             eachfil = nd.binary_closing(eachfil, np.ones((3, 3)))
         output_arrays.append(eachfil)
         # Keep the coordinates from the original image
-        lower = (x.min() - pad_size, y.min() - pad_size)
+        lower = (max(0, x.min() - pad_size), max(0, y.min() - pad_size))
         upper = (x.max() + pad_size + 1, y.max() + pad_size + 1)
         corners.append([lower, upper])
 
@@ -634,8 +634,8 @@ def recombine_skeletons(skeletons, offsets, orig_size, pad_size,
             y_off = 0
             size_change_flag = True
 
-        if verbose & size_change_flag:
-            print "REDUCED FILAMENT %s/%s TO FIT IN ORIGINAL ARRAY" % (n, num)
+        # if verbose & size_change_flag:
+        #     print "REDUCED FILAMENT %s/%s TO FIT IN ORIGINAL ARRAY" % (n, num)
 
         x, y = np.where(copy_skeleton >= 1)
         for i in range(len(x)):

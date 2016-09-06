@@ -869,7 +869,7 @@ class fil_finder_2D(object):
                 intensity = np.array([])
                 lengths = np.array([])
                 # See above comment (613-614)
-                skel_arr = np.fliplr(self.filament_arrays["final"][n])
+                skel_arr = np.fliplr(self.filament_arrays["final"][n]).copy()
                 # Return the labeled skeleton without intersections
                 output = \
                     pix_identify([skel_arr], 1)[-2:]
@@ -1023,14 +1023,36 @@ class fil_finder_2D(object):
             dist_transform(skel_arrays,
                            self.skeleton)
 
+        # Prepare the storage
+        self.width_fits["Parameters"] = np.empty(
+            (self.number_of_filaments, 4))
+        self.width_fits["Errors"] = np.empty(
+            (self.number_of_filaments, 4))
+        self.width_fits["Type"] = np.empty(
+            (self.number_of_filaments), dtype="S")
+        self.total_intensity = np.empty(
+            (self.number_of_filaments, ))
+
         for n in range(self.number_of_filaments):
 
             # Need the unbinned data for the non-parametric fit.
-            dist, radprof, weights, unbin_dist, unbin_radprof = \
+            out = \
                 radial_profile(self.image, dist_transform_all,
                                dist_transform_separate[n],
                                self.array_offsets[n], self.imgscale,
                                **kwargs)
+
+            if out is not None:
+                dist, radprof, weights, unbin_dist, unbin_radprof = out
+            else:
+                self.total_intensity[n] = np.NaN
+
+                self.width_fits["Parameters"][n, :] = \
+                    [np.NaN] * 4
+                self.width_fits["Errors"][n, :] = \
+                    [np.NaN] * 4
+                self.width_fits["Type"][n] = 'g'
+                continue
 
             if fit_model == cyl_model:
                 if self.freq is None:
@@ -1062,17 +1084,6 @@ class fil_finder_2D(object):
                 # Change the fit type.
                 fit_type = "nonparam"
 
-            if n == 0:
-                # Prepare the storage
-                self.width_fits["Parameters"] = np.empty(
-                    (self.number_of_filaments, len(parameter_names)))
-                self.width_fits["Errors"] = np.empty(
-                    (self.number_of_filaments, len(parameter_names)))
-                self.width_fits["Type"] = np.empty(
-                    (self.number_of_filaments), dtype="S")
-                self.total_intensity = np.empty(
-                    (self.number_of_filaments, ))
-
             if verbose or save_png:
                 if verbose:
                     print "%s in %s" % (n, self.number_of_filaments)
@@ -1101,21 +1112,31 @@ class fil_finder_2D(object):
                 shape = (xhigh - xlow, yhigh - ylow)
 
                 p.contour(skel_arrays[n]
-                          [self.pad_size:shape[0]-self.pad_size,
-                           self.pad_size:shape[1]-self.pad_size], colors="r")
+                          [self.pad_size:shape[0] - self.pad_size,
+                           self.pad_size:shape[1] - self.pad_size], colors="r")
 
-                img_slice = self.image[xlow+self.pad_size:xhigh-self.pad_size,
-                                       ylow+self.pad_size:yhigh-self.pad_size]
+                img_slice = self.image[xlow + self.pad_size:
+                                       xhigh - self.pad_size,
+                                       ylow + self.pad_size:
+                                       yhigh - self.pad_size]
 
-                vmin = scoreatpercentile(img_slice[np.isfinite(img_slice)], 10)
-                p.imshow(img_slice, interpolation=None, vmin=vmin, origin='lower',
-                         cmap='binary')
-                p.colorbar()
+                # Use an asinh stretch to highlight all features
+                from astropy.visualization import AsinhStretch
+                from astropy.visualization.mpl_normalize import ImageNormalize
+
+                vmin = np.nanmin(img_slice)
+                vmax = np.nanmax(img_slice)
+                p.imshow(img_slice, cmap='binary', origin='lower',
+                         norm=ImageNormalize(vmin=vmin, vmax=vmax,
+                                             stretch=AsinhStretch()))
+                cbar = p.colorbar()
+                cbar.set_label(r'Intensity')
 
                 if save_png:
                     try_mkdir(self.save_name)
-                    p.savefig(os.path.join(self.save_name,
-                                           self.save_name+"_width_fit_"+str(n)+".png"))
+                    filename = \
+                        "{0}_width_fit_{1}.png".format(self.save_name, n)
+                    p.savefig(os.path.join(self.save_name, filename))
                 if verbose:
                     p.show()
                 if in_ipynb():

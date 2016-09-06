@@ -5,6 +5,7 @@ from unittest import TestCase
 import numpy as np
 import numpy.testing as npt
 import astropy.units as u
+from copy import deepcopy
 
 from fil_finder import fil_finder_2D
 
@@ -15,9 +16,9 @@ class Test_FilFinder(TestCase):
 
     def test_with_rht_branches(self):
 
-        test1 = fil_finder_2D(img, header=hdr, beamwidth=10.0*u.arcsec,
+        test1 = fil_finder_2D(img, header=hdr, beamwidth=10.0 * u.arcsec,
                               flatten_thresh=95,
-                              distance=260*u.pc, size_thresh=430,
+                              distance=260 * u.pc, size_thresh=430,
                               glob_thresh=20, save_name="test1")
 
         test1.create_mask(border_masking=False)
@@ -33,7 +34,8 @@ class Test_FilFinder(TestCase):
             npt.assert_allclose(test1.width_fits["Parameters"][:, i],
                                 np.asarray(table1[param]), rtol=1e-4)
             npt.assert_allclose(test1.width_fits["Errors"][:, i],
-                                np.asarray(table1[param+" Error"]), rtol=1e-4)
+                                np.asarray(table1[param + " Error"]),
+                                rtol=1e-4)
 
         assert np.allclose(test1.lengths,
                            np.asarray(table1['Lengths']))
@@ -52,9 +54,9 @@ class Test_FilFinder(TestCase):
     def test_without_rht_branches(self):
         # Non-branches
 
-        test2 = fil_finder_2D(img, header=hdr, beamwidth=10.0*u.arcsec,
+        test2 = fil_finder_2D(img, header=hdr, beamwidth=10.0 * u.arcsec,
                               flatten_thresh=95,
-                              distance=260*u.pc, size_thresh=430,
+                              distance=260 * u.pc, size_thresh=430,
                               glob_thresh=20, save_name="test2")
 
         test2.create_mask(border_masking=False)
@@ -70,7 +72,7 @@ class Test_FilFinder(TestCase):
             npt.assert_allclose(test2.width_fits["Parameters"][:, i],
                                 np.asarray(table2[param]), rtol=1e-4)
             npt.assert_allclose(test2.width_fits["Errors"][:, i],
-                                np.asarray(table2[param+" Error"]), rtol=1e-4)
+                                np.asarray(table2[param + " Error"]), rtol=1e-4)
 
         assert np.allclose(test2.lengths,
                            np.asarray(table2['Lengths']))
@@ -91,3 +93,31 @@ class Test_FilFinder(TestCase):
 
         assert np.allclose(test2.rht_curvature['Curvature'],
                            np.asarray(table2['Curvature']))
+
+    def test_equal_branches(self):
+        '''
+        Ensure the filament arrays are equal with and without computing the
+        RHT branches.
+        '''
+
+        test1 = fil_finder_2D(img, header=hdr, beamwidth=10.0 * u.arcsec,
+                              flatten_thresh=95,
+                              distance=260 * u.pc, size_thresh=430,
+                              glob_thresh=20, save_name="test1")
+
+        test1.create_mask(border_masking=False)
+        test1.medskel()
+        test1.analyze_skeletons()
+        test1.exec_rht(branches=True)
+
+        test_copy = deepcopy(test1)
+
+        test_copy.exec_rht(branches=False)
+
+        for arr1, arr2 in zip(test1.filament_arrays['final'],
+                              test_copy.filament_arrays['final']):
+            assert np.allclose(arr1, arr2)
+
+        for arr1, arr2 in zip(test1.filament_arrays['long path'],
+                              test_copy.filament_arrays['long path']):
+            assert np.allclose(arr1, arr2)
