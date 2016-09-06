@@ -7,6 +7,8 @@ import scipy.ndimage as nd
 import scipy.optimize as op
 from scipy.integrate import quad
 from scipy.stats import scoreatpercentile, percentileofscore
+from scipy.interpolate import interp1d
+from scipy.signal import argrelmax, argrelmin
 from warnings import warn
 
 
@@ -537,93 +539,92 @@ def _smooth_and_cut(bins, values, weights, kern_size=0.1, interp_factor=10,
 
     '''
 
-    from scipy.ndimage import gaussian_filter1d
-    from scipy.signal import argrelmax, argrelmin
-
     if kern_size < 1:
         kern_size *= values.size
         kern_size = round(kern_size)
 
-    smooth_val = gaussian_filter1d(values, kern_size)
-
+    # Interpolate the points onto a finer spacing
     smooth_bins = np.linspace(bins.min(), bins.max(),
                               interp_factor * bins.size)
 
-    smooth_val = np.interp(smooth_bins, bins, smooth_val)
+    smooth_val = interp1d(bins, values, kind='cubic')(smooth_bins)
+
+    # Adjust size based on interpolation upsample factor
+    window_size = smooth_size * interp_factor
+    # Must be odd!
+    if window_size % 2 == 0:
+        window_size -= 1
+
+    # Perform a moving average on the interpolated points.
+    pad_add = int((window_size - 1) // 2)
+    smooth_val = \
+        np.convolve(smooth_val, np.ones((window_size,)) / window_size,
+                    mode='valid')
 
     grad = np.gradient(smooth_val, smooth_bins[1] - smooth_bins[0])
 
-    grad = gaussian_filter1d(grad, kern_size)
+    # The shapes need equal so the index to cut at is correct.
+    assert smooth_bins.size == smooth_val.size + 2 * pad_add
 
-    cut = crossings_nonzero_all(grad)
-    cut = cut[smooth_bins[cut] > min_width]
+    cut = crossings_nonzero_all(grad) + pad_add
 
-    # If there are no zero crossing, do one more check for a plateau followed
-    # by a second drop.
-    if cut.size == 0:
-        # Look for local max and mins (must hold True for range set by
-        # smooth_size
-        bin_diff = smooth_bins[1] - smooth_bins[0]
-        loc_mins = argrelmin(grad, order=int(smooth_size / bin_diff))[0]
-        loc_maxs = argrelmax(grad, order=int(smooth_size / bin_diff))[0]
+    # Check for evidence of second drop-off
+    new_cut = None
 
-        # Discard below some minimum width (defaults to 0.1 pc).
-        loc_mins = loc_mins[smooth_bins[loc_mins] > min_width]
-        loc_maxs = loc_maxs
+    # Look for local max and mins (must hold True for range of ~0.05 pc)
+    bin_diff = smooth_bins[1] - smooth_bins[0]
+    loc_mins = argrelmin(grad, order=int(smooth_size / bin_diff))[0] + pad_add
+    loc_maxs = argrelmax(grad, order=int(smooth_size / bin_diff))[0] + pad_add
 
-        if loc_mins.size > 0 and loc_maxs.size > 0:
-            i = 0
-            while True:
-                loc_min = loc_mins[i]
+    # Discard below some minimum width (defaults to 0.1 pc).
+    loc_mins = loc_mins[smooth_bins[loc_mins] > min_width]
+    loc_maxs = loc_maxs
 
-                difference = loc_min - loc_maxs
-                if (difference > 0).any():
-                    new_cut = loc_maxs[np.argmin(difference[difference > 0])]
-                    if smooth_bins[new_cut] > min_width:
-                        break
+    if loc_mins.size > 0 and loc_maxs.size > 0:
+        i = 0
+        while True:
+            loc_min = loc_mins[i]
 
-                i += 1
-
-                if i == loc_mins.size:
+            difference = loc_min - loc_maxs
+            if (difference > 0).any():
+                new_cut = loc_maxs[np.argmin(difference[difference > 0])]
+                if smooth_bins[new_cut] > min_width:
                     break
-        else:
-            new_cut = None
 
-        # If there was no cut found, return the original bins and such
-        if new_cut is None or new_cut == 0:
-            return bins, values, weights
-        # Otherwise, apply the cut
-        else:
-            cut_posn = _nearest_idx(bins, smooth_bins[new_cut])
+            i += 1
 
-            end_diff = bins.size - cut_posn
-            if end_diff < pad_cut:
-                cut_posn += end_diff
-            else:
-                cut_posn += pad_cut
+            if i == loc_mins.size:
+                break
 
-            cut_bins = bins[:cut_posn]
-            cut_vals = values[:cut_posn]
-            cut_weights = weights[:cut_posn]
+    if new_cut == 0:
+        new_cut = None
 
-            return cut_bins, cut_vals, cut_weights
-
+    # No cut is found, so no values are sliced off.
+    if cut.size == 0 and new_cut is None:
+        cut_posn = bins.size
+    # Only a plateau cut was found.
+    elif cut.size == 0 and new_cut is not None:
+        cut_posn = _nearest_idx(bins, smooth_bins[new_cut])
     else:
-        cut_used = cut[0]
+        # Check for a cut given by the plateau check.
+        # If there is isn't one or it is at a greater radius, use the first
+        # zero gradient crossing.
+        if new_cut is None or new_cut >= cut[0]:
+            cut_used = cut[0]
+        else:
+            cut_used = new_cut
 
         cut_posn = _nearest_idx(bins, smooth_bins[cut_used])
 
-        end_diff = bins.size - cut_posn
-        if end_diff < pad_cut:
-            cut_posn += end_diff
-        else:
-            cut_posn += pad_cut
+    # Now adjust by the given pad_cut size
+    # Always use +1 to cut to the extrema point.
+    cut_posn += 1 + pad_cut
 
-        cut_bins = bins[:cut_posn]
-        cut_vals = values[:cut_posn]
-        cut_weights = weights[:cut_posn]
+    cut_bins = bins[:cut_posn]
+    cut_vals = values[:cut_posn]
+    cut_weights = weights[:cut_posn]
 
-        return cut_bins, cut_vals, cut_weights
+    return cut_bins, cut_vals, cut_weights
 
 
 def _nearest_idx(array, value):
