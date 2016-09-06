@@ -1,6 +1,7 @@
 
 1.3 (unreleased)
 ----------------
+- [#30] - Fixes minor branch deletion when using branches with RHT, +1 index for slicing out individual skeletons, re-worked `radial_profile` to clarify usage of `pad_to_distance` and `max_distance`, tests for `radial_profile`, and re-wrote `_smooth_and_cut` to smooth with a moving average instead of a gaussian kernel. The unit test values were updated to reflect minor changes in the treatment of the radial profiles.
 - [#27] - Use WCS objects, instead of the header, to get the pixel scales.
 - [#24] - Allow for `fits.PrimaryHDUs` to be given. Headers are now optional; units default to pixel units in this case. `beamwidth` and `distance` are expected to be `astropy.units.Quantity` objects with appropriate units!
 - [#23] - Fix error in length when using new version of skimage.
