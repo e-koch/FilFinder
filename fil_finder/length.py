@@ -5,7 +5,6 @@ from .pixel_ident import *
 
 
 import numpy as np
-from scipy.stats import nanmean
 import scipy.ndimage as nd
 import networkx as nx
 import operator
@@ -192,10 +191,10 @@ def init_lengths(labelisofil, filbranches, array_offsets, img):
             x_offset = obj[0].start + array_offsets[n][0][0]
             y_offset = obj[1].start + array_offsets[n][0][1]
             av_intensity.append(
-                nanmean([img[x + x_offset, y + y_offset]
-                         for x, y in zip(*branch_pts)
-                         if np.isfinite(img[x + x_offset, y + y_offset]) and
-                         not img[x + x_offset, y + y_offset] < 0.0]))
+                np.nanmean([img[x + x_offset, y + y_offset]
+                           for x, y in zip(*branch_pts)
+                           if np.isfinite(img[x + x_offset, y + y_offset]) and
+                           not img[x + x_offset, y + y_offset] < 0.0]))
 
         lengths.append(leng)
         av_branch_intensity.append(av_intensity)
