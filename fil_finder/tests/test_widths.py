@@ -20,7 +20,7 @@ def generate_filament_model(shape=100, theta=0.0, width=10.0,
     centers = np.zeros(yy.shape, dtype=bool)
     centers[np.abs(yy - np.tan(theta) * xx) < 1.0] = 1
 
-    radii = nd.distance_transform_edt(centers != amplitude)
+    radii = nd.distance_transform_edt(~centers)
 
     filament = amplitude * np.exp(- (radii ** 2) / (2 * width ** 2)) + \
         background
@@ -146,13 +146,14 @@ def test_radial_profile_fail_pad(padding=30.0, max_distance=20.0):
 
 def test_radial_profile_autocut():
     '''
-    Test a case where auto-cutting is needed.
+    Test auto-cutting with a secondary offset peak.
     '''
 
     model, skeleton = generate_filament_model(width=10.0,
                                               amplitude=1.0, background=0.0)
 
     model += np.roll(model, -30, axis=0).copy()
+    model += np.roll(model, +30, axis=0).copy()
 
     # all_skeleton += np.roll(skeleton, -30, axis=0)
 
@@ -162,9 +163,45 @@ def test_radial_profile_autocut():
         radial_profile(model, dist_transform, dist_transform,
                        ((1, 1), (model.shape[0] // 2, model.shape[1] // 2)),
                        img_scale=1.0, auto_cut=True,
-                       max_distance=40.0, auto_cut_kwargs={'smooth_size': 3.0,
-                                                           'kern_size': 3.0,
+                       max_distance=50.0, auto_cut_kwargs={'smooth_size': 3.0,
                                                            'pad_cut': 0})
 
+    npt.assert_equal(dist.max(), 19.25)
+
+
+def test_radial_profile_autocut_plateau():
+    '''
+    Test auto-cutting with a plateau and a second fall.
+    '''
+
+    model, skeleton = generate_filament_model(shape=160, width=10.0,
+                                              amplitude=10.0, background=5.0)
+
+    # Create a second drop-off profile 40 pixels from the center on each side.
+
+    for i, row in enumerate(model[120:].T):
+
+        model[120:, i] = generate_gaussian_profile(np.arange(row.size),
+                                                   width=5.0,
+                                                   amplitude=5.0,
+                                                   background=0.0)
+
+    for i, row in enumerate(model[:40].T):
+
+        model[:40, i] = generate_gaussian_profile(np.arange(row.size),
+                                                  width=5.0,
+                                                  amplitude=5.0,
+                                                  background=0.0)[::-1]
+
+    dist_transform = nd.distance_transform_edt((~skeleton).astype(np.int))
+
+    dist, radprof, weights, unbin_dist, unbin_radprof = \
+        radial_profile(model, dist_transform, dist_transform,
+                       ((1, 1), (model.shape[0] // 2, model.shape[1] // 2)),
+                       img_scale=1.0, auto_cut=True,
+                       max_distance=60.0, auto_cut_kwargs={'smooth_size': 3.0,
+                                                           'pad_cut': 0,
+                                                           'interp_factor': 1})
+
     # By-eye, this should be 18-19
-    assert np.logical_and(dist.max() < 19., dist.max() > 18.)
+    npt.assert_almost_equal(dist.max(), 38.201, decimal=3)
