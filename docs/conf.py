@@ -51,7 +51,7 @@ setup_cfg = dict(conf.items('metadata'))
 import mock
 
 MOCK_MODULES = ['numpy', 'scipy', 'scipy.ndimage', 'scipy.stats',
-                'scipy.optimize', 'scipy.integrate',
+                'scipy.optimize', 'scipy.integrate', 'scipy.interpolate',
                 'matplotlib', 'matplotlib.pyplot', 'matplotlib.ticker',
                 'aplpy', "skimage.morphology",
                 'skimage.filters', 'skimage', 'astropy',
