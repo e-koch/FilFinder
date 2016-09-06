@@ -498,7 +498,7 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
         return bin_centers, radial_prof, weights
 
 
-def _smooth_and_cut(bins, values, weights, kern_size=0.1, interp_factor=10,
+def _smooth_and_cut(bins, values, weights, interp_factor=10,
                     pad_cut=5, smooth_size=0.05, min_width=0.1):
     '''
     Smooth the radial profile and cut if it increases at increasing
@@ -514,9 +514,6 @@ def _smooth_and_cut(bins, values, weights, kern_size=0.1, interp_factor=10,
     weights : numpy.ndarray
         Weights for each bin. These are only clipped to the same position as
         the rest of the profile. Otherwise, no alteration is made.
-    kern_size : int or float, optional
-        If >1, is the number of bins to use in the smoothing. If <1, takes
-        fraction of the data for smoothing.
     interp_factor : int, optional
         The factor to increase the number of bins by for interpolation.
     pad_cut : int, optional
@@ -538,10 +535,6 @@ def _smooth_and_cut(bins, values, weights, kern_size=0.1, interp_factor=10,
         Weights for each bin with a possible cutoff.
 
     '''
-
-    if kern_size < 1:
-        kern_size *= values.size
-        kern_size = round(kern_size)
 
     # Interpolate the points onto a finer spacing
     smooth_bins = np.linspace(bins.min(), bins.max(),
