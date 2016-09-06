@@ -499,7 +499,7 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
 
 
 def _smooth_and_cut(bins, values, weights, interp_factor=10,
-                    pad_cut=5, smooth_size=3.0, min_width=0.1):
+                    pad_cut=5, smooth_size=0.03, min_width=0.1):
     '''
     Smooth the radial profile and cut if it increases at increasing
     distance. Also checks for profiles with a plateau between two decreasing
@@ -520,8 +520,8 @@ def _smooth_and_cut(bins, values, weights, interp_factor=10,
         Add additional bins after the cut is found. The smoothing often cuts
         out some bins which follow the desired profile.
     smooth_size : float, optional
-        Set the smoothing size when finding local extrema. The value is the
-        number of bins that will be smoothed over.
+        Set the smoothing size when finding local extrema. The value should
+        have the same units as given in `bins`.
     min_width : float, optional
         Ignore local minima below this minimum width.
 
@@ -539,11 +539,12 @@ def _smooth_and_cut(bins, values, weights, interp_factor=10,
     # Interpolate the points onto a finer spacing
     smooth_bins = np.linspace(bins.min(), bins.max(),
                               interp_factor * bins.size)
+    smooth_bin_width = smooth_bins[1] - smooth_bins[0]
 
     smooth_val = interp1d(bins, values, kind='cubic')(smooth_bins)
 
     # Adjust size based on interpolation upsample factor
-    window_size = (smooth_size * interp_factor)
+    window_size = int(np.floor(smooth_size / smooth_bin_width))
     # Must be odd!
     if window_size % 2 == 0:
         window_size -= 1
