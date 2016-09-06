@@ -1120,16 +1120,23 @@ class fil_finder_2D(object):
                                        ylow + self.pad_size:
                                        yhigh - self.pad_size]
 
-                vmin = scoreatpercentile(img_slice[np.isfinite(img_slice)], 10)
-                p.imshow(img_slice, interpolation=None, vmin=vmin,
-                         origin='lower',
-                         cmap='binary')
-                p.colorbar()
+                # Use an asinh stretch to highlight all features
+                from astropy.visualization import AsinhStretch
+                from astropy.visualization.mpl_normalize import ImageNormalize
+
+                vmin = np.nanmin(img_slice)
+                vmax = np.nanmax(img_slice)
+                p.imshow(img_slice, cmap='binary', origin='lower',
+                         norm=ImageNormalize(vmin=vmin, vmax=vmax,
+                                             stretch=AsinhStretch()))
+                cbar = p.colorbar()
+                cbar.set_label(r'Intensity')
 
                 if save_png:
                     try_mkdir(self.save_name)
-                    p.savefig(os.path.join(self.save_name,
-                                           self.save_name+"_width_fit_"+str(n)+".png"))
+                    filename = \
+                        "{0}_width_fit_{1}.png".format(self.save_name, n)
+                    p.savefig(os.path.join(self.save_name, filename))
                 if verbose:
                     p.show()
                 if in_ipynb():
