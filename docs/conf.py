@@ -52,6 +52,7 @@ import mock
 
 MOCK_MODULES = ['numpy', 'scipy', 'scipy.ndimage', 'scipy.stats',
                 'scipy.optimize', 'scipy.integrate', 'scipy.interpolate',
+                'scipy.signal',
                 'matplotlib', 'matplotlib.pyplot', 'matplotlib.ticker',
                 'aplpy', "skimage.morphology",
                 'skimage.filters', 'skimage', 'astropy',
