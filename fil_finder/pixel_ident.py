@@ -79,7 +79,7 @@ def isolateregions(binary_array, size_threshold=0, pad_size=5,
             eachfil = nd.binary_closing(eachfil, np.ones((3, 3)))
         output_arrays.append(eachfil)
         # Keep the coordinates from the original image
-        lower = (x.min() - pad_size, y.min() - pad_size)
+        lower = (max(0, x.min() - pad_size), max(0, y.min() - pad_size))
         upper = (x.max() + pad_size + 1, y.max() + pad_size + 1)
         corners.append([lower, upper])
 

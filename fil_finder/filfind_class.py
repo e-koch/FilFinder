@@ -1112,14 +1112,17 @@ class fil_finder_2D(object):
                 shape = (xhigh - xlow, yhigh - ylow)
 
                 p.contour(skel_arrays[n]
-                          [self.pad_size:shape[0]-self.pad_size,
-                           self.pad_size:shape[1]-self.pad_size], colors="r")
+                          [self.pad_size:shape[0] - self.pad_size,
+                           self.pad_size:shape[1] - self.pad_size], colors="r")
 
-                img_slice = self.image[xlow+self.pad_size:xhigh-self.pad_size,
-                                       ylow+self.pad_size:yhigh-self.pad_size]
+                img_slice = self.image[xlow + self.pad_size:
+                                       xhigh - self.pad_size,
+                                       ylow + self.pad_size:
+                                       yhigh - self.pad_size]
 
                 vmin = scoreatpercentile(img_slice[np.isfinite(img_slice)], 10)
-                p.imshow(img_slice, interpolation=None, vmin=vmin, origin='lower',
+                p.imshow(img_slice, interpolation=None, vmin=vmin,
+                         origin='lower',
                          cmap='binary')
                 p.colorbar()
 
