@@ -152,9 +152,7 @@ class fil_finder_2D(object):
 
         self._wcs = WCS(self.header)
 
-        if region_slice is None:
-            self.image = image
-        else:
+        if region_slice is not None:
             slices = (slice(region_slice[0], region_slice[1], None),
                       slice(region_slice[2], region_slice[3], None))
             self.image = np.pad(self.image[slices], 1, padwithzeros)
