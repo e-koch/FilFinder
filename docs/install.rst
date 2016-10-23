@@ -3,7 +3,7 @@ Installation
 
 FilFinder can be installed via pip:
 
->>> pip install FilFinder # doctest: +SKIP
+>>> pip install fil_finder # doctest: +SKIP
 
 To install from the repository, run:
 

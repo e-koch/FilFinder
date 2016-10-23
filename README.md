@@ -69,7 +69,7 @@ Installation
 FilFinder can be installed via pip:
 
 ```
-pip install FilFinder
+pip install fil_finder
 ```
 
 To install from the repository, run:
