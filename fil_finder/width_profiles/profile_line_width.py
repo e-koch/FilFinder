@@ -39,8 +39,8 @@ four_conn_posns = [1, 3, 5, 7]
 eight_conn_posns = [0, 2, 6, 8]
 
 
-def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
-                     distance=250.*u.pc, num_avg=3, verbose=False,
+def filament_profile(skeleton, image, header, max_dist=0.025 * u.pc,
+                     distance=250. * u.pc, num_avg=3, verbose=False,
                      bright_unit="Jy km/s", noise=None):
     '''
     Calculate radial profiles along the main extent of a skeleton (ie. the
@@ -90,10 +90,10 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
         Table of the fit results and errors with appropriate units.
     '''
 
-    deg_per_pix = np.abs(header["CDELT2"]) * u.deg/u.pixel
+    deg_per_pix = np.abs(header["CDELT2"]) * u.deg / u.pixel
 
     if distance is not None:
-        phys_per_pix = distance * (np.pi/180.) * deg_per_pix / u.deg
+        phys_per_pix = distance * (np.pi / 180.) * deg_per_pix / u.deg
 
         max_pixel = (max_dist / phys_per_pix).value
 
@@ -107,8 +107,8 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
                 max_pixel = max_dist.to(u.pix).value
             except u.UnitConversionError:
                 # In angular units
-                equiv = [(u.pixel, u.deg, lambda x: x/header["CDELT2"],
-                          lambda x: x*header["CDELT2"])]
+                equiv = [(u.pixel, u.deg, lambda x: x / header["CDELT2"],
+                          lambda x: x * header["CDELT2"])]
                 max_pixel = max_dist.to(u.pix, equivalencies=equiv).value
 
     if bright_unit is None:
@@ -133,12 +133,12 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
     profile_fits = []
     red_chisqs = []
 
-    for j, i in enumerate(xrange(num_avg, len(skel_pts)-num_avg)):
+    for j, i in enumerate(xrange(num_avg, len(skel_pts) - num_avg)):
         # Calculate the normal direction from the surrounding pixels
-        pt1 = avg_pts([skel_pts[i+j] for j in range(-num_avg, 0)])
-        pt2 = avg_pts([skel_pts[i+j] for j in range(1, num_avg+1)])
+        pt1 = avg_pts([skel_pts[i + j] for j in range(-num_avg, 0)])
+        pt2 = avg_pts([skel_pts[i + j] for j in range(1, num_avg + 1)])
 
-        vec = np.array([float(x2-x1) for x2, x1 in
+        vec = np.array([float(x2 - x1) for x2, x1 in
                         zip(pt1, pt2)])
         vec /= np.linalg.norm(vec)
 
@@ -204,11 +204,11 @@ def filament_profile(skeleton, image, header, max_dist=0.025*u.pc,
             p.plot(pts, gaussian(pts, *profile_fit), 'r')
 
             if distance is not None:
-                unit = (u.pix*phys_per_pix).unit.to_string()
+                unit = (u.pix * phys_per_pix).unit.to_string()
             else:
-                unit = (u.pix*deg_per_pix).unit.to_string()
-            p.xlabel("Distance from skeleton ("+unit+")")
-            p.ylabel("Surface Brightness ("+bright_unit.to_string()+")")
+                unit = (u.pix * deg_per_pix).unit.to_string()
+            p.xlabel("Distance from skeleton (" + unit + ")")
+            p.ylabel("Surface Brightness (" + bright_unit.to_string() + ")")
             p.tight_layout()
             p.show()
 
@@ -276,7 +276,7 @@ def walk_through_skeleton(skeleton):
             # Check for neighbors
             y, x = prev_pt
             # Extract the connected region
-            neighbors = skeleton[y-1:y+2, x-1:x+2].ravel()
+            neighbors = skeleton[y - 1:y + 2, x - 1:x + 2].ravel()
             # Define the corresponding array indices.
             yy_inds = yy + y
             xx_inds = xx + x
@@ -299,7 +299,7 @@ def walk_through_skeleton(skeleton):
             elif num_hits == 1:
                 # You have found the next point
                 posn = hits[0]
-                next_pt = (y+yy[posn], x+xx[posn])
+                next_pt = (y + yy[posn], x + xx[posn])
                 ordered_pts.append(next_pt)
             else:
                 # There's at least a couple neighbours (for some reason)
@@ -310,7 +310,7 @@ def walk_through_skeleton(skeleton):
                         break
                 else:
                     raise ValueError("Disconnected eight-connected pixels?")
-                next_pt = (y+yy[posn], x+xx[posn])
+                next_pt = (y + yy[posn], x + xx[posn])
                 ordered_pts.append(next_pt)
             prev_pt = next_pt
 
@@ -346,14 +346,14 @@ def find_path_ends(posn, max_dist, vector):
 
     max_size = np.ceil(max_dist).astype(int)
 
-    yy, xx = np.mgrid[-max_size:max_size+1, -max_size:max_size+1]
+    yy, xx = np.mgrid[-max_size:max_size + 1, -max_size:max_size + 1]
 
     max_circle = yy**2 + xx**2 <= max_dist**2
     ring = \
         np.logical_xor(max_circle,
                        nd.binary_erosion(max_circle, eight_conn))
 
-    radius_pts = [(y+posn[0], x+posn[1]) for y, x in zip(*np.where(ring))]
+    radius_pts = [(y + posn[0], x + posn[1]) for y, x in zip(*np.where(ring))]
 
     x_step = vector[1]
     y_step = vector[0]
@@ -364,10 +364,10 @@ def find_path_ends(posn, max_dist, vector):
     neg_line_posn = (posn[0] - y_diff, posn[1] - x_diff)
     pos_line_posn = (posn[0] + y_diff, posn[1] + x_diff)
 
-    pos_dists = np.array([two_point_dist(pos_line_posn, pt)
-                          for pt in radius_pts])
-    neg_dists = np.array([two_point_dist(neg_line_posn, pt)
-                          for pt in radius_pts])
+    # pos_dists = np.array([two_point_dist(pos_line_posn, pt)
+    #                       for pt in radius_pts])
+    # neg_dists = np.array([two_point_dist(neg_line_posn, pt)
+    #                       for pt in radius_pts])
 
     # These should be the ones used to ensure
     # proper distance from the skeleton point.
@@ -380,7 +380,7 @@ def find_path_ends(posn, max_dist, vector):
 
 
 def two_point_dist(pt1, pt2):
-    return np.linalg.norm([x2-x1 for x2, x1 in zip(pt1, pt2)])
+    return np.linalg.norm([x2 - x1 for x2, x1 in zip(pt1, pt2)])
 
 
 def avg_pts(pts):
@@ -404,8 +404,8 @@ def gaussian(x, *p):
         * p[2] Width
         * p[3] Background
     '''
-    return (p[0]-p[2]) * np.exp(-1 * np.power(x, 2) /
-                                (2 * np.power(p[1], 2))) + p[2]
+    return (p[0] - p[2]) * np.exp(-1 * np.power(x, 2) /
+                                  (2 * np.power(p[1], 2))) + p[2]
 
 
 def gauss_fit(distance, rad_profile, sigma=None):
@@ -436,10 +436,10 @@ def gauss_fit(distance, rad_profile, sigma=None):
     try:
         fit, cov, info, _, _ = \
             curve_fit(gaussian, distance, rad_profile, p0=p0,
-                      maxfev=100*(len(distance)+1), sigma=sigma,
+                      maxfev=100 * (len(distance) + 1), sigma=sigma,
                       absolute_sigma=True, full_output=True)
         fit_errors = np.sqrt(np.diag(cov))
-        red_chisq = (info['fvec']**2).sum()/(len(info['fvec'])-len(fit))
+        red_chisq = (info['fvec']**2).sum() / (len(info['fvec']) - len(fit))
 
     except Exception as e:
         print("curve_fit failed with " + str(e))
