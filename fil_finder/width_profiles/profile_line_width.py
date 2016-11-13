@@ -268,7 +268,7 @@ def walk_through_skeleton(skeleton):
     yy = yy.ravel()
     xx = xx.ravel()
 
-    for i in xrange(all_pts-1):
+    for i in xrange(all_pts):
         if i == 0:
             ordered_pts = [end_pts[0]]
             prev_pt = end_pts[0]
