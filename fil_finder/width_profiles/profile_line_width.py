@@ -262,6 +262,10 @@ def walk_through_skeleton(skeleton):
     if len(end_pts) != 2:
         raise ValueError("Skeleton must contain no intersections.")
 
+    # Force the first end point to be closest to the image origin.
+    if two_point_dist(end_pts[1], [0, 0]) < two_point_dist(end_pts[0], [0, 0]):
+        end_pts = end_pts[::-1]
+
     all_pts = int(np.sum(skeleton))
 
     yy, xx = np.mgrid[-1:2, -1:2]
