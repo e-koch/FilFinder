@@ -20,9 +20,10 @@ addons:
 env:
     global:
         - SETUP_CMD='test'
-        - CONDA_ADDITIONAL='scipy matplotlib networkx scikit-image h5py'
-        - NP_VER=1.10
-        - ASTRO_VER=1.0
+        - CONDA_ADDITIONAL='scipy matplotlib networkx h5py'
+        - NP_VER=1.12
+        - ASTRO_VER=1.3
+        - SKIMG_VER=0.13
     matrix:
         - SETUP_CMD='egg_info'
 
@@ -34,16 +35,19 @@ matrix:
         #   env: SETUP_CMD='build_sphinx -w'
 
         - python: 2.7
-          env: NP_VER=1.9 ASTRO_VER=1.0
+          env: NP_VER=1.10 ASTRO_VER=1.0 SKIMG_VER=0.11
 
         - python: 2.7
-          env: NP_VER=1.10 ASTRO_VER=1.0
+          env: NP_VER=1.10 ASTRO_VER=1.1 SKIMG_VER=0.11
 
         - python: 2.7
-          env: NP_VER=1.10 ASTRO_VER=1.1
+          env: NP_VER=1.11 ASTRO_VER=1.2 SKIMG_VER=0.12
 
         - python: 2.7
-          env: NP_VER=1.11 ASTRO_VER=1.2
+          env: NP_VER=1.11 ASTRO_VER=1.2 SKIMG_VER=0.12
+
+        - python: 2.7
+          env: NP_VER=1.12 ASTRO_VER=1.3 SKIMG_VER=0.13
 
 before_install:
     - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
@@ -62,7 +66,7 @@ install:
 
     # Now install dependencies
     - conda install --yes $CONDA_ADDITIONAL
-    - conda install --yes numpy=$NP_VER astropy=$ASTRO_VER
+    - conda install --yes numpy=$NP_VER astropy=$ASTRO_VER scikit-image=$SKIMG_VER
 
 script:
     - python setup.py $SETUP_CMD

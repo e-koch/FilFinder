@@ -200,4 +200,4 @@ def in_ipynb():
 
 
 def round_to_odd(x):
-    return (np.ceil((np.ceil(x)/2)+0.5)*2)-1
+    return int((np.ceil((np.ceil(x) / 2) + 0.5) * 2) - 1)
