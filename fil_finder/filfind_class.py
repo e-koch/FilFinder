@@ -462,16 +462,18 @@ class fil_finder_2D(object):
             ratio = 1
             masking_img = flat_copy
 
-        smooth_img = nd.median_filter(masking_img,
-                                      size=round(self.smooth_size*ratio))
+        smooth_img = \
+            nd.median_filter(masking_img,
+                             size=int(round(self.smooth_size * ratio)))
 
         # Set the border to zeros for the adaptive thresholding. Avoid border
         # effects.
         if zero_border and self.pad_size > 0:
-            smooth_img[:self.pad_size*ratio+1, :] = 0.0
-            smooth_img[-self.pad_size*ratio-1:, :] = 0.0
-            smooth_img[:, :self.pad_size*ratio+1] = 0.0
-            smooth_img[:, -self.pad_size*ratio-1:] = 0.0
+            pad_size = int(self.pad_size * ratio)
+            smooth_img[:pad_size + 1, :] = 0.0
+            smooth_img[-pad_size - 1:, :] = 0.0
+            smooth_img[:, :pad_size + 1] = 0.0
+            smooth_img[:, -pad_size - 1:] = 0.0
 
         adapt = threshold_adaptive(smooth_img,
                                    round_to_odd(ratio * self.adapt_thresh),
@@ -479,7 +481,8 @@ class fil_finder_2D(object):
 
         if regrid:
             regrid_factor = float(regrid_factor)
-            adapt = nd.zoom(adapt, (1/regrid_factor, 1/regrid_factor), order=0)
+            adapt = nd.zoom(adapt, (1 / regrid_factor, 1 / regrid_factor),
+                            order=0)
 
         # Remove areas near the image border
         adapt = adapt * nan_mask
@@ -498,7 +501,7 @@ class fil_finder_2D(object):
         # Remove small holes within the object
 
         if fill_hole_size is None:
-            fill_hole_size = np.pi*(self.beamwidth/self.imgscale)**2
+            fill_hole_size = np.pi * (self.beamwidth / self.imgscale)**2
 
         mask_objs, num, corners = \
             isolateregions(cleaned, fill_hole=True, rel_size=fill_hole_size,
