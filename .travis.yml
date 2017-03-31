@@ -21,9 +21,9 @@ env:
     global:
         - SETUP_CMD='test'
         - CONDA_ADDITIONAL='scipy matplotlib networkx h5py'
-        - NP_VER=1.10
-        - ASTRO_VER=1.0
-        - SKIMG_VER=0.12
+        - NP_VER=1.12
+        - ASTRO_VER=1.3
+        - SKIMG_VER=0.13
     matrix:
         - SETUP_CMD='egg_info'
 
@@ -35,13 +35,10 @@ matrix:
         #   env: SETUP_CMD='build_sphinx -w'
 
         - python: 2.7
-          env: NP_VER=1.9 ASTRO_VER=1.0 SKIMG_VER=0.12
+          env: NP_VER=1.10 ASTRO_VER=1.0 SKIMG_VER=0.11
 
         - python: 2.7
-          env: NP_VER=1.10 ASTRO_VER=1.0 SKIMG_VER=0.12
-
-        - python: 2.7
-          env: NP_VER=1.10 ASTRO_VER=1.1 SKIMG_VER=0.12
+          env: NP_VER=1.10 ASTRO_VER=1.1 SKIMG_VER=0.11
 
         - python: 2.7
           env: NP_VER=1.11 ASTRO_VER=1.2 SKIMG_VER=0.12
