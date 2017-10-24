@@ -396,7 +396,8 @@ def longest_path(edge_list, nodes, verbose=False,
         G.add_nodes_from(nodes[n])
         for i in edge_list[n]:
             G.add_edge(i[0], i[1], weight=i[2][1])
-        paths = nx.shortest_path_length(G, weight='weight')
+        # networkx 2.0 returns a two-element tuple. Convert to a dict first
+        paths = dict(nx.shortest_path_length(G, weight='weight'))
         values = []
         node_extrema = []
         for i in paths.iterkeys():
