@@ -1523,10 +1523,7 @@ class fil_finder_2D(object):
         except KeyError:
             pass
 
-        try:
-            new_hdr.update("BUNIT", value="bool", comment="")
-        except KeyError:
-            new_hdr["BUNIT"] = ("int", "")
+        new_hdr["BUNIT"] = ("bool", "")
 
         new_hdr["COMMENT"] = "Mask created by fil_finder on " + \
             time.strftime("%c")
@@ -1550,10 +1547,7 @@ class fil_finder_2D(object):
                      self.mask_nopad.astype(">i2"), new_hdr)
 
         # Save skeletons. Includes final skeletons and the longest paths.
-        try:
-            new_hdr.update("BUNIT", value="int", comment="")
-        except KeyError:
-            new_hdr["BUNIT"] = ("int", "")
+        new_hdr["BUNIT"] = ("int", "")
 
         new_hdr["COMMENT"] = "Skeleton Size Threshold: " + \
             str(self.skel_thresh)
