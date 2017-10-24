@@ -492,7 +492,8 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
     num = len(labelisofil)
 
     for n in range(num):
-        degree = G[n].degree()
+        # Fix for networkx 2.0
+        degree = dict(G[n].degree())
         single_connect = [key for key in degree.keys() if degree[key] == 1]
 
         delete_candidate = list(
