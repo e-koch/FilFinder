@@ -396,7 +396,8 @@ def longest_path(edge_list, nodes, verbose=False,
         G.add_nodes_from(nodes[n])
         for i in edge_list[n]:
             G.add_edge(i[0], i[1], weight=i[2][1])
-        paths = nx.shortest_path_length(G, weight='weight')
+        # networkx 2.0 returns a two-element tuple. Convert to a dict first
+        paths = dict(nx.shortest_path_length(G, weight='weight'))
         values = []
         node_extrema = []
         for i in paths.iterkeys():
@@ -491,7 +492,8 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
     num = len(labelisofil)
 
     for n in range(num):
-        degree = G[n].degree()
+        # Fix for networkx 2.0
+        degree = dict(G[n].degree())
         single_connect = [key for key in degree.keys() if degree[key] == 1]
 
         delete_candidate = list(

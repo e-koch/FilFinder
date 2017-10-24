@@ -187,7 +187,9 @@ def gauss_model(distance, rad_profile, weights, img_beam):
         fit_errors = np.append(fit_errors, 0.0)
 
     fail_flag = False
-    if fit_errors is None or fit[0] < fit[2] or (fit_errors > fit).any():
+    fail_conditions = fit_errors is None or \
+        fit[0] < fit[2] or (fit_errors > np.abs(fit)).any()
+    if fail_conditions:
         fail_flag = True
 
     return fit, fit_errors, gaussian, parameters, fail_flag
