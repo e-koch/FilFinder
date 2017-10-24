@@ -12,6 +12,7 @@ from astropy.io import fits
 from astropy.table import Table
 from astropy import units as u
 from astropy.wcs import WCS
+from astropy.wcs.utils import proj_plane_pixel_scales
 from copy import deepcopy
 import os
 import time
@@ -237,7 +238,9 @@ class fil_finder_2D(object):
                     distance *= u.pc
 
                 # Image scale in pc.
-                self.imgscale = self.wcs.wcs.cdelt[-1] * \
+                pix_scale = \
+                    np.abs(proj_plane_pixel_scales(self.wcs.celestial)[0])
+                self.imgscale = pix_scale * \
                     (np.pi / 180.0) * distance.to(u.pc).value
 
                 width = beamwidth / FWHM_FACTOR
@@ -265,8 +268,10 @@ class fil_finder_2D(object):
                 self.pixel_unit_flag = False
 
             # Angular conversion (sr/pixel^2)
+            pix_scale = \
+                np.abs(proj_plane_pixel_scales(self.wcs.celestial)[0])
             self.angular_scale = \
-                ((self.wcs.wcs.cdelt[-1] * u.degree) ** 2.).to(u.sr).value
+                ((pix_scale * u.degree) ** 2.).to(u.sr).value
 
         self.glob_thresh = glob_thresh
         self.adapt_thresh = adapt_thresh
