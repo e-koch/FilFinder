@@ -56,6 +56,9 @@ class fil_finder_2D(object):
         the beam is read from a provided header. If the beam cannot be read
         from the header, or a header is not provided, this input must be
         given. If a float is given, it is assumed to be in pixel units.
+    ang_scale : `~astropy.units.Quantity`, optional
+        Give the angular to pixel units conversion. If none is given, it will
+        be read from the header. The units must be a valid angular unit.
     skel_thresh : float, optional
         Given in pixel units.Below this cut off, skeletons with less pixels
         will be deleted. The default value is 0.3 pc converted to pixels.
@@ -135,9 +138,9 @@ class fil_finder_2D(object):
 
     """
 
-    def __init__(self, image, header=None, beamwidth=None, skel_thresh=None,
-                 branch_thresh=None, pad_size=0, skeleton_pad_size=1,
-                 flatten_thresh=None,
+    def __init__(self, image, header=None, beamwidth=None, ang_scale=None,
+                 skel_thresh=None, branch_thresh=None, pad_size=0,
+                 skeleton_pad_size=1, flatten_thresh=None,
                  smooth_size=None, size_thresh=None, glob_thresh=None,
                  adapt_thresh=None, distance=None, region_slice=None,
                  mask=None, freq=None, save_name="FilFinder_output"):
@@ -151,7 +154,8 @@ class fil_finder_2D(object):
         else:
             self._header = header
 
-        self._wcs = WCS(self.header)
+        if self.header is not None:
+            self._wcs = WCS(self.header)
 
         if region_slice is not None:
             slices = (slice(region_slice[0], region_slice[1], None),
@@ -183,12 +187,29 @@ class fil_finder_2D(object):
 
             median = lognorm.median(*fit_vals)
             std = lognorm.std(*fit_vals)
-            thresh_val = median + 2*std
+            thresh_val = median + 2 * std
         else:
             thresh_val = scoreatpercentile(self.image[~np.isnan(self.image)],
                                            flatten_thresh)
 
         self.flat_img = np.arctan(self.image / thresh_val)
+
+        if ang_scale is not None:
+            if not isinstance(ang_scale, u.Quantity):
+                raise TypeError("ang_scale must be an astropy.units.Quantity.")
+            if not ang_scale.unit.is_equivalent(u.deg):
+                raise u.UnitsError("ang_scale must be given in angular units.")
+
+            pix_scale = ang_scale.to(u.deg)
+        else:
+            # Check for a wcs object
+            if not hasattr(self, "wcs"):
+                pix_scale = 1.
+                Warning("No header given. Results will be in pixel units.")
+            else:
+                pix_scale = \
+                    np.abs(proj_plane_pixel_scales(self.wcs.celestial)[0]) * \
+                    u.deg
 
         if self.header is None:
             Warning("No header given. Results will be in pixel units.")
@@ -229,7 +250,7 @@ class fil_finder_2D(object):
                     self.beamwidth = beamwidth.value / FWHM_FACTOR
                 else:
                     self.beamwidth = ((beamwidth.to(u.deg) / FWHM_FACTOR) /
-                                      (self.wcs.wcs.cdelt[-1] * u.deg)).value
+                                      pix_scale).value
                 self.imgscale = 1.0
                 self.pixel_unit_flag = True
             else:
@@ -238,10 +259,8 @@ class fil_finder_2D(object):
                     distance *= u.pc
 
                 # Image scale in pc.
-                pix_scale = \
-                    np.abs(proj_plane_pixel_scales(self.wcs.celestial)[0])
-                self.imgscale = pix_scale * \
-                    (np.pi / 180.0) * distance.to(u.pc).value
+                self.imgscale = pix_scale.to(u.rad).value * \
+                    distance.to(u.pc).value
 
                 width = beamwidth / FWHM_FACTOR
                 if beamwidth.unit == u.pix:
@@ -268,10 +287,11 @@ class fil_finder_2D(object):
                 self.pixel_unit_flag = False
 
             # Angular conversion (sr/pixel^2)
-            pix_scale = \
-                np.abs(proj_plane_pixel_scales(self.wcs.celestial)[0])
-            self.angular_scale = \
-                ((pix_scale * u.degree) ** 2.).to(u.sr).value
+            if pix_scale.unit.is_equivalent(u.deg):
+                self.angular_scale = \
+                    (pix_scale ** 2.).to(u.sr).value
+            else:
+                self.angular_scale = 1 * u.pix**2
 
         self.glob_thresh = glob_thresh
         self.adapt_thresh = adapt_thresh
