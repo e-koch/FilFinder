@@ -28,6 +28,7 @@ If you make use of FilFinder in a publication, please cite our accompanying pape
     adsnote = {Provided by the SAO/NASA Astrophysics Data System}
   }
 
+Please join the [FilFinder mailing list](https://groups.google.com/forum/#!forum/filfinder) to receive alerts on new package releases.
 
 The algorithm proceeds through multiple steps:
 
@@ -49,12 +50,12 @@ These are the basic steps of the algorithm, which will return the main filament 
 The resulting mask and skeletons may be saved in FITS format. Property tables may be saved as a csv, fits or latex table. See the ```fil_finder_2D``` documentation for more details.
 
 
-Contributing
-------------
+Contributing & Reporting Issues
+-------------------------------
 
-We welcome any user feedback on FilFinder's performance. If you find an issue with the code, or would like to request additional features, please raise an issue in the repository or send me an email at the address on `this page <https://github.com/e-koch>`_.
+We welcome all user feedback on FilFinder's performance. If you find an issue with the code, or would like to request additional features, please raise an issue in the repository, post a question to the [google group](https://groups.google.com/forum/#!forum/filfinder) or send me an email at the address on `this page <https://github.com/e-koch>`_.
 
-We also welcome and encourage contributions to the code base! We want this package to evolve into a tool developed for the community, by the community.
+Contributions to the package are welcomed! We follow the [astropy coding guidelines](http://docs.astropy.org/en/stable/development/codeguide.html) and contributions should follow these conventions.
 
 Contents:
 

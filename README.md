@@ -7,6 +7,8 @@ FilFinder
 
 [![Build Status](https://travis-ci.org/e-koch/FilFinder.svg?branch=master)](https://travis-ci.org/e-koch/FilFinder)
 
+To be notified of future package releases and updates to FilFinder, please join the mailing list: https://groups.google.com/forum/#!forum/filfinder
+
 **See tutorial here! [FilFinder Tutorial](http://nbviewer.ipython.org/github/e-koch/FilFinder/blob/master/examples/FilFinder%20Tutorial.ipynb)**
 
 **Check out our gallery page: [FilFinder Gallery](http://e-koch.github.io/FilFinder_Results/)**
