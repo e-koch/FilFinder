@@ -123,7 +123,7 @@ if __name__ == "__main__":
     builtins._ASTROPY_PACKAGE_NAME_ = PACKAGENAME
 
     # VERSION should be PEP386 compatible (http://www.python.org/dev/peps/pep-0386)
-    VERSION = '1.5.dev'
+    VERSION = '1.5'
 
     # Indicates if this version is a release version
     RELEASE = 'dev' not in VERSION
