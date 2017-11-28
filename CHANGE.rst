@@ -1,3 +1,6 @@
+1.6 (unreleased)
+----------------
+
 1.5 (2017-11-28)
 ----------------
 - #36 : Updates to work with networkx v2.0. Fix getting the angular pixel scale from the WCS object. Fix bug in Gaussian width failure flags.
