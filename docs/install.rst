@@ -43,8 +43,9 @@ Requires:
 
 Optional:
 
- *  `prettyplotlib <https://github.com/olgabot/prettyplotlib>`_ - *Will eventually be removed in a future release*
- *  aplpy
+ * aplpy
+ * h5py
+
 
 Contributing
 ------------
