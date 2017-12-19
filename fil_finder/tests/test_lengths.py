@@ -2,14 +2,14 @@
 
 from unittest import TestCase
 
-from fil_finder.length import skeleton_length
+from ..length import skeleton_length
 
 import numpy as np
 
 
-class TestLength(TestCase):
+class Test_Length(TestCase):
 
-    def length_test1(self):
+    def test_length1(self):
 
         test_skel1 = np.zeros((10, 10))
 
@@ -21,7 +21,7 @@ class TestLength(TestCase):
 
         assert length1 == 2 + np.sqrt(2) * 2
 
-    def length_test2(self):
+    def test_length2(self):
 
         test_skel2 = np.eye(10)
 
@@ -29,7 +29,7 @@ class TestLength(TestCase):
 
         assert length2 == 9 * np.sqrt(2)
 
-    def length_test3(self):
+    def test_length3(self):
 
         test_skel3 = np.zeros((10, 10))
 
@@ -39,7 +39,7 @@ class TestLength(TestCase):
 
         assert length3 == 9
 
-    def length_test4(self):
+    def test_length4(self):
 
         test_skel4 = np.zeros((12, 12))
 
@@ -53,7 +53,7 @@ class TestLength(TestCase):
 
         assert length4 == 11 * np.sqrt(2) + 5
 
-    def length_test5(self):
+    def test_length5(self):
 
         test_skel5 = np.zeros((9, 12))
 
@@ -67,7 +67,7 @@ class TestLength(TestCase):
 
         assert length5 == 10 + 7 * np.sqrt(2)
 
-    def length_test6(self):
+    def test_length6(self):
 
         test_skel6 = np.zeros((4, 4))
 
