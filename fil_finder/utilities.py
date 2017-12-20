@@ -9,8 +9,6 @@ Utility functions for fil-finder package
 import itertools
 import numpy as np
 from scipy import optimize as op
-import thread
-import threading
 import time
 import os
 
@@ -42,23 +40,6 @@ def weighted_av(items, weight):
         return (num / denom) if denom != 0 else None
 
 
-def raw_input_with_timeout(prompt, timeout=30.0):
-    '''
-    Manual input with a timeout. Code from
-    http://stackoverflow.com/questions/2933399/how-to-set-time-limit-on-input.
-    '''
-    print prompt
-    timer = threading.Timer(timeout, thread.interrupt_main)
-    astring = None
-    try:
-        timer.start()
-        astring = raw_input(prompt)
-    except KeyboardInterrupt:
-        pass
-    timer.cancel()
-    return astring
-
-
 def find_nearest(array, value):
     idx = (np.abs(array - value)).argmin()
     return array[idx]
@@ -76,8 +57,8 @@ def timeit(method):
         result = method(*args, **kw)
         te = time.time()
 
-        print '%r (%r, %r) %2.2f sec' % \
-            (method.__name__, args, kw, te - ts)
+        print('%r (%r, %r) %2.2f sec' % \
+            (method.__name__, args, kw, te - ts))
         return result
 
     return timed

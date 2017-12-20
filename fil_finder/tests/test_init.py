@@ -6,9 +6,9 @@ import numpy as np
 import numpy.testing as npt
 import astropy.units as u
 
-from fil_finder import fil_finder_2D
+from .. import fil_finder_2D
 
-from _testing_data import *
+from ._testing_data import *
 
 FWHM_FACTOR = 2 * np.sqrt(2 * np.log(2.))
 

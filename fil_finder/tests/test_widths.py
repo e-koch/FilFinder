@@ -1,7 +1,7 @@
 
 import pytest
 
-from fil_finder.width import nonparam_width, gauss_model, radial_profile
+from ..width import nonparam_width, gauss_model, radial_profile
 
 import numpy as np
 import numpy.testing as npt

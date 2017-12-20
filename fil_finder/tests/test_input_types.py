@@ -7,9 +7,9 @@ import numpy.testing as npt
 import astropy.units as u
 from astropy.io.fits import PrimaryHDU
 
-from fil_finder.io_funcs import input_data
+from ..io_funcs import input_data
 
-from _testing_data import *
+from ._testing_data import *
 
 FWHM_FACTOR = 2 * np.sqrt(2 * np.log(2.))
 

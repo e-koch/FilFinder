@@ -43,7 +43,7 @@ def subtract_cores(core_array,full_output=False):
     ## Set Core region to fit background, should be approx of rest of filament
 
     except:
-        print "Fit Failed on Core %s" % (n)
+        print("Fit Failed on Core %s" % (n))
 
 
     if full_output:

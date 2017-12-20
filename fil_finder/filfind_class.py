@@ -1112,10 +1112,10 @@ class fil_finder_2D(object):
 
             if verbose or save_png:
                 if verbose:
-                    print "%s in %s" % (n, self.number_of_filaments)
-                    print "Fit Parameters: %s " % (fit)
-                    print "Fit Errors: %s" % (fit_error)
-                    print "Fit Type: %s" % (fit_type)
+                    print("%s in %s" % (n, self.number_of_filaments))
+                    print("Fit Parameters: %s " % (fit))
+                    print("Fit Errors: %s" % (fit_error))
+                    print("Fit Type: %s" % (fit_type))
 
                 p.clf()
                 p.subplot(121)
@@ -1657,11 +1657,11 @@ class fil_finder_2D(object):
     def __str__(self):
         print("%s filaments found.") % (self.number_of_filaments)
         for fil in range(self.number_of_filaments):
-            print "Filament: %s, Width: %s, Length: %s, Curvature: %s,\
+            print("Filament: %s, Width: %s, Length: %s, Curvature: %s,\
                        Orientation: %s" % \
                 (fil, self.width_fits["Parameters"][fil, -1][fil],
                  self.lengths[fil], self.rht_curvature["Std"][fil],
-                 self.rht_curvature["Std"][fil])
+                 self.rht_curvature["Std"][fil]))
 
     def run(self, verbose=False, save_name=None, save_png=False,
             table_type="fits"):

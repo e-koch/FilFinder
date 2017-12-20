@@ -2,7 +2,7 @@
 
 from unittest import TestCase
 
-from fil_finder.rollinghough import rht
+from ..rollinghough import rht
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -20,8 +20,9 @@ class TestRHT(TestCase):
         expected_flipped_output = \
             (-0.9992547253703965, -0.78301561713294787, -0.56677650889549924)
 
-        assert_allclose(rht(test1, 10)[2], expected_output)
-        assert_allclose(rht(test1[::-1], 10)[2], expected_flipped_output)
+        assert_allclose(rht(test1, 10)[2], expected_output, atol=1e-3)
+        assert_allclose(rht(test1[::-1], 10)[2], expected_flipped_output,
+                        atol=1e-3)
 
     def test_rht_straight(self):
 
@@ -35,5 +36,6 @@ class TestRHT(TestCase):
             (-0.13975291307401344, -1.2236762866959916e-16,
              0.13975291307401316)
 
-        assert_allclose(rht(test2, 10)[2], expected_output)
-        assert_allclose(rht(test2.T, 10)[2], expected_flipped_output)
+        assert_allclose(rht(test2, 10)[2], expected_output, atol=1e-3)
+        assert_allclose(rht(test2.T, 10)[2], expected_flipped_output,
+                        atol=1e-3)

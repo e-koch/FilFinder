@@ -421,7 +421,7 @@ def longest_path(edge_list, nodes, verbose=False,
                 assert isinstance(skeleton_arrays, list)
                 import matplotlib.pyplot as p
                 if verbose:
-                    print "Filament: %s / %s" % (n + 1, num)
+                    print("Filament: %s / %s" % (n + 1, num))
                 p.subplot(1, 2, 1)
                 p.imshow(skeleton_arrays[n], interpolation="nearest",
                          origin="lower")
@@ -598,8 +598,8 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
                     pass
                 if not isinstance(label, int):
                     k = 1
-                    while zip(product_gen(string.ascii_uppercase),
-                              [1] * k)[-1][0] != label:
+                    while list(zip(product_gen(string.ascii_uppercase),
+                                   [1] * k))[-1][0] != label:
                         k += 1
                     intersec_pts.extend(inters[k - 1])
                     skeleton[zip(*inters[k - 1])] = 2
@@ -631,7 +631,7 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
                         " plots will be created.")
             import matplotlib.pyplot as p
             if verbose:
-                print "Filament: %s / %s" % (num + 1, len(labelisofil))
+                print("Filament: %s / %s" % (num + 1, len(labelisofil)))
 
             p.subplot(121)
             p.imshow(skeleton, origin='lower', interpolation="nearest")
