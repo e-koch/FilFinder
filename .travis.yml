@@ -80,7 +80,7 @@ matrix:
         # Check for sphinx doc build warnings - we do this first because it
         # may run for a long time
         - os: linux
-          env: SETUP_CMD='build_docs -w'
+          env: SETUP_CMD='build_docs -w' CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image mock'
 
         # Now try Astropy dev with the latest Python and LTS with Python 2.7 and 3.x.
         - os: linux
