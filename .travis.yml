@@ -54,7 +54,7 @@ env:
 
         # If there are matplotlib or other GUI tests, uncomment the following
         # line to use the X virtual framebuffer.
-        # - SETUP_XVFB=True
+        - SETUP_XVFB=True
 
     matrix:
         # Make sure that egg_info works without dependencies
@@ -112,25 +112,25 @@ matrix:
 
         # Test w/ different skimage versions
         - os: linux
-          env: PYTHON_VERSION=2.7 CONDA_DEPENDENCIES=Cython scipy matplotlib h5py networkx scikit-image=0.11
+          env: PYTHON_VERSION=2.7 CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.11'
         - os: linux
-          env: PYTHON_VERSION=2.7 CONDA_DEPENDENCIES=Cython scipy matplotlib h5py networkx scikit-image=0.12
+          env: PYTHON_VERSION=2.7 CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.12'
 
         - os: linux
-          env: CONDA_DEPENDENCIES=Cython scipy matplotlib h5py networkx scikit-image=0.11
+          env: CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.11'
         - os: linux
-          env: CONDA_DEPENDENCIES=Cython scipy matplotlib h5py networkx scikit-image=0.12
+          env: CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.12'
 
         # Test w/ different networkx < 2.0
         - os: linux
-          env: PYTHON_VERSION=2.7 CONDA_DEPENDENCIES=Cython scipy matplotlib h5py networkx=1.11 scikit-image
+          env: PYTHON_VERSION=2.7 CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'
         - os: linux
-          env: PYTHON_VERSION=2.7 CONDA_DEPENDENCIES=Cython scipy matplotlib h5py networkx=1.11 scikit-image
+          env: PYTHON_VERSION=2.7 CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'
 
         - os: linux
-          env: CONDA_DEPENDENCIES=Cython scipy matplotlib h5py networkx=1.11 scikit-image
+          env: CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'
         - os: linux
-          env: CONDA_DEPENDENCIES=Cython scipy matplotlib h5py networkx=1.11 scikit-image
+          env: CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'
 
         # Do a PEP8 test with pycodestyle
         - os: linux
