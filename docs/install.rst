@@ -34,7 +34,7 @@ Package Dependencies
 
 Requires:
 
- *   numpy >= 1.7.1
+ *   numpy >= 1.9
  *   matplotlib
  *   astropy >= 0.4.0
  *   scipy
