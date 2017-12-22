@@ -16,7 +16,7 @@ def test_with_rht_branches():
                           flatten_thresh=95,
                           distance=260 * u.pc, size_thresh=430,
                           glob_thresh=20, save_name="test1")
-    return test1
+
     test1.create_mask(border_masking=False)
     test1.medskel()
     test1.analyze_skeletons()
