@@ -34,9 +34,8 @@ archivePrefix = "arXiv",
 
 Brief Description
 -----------------
-**Please note: FilFinder currently only supports python 2.x. Support for python3 is planned, but not yet available.**
 
-FilFinder is a Python package for extraction and analysis of filamentary structure in molecular clouds. In particular, the algorithm is capable of uniformly extracting structure over a large dynamical range in intensity (see images below).
+FilFinder is a Python package for extraction and analysis of filamentary structure in molecular clouds. In particular, the algorithm is capable of uniformly extracting structure over a large dynamical range in intensity (see images below). FilFinder supports python 2.7, 3.4, 3.5, and 3.6.
 
 The algorithm proceeds through multiple steps:
 

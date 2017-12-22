@@ -24,12 +24,13 @@ Load in the algorithm and along with astropy to read in the FITS file.
 
 FilFinder accepts two forms of the input data:
 
-1. A numpy array and the header.
+1. A numpy array and the header:
 
 .. code:: python
 
     img, hdr = fits.getdata("filaments_updatedhdr.fits", header=True)
-2. Or the HDU
+
+2. Or a FITS HDU:
 
 .. code:: python
 
@@ -48,7 +49,7 @@ While the algorithm has multiple parameters, these are automatically set
 to default values which we found work well with the 250 & 350 micron
 Herschel maps. Some adjustments may be needed when working with data
 from other sources. A full explanation can be found in `the
-docs <http://fil-finder.readthedocs.org/en/latest/fil_finder_2d.html>`__
+docs <http://fil-finder.readthedocs.org/en/latest/fil_finder_2d.html>`_
 and a shortened version of some of the parameters is given here:
 
 * ``skel_thresh`` - a threshold (given in pixel units) for the minimum

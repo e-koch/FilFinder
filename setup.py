@@ -16,7 +16,7 @@ def check_dependencies():
 
     try:
         from numpy.version import version as np_version
-        if parse_version(np_version) < parse_version('1.7'):
+        if parse_version(np_version) < parse_version('1.10'):
             print("***Before installing, upgrade numpy to 1.7***")
             print_fail()
             raise ImportError
@@ -101,8 +101,12 @@ if __name__ == "__main__":
     from astropy_helpers.version_helpers import generate_version_py
 
     # Get some values from the setup.cfg
-    from distutils import config
-    conf = config.ConfigParser()
+    try:
+        from ConfigParser import ConfigParser
+    except ImportError:
+        from configparser import ConfigParser
+
+    conf = ConfigParser()
     conf.read(['setup.cfg'])
     metadata = dict(conf.items('metadata'))
 

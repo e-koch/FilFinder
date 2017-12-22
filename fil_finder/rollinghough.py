@@ -167,6 +167,22 @@ def circ_mean(theta, weights=None):
     return medangle
 
 
+def fourier_shifter(x, shift, axis):
+    '''
+    Shift an array by some value along its axis.
+    '''
+    ftx = np.fft.fft(x, axis=axis)
+    m = np.fft.fftfreq(x.shape[axis])
+    # m_shape = [1] * x.ndim
+    # m_shape[axis] = m.shape[0]
+    # m = m.reshape(m_shape)
+    slices = [slice(None) if ii == axis else None for ii in range(x.ndim)]
+    m = m[slices]
+    phase = np.exp(-2 * np.pi * m * 1j * shift)
+    x2 = np.real(np.fft.ifft(ftx * phase, axis=axis))
+    return x2
+
+
 def circ_CI(theta, weights=None, u_ci=0.67, axis=0):
     '''
 
@@ -189,16 +205,18 @@ def circ_CI(theta, weights=None, u_ci=0.67, axis=0):
     mean_ang = circ_mean(theta, weights=weights)
 
     # Now center the data around the mean to find the CI intervals
-    mean_posn = find_nearest_posn(theta, mean_ang)
+    diff_val = np.diff(theta[:2, 0])[0]
 
-    diff_posn = -1 * (theta.shape[0]/2 - mean_posn)
+    theta_mid = theta[theta.shape[0] // 2]
 
-    theta_copy = np.roll(theta, diff_posn)
+    diff_posn = - (theta_mid - mean_ang) / diff_val
+
+    theta_copy = fourier_shifter(theta, diff_posn, axis=0)
 
     vec_length2 = np.sum(weights * np.cos(theta_copy), axis=axis)**2. + \
         np.sum(weights * np.sin(theta_copy), axis=axis)**2.
 
-    alpha = np.sum(weights * np.cos(2*theta_copy), axis=axis)
+    alpha = np.sum(weights * np.cos(2 * theta_copy), axis=axis)
 
     var_w = (1 - alpha) / (4 * vec_length2)
 

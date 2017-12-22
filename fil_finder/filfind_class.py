@@ -43,7 +43,7 @@ class fil_finder_2D(object):
     on 2D images and contains visualization and saving capabilities.
 
     Parameters
-    ------
+    ----------
     image : numpy.ndarray or astropy.io.fits.PrimaryHDU
         A 2D array of the data to be analyzed. If a FITS HDU is passed, the
         header is automatically loaded.
@@ -131,9 +131,7 @@ class fil_finder_2D(object):
     >>> from astropy.io import fits
     >>> import astropy.units as u
     >>> img,hdr = fits.open("twod.fits")[0] # doctest: +SKIP
-    >>> filfind = fil_finder_2D(img, hdr, beamwidth=15*u.arcsec, # doctest: +SKIP
-                                distance=170*u.pc, # doctest: +SKIP
-                                save_name='twod_filaments') # doctest: +SKIP
+    >>> filfind = fil_finder_2D(img, header=hdr, beamwidth=15*u.arcsec, distance=170*u.pc, save_name='twod_filaments') # doctest: +SKIP
     >>> filfind.run(verbose=False) # doctest: +SKIP
 
     """
@@ -330,7 +328,6 @@ class fil_finder_2D(object):
             raise ValueError("Skeleton pad size must be >0")
         self._skeleton_pad_size = value
 
-
     def create_mask(self, glob_thresh=None, adapt_thresh=None,
                     smooth_size=None, size_thresh=None, verbose=False,
                     test_mode=False, regrid=True, border_masking=True,
@@ -340,6 +337,7 @@ class fil_finder_2D(object):
 
         This runs the complete segmentation process and returns a mask of the
         filaments found. The process is broken into six steps:
+
         *   An arctan tranform is taken to flatten extremely bright regions.
             Adaptive thresholding is very sensitive to local intensity changes
             and small, bright objects(ie. cores) will leave patch-sized holes
@@ -478,7 +476,7 @@ class fil_finder_2D(object):
             # Calculate the needed zoom to make the patch size ~40 pixels
             ratio = 40 / self.adapt_thresh
             # Round to the nearest factor of 2
-            regrid_factor = np.min([2., int(round(ratio/2.0)*2.0)])
+            regrid_factor = np.min([2., int(round(ratio / 2.0) * 2.0)])
 
             # Defaults to cubic interpolation
             masking_img = nd.zoom(flat_copy, (regrid_factor, regrid_factor))
@@ -574,7 +572,7 @@ class fil_finder_2D(object):
             p.title("Mask on Flattened Image.")
             if save_png:
                 try_mkdir(self.save_name)
-                p.savefig(os.path.join(self.save_name, self.save_name+"_mask.png"))
+                p.savefig(os.path.join(self.save_name, self.save_name + "_mask.png"))
             if verbose:
                 p.show()
             if in_ipynb():
@@ -632,7 +630,7 @@ class fil_finder_2D(object):
             if save_png:
                 try_mkdir(self.save_name)
                 p.savefig(os.path.join(self.save_name,
-                                       self.save_name+"_initial_skeletons.png"))
+                                       self.save_name + "_initial_skeletons.png"))
             if verbose:
                 p.show()
             if in_ipynb():
@@ -648,6 +646,7 @@ class fil_finder_2D(object):
 
         This function wraps most of the skeleton analysis. Several steps are
         completed here:
+
         *   isolatefilaments is run to separate each skeleton into its own
             array. If the skeletons are under the threshold set by
             self.size_thresh, the region is removed. An updated mask is
@@ -780,12 +779,13 @@ class fil_finder_2D(object):
         labeled_fil_arrays, edge_list, nodes, self.branch_properties = \
             updated_lists
 
-        self.filament_extents = extremum_pts(
-            labeled_fil_arrays, extremum, ends)
+        self.filament_extents = extremum_pts(labeled_fil_arrays,
+                                             extremum, ends)
 
         length_output = main_length(max_path, edge_list, labeled_fil_arrays,
-                                    interpts, self.branch_properties[
-                                        "length"], self.imgscale,
+                                    interpts,
+                                    self.branch_properties["length"],
+                                    self.imgscale,
                                     verbose=verbose, save_png=save_png,
                                     save_name=self.save_name)
 
@@ -803,8 +803,8 @@ class fil_finder_2D(object):
         # Convert branch lengths physical units
         for n in range(self.number_of_filaments):
             lengths = self.branch_properties["length"][n]
-            self.branch_properties["length"][n] = [
-                self.imgscale * length for length in lengths]
+            self.branch_properties["length"][n] = \
+                [self.imgscale * length for length in lengths]
 
         self.skeleton = \
             recombine_skeletons(self.filament_arrays["final"],
@@ -998,6 +998,7 @@ class fil_finder_2D(object):
 
         The final step of the algorithm is to find the widths of each
         of the skeletons. We do this by:
+
         *   A Euclidean Distance Transform is performed on each skeleton.
             The skeletons are also recombined onto a single array. The
             individual filament arrays are padded to ensure a proper radial
@@ -1030,7 +1031,6 @@ class fil_finder_2D(object):
 
         Attributes
         ----------
-
         width_fits : dict
             Contains the fit parameters and estimations of the errors
             from each fit.
@@ -1112,10 +1112,10 @@ class fil_finder_2D(object):
 
             if verbose or save_png:
                 if verbose:
-                    print "%s in %s" % (n, self.number_of_filaments)
-                    print "Fit Parameters: %s " % (fit)
-                    print "Fit Errors: %s" % (fit_error)
-                    print "Fit Type: %s" % (fit_type)
+                    print("%s in %s" % (n, self.number_of_filaments))
+                    print("Fit Parameters: %s " % (fit))
+                    print("Fit Errors: %s" % (fit_error))
+                    print("Fit Type: %s" % (fit_type))
 
                 p.clf()
                 p.subplot(121)
@@ -1285,7 +1285,7 @@ class fil_finder_2D(object):
         Parameters
         ----------
         max_radius : int, optional
-            Passed to :method:`filament_model`
+            Passed to `~fil_finder_2D.filament_model`
 
         Attributes
         ----------
@@ -1491,14 +1491,14 @@ class fil_finder_2D(object):
         ----------
         save_name : str, optional
             The prefix for the saved file. If None, the save name specified
-            when ``fil_finder_2D`` was first called.
+            when `~fil_finder_2D` was first called.
         stamps : bool, optional
             Enables saving of individual stamps
         filename : str, optional
             File name of the image used. If None, assumes save_name is the
             file name.
         model_save : bool, optional
-            When enabled, calculates the model using :method:`filament_model`
+            When enabled, calculates the model using `~fil_finder_2D.filament_model`
             and saves it in a FITS file.
 
         '''
@@ -1657,11 +1657,11 @@ class fil_finder_2D(object):
     def __str__(self):
         print("%s filaments found.") % (self.number_of_filaments)
         for fil in range(self.number_of_filaments):
-            print "Filament: %s, Width: %s, Length: %s, Curvature: %s,\
+            print("Filament: %s, Width: %s, Length: %s, Curvature: %s,\
                        Orientation: %s" % \
                 (fil, self.width_fits["Parameters"][fil, -1][fil],
                  self.lengths[fil], self.rht_curvature["Std"][fil],
-                 self.rht_curvature["Std"][fil])
+                 self.rht_curvature["Std"][fil]))
 
     def run(self, verbose=False, save_name=None, save_png=False,
             table_type="fits"):

@@ -166,7 +166,7 @@ def gauss_model(distance, rad_profile, weights, img_beam):
                                 maxfev=100 * (len(distance) + 1), sigma=weights)
         fit_errors = np.sqrt(np.diag(cov))
     except:
-        print "curve_fit failed."
+        print("curve_fit failed.")
         fit, fit_errors = p0, None
         return fit, fit_errors, gaussian, parameters, True
 
@@ -463,7 +463,7 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
     radial_prof = np.zeros_like(bin_centers)
     weights = np.zeros_like(bin_centers)
 
-    for nbin in xrange(1, int(nbins) + 1):
+    for nbin in range(1, int(nbins) + 1):
 
         bin_posns = whichbins == nbin
 

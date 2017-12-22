@@ -34,17 +34,17 @@ Package Dependencies
 
 Requires:
 
- *   numpy >= 1.7.1
+ *   numpy >= 1.10
  *   matplotlib
  *   astropy >= 0.4.0
  *   scipy
  *   scikits-image >= 0.8.0
  *   networkx
+ *   h5py
 
 Optional:
 
  * aplpy
- * h5py
 
 
 Contributing
