@@ -1,5 +1,6 @@
 1.6 (unreleased)
 ----------------
+- #40 : Add python 3 support and enable py3 testing on travis. Fixed crucial bug for finding the longest skeleton path. Enable coveralls. Use fourier shifting when calculating the circular confidence intervals. Updated testing data after length finding fix.
 
 1.5 (2017-11-28)
 ----------------
