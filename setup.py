@@ -16,7 +16,7 @@ def check_dependencies():
 
     try:
         from numpy.version import version as np_version
-        if parse_version(np_version) < parse_version('1.7'):
+        if parse_version(np_version) < parse_version('1.10'):
             print("***Before installing, upgrade numpy to 1.7***")
             print_fail()
             raise ImportError
