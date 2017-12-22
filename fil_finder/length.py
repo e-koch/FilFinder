@@ -311,8 +311,8 @@ def pre_graph(labelisofil, branch_properties, interpts, ends):
             inter_nodes_temp.append(uniqs)
 
         # Add the intersection labels. Also append those to nodes
-        inter_nodes.append(
-            zip(product_gen(string.ascii_uppercase), inter_nodes_temp))
+        inter_nodes.append(list(zip(product_gen(string.ascii_uppercase),
+                                    inter_nodes_temp)))
         for alpha, node in zip(product_gen(string.ascii_uppercase),
                                inter_nodes_temp):
             nodes[n].append(alpha)
@@ -400,13 +400,18 @@ def longest_path(edge_list, nodes, verbose=False,
         paths = dict(nx.shortest_path_length(G, weight='weight'))
         values = []
         node_extrema = []
-        for i in paths.iterkeys():
-            j = max(paths[i].iteritems(), key=operator.itemgetter(1))
+
+        for i in paths.keys():
+            j = max(paths[i].items(), key=operator.itemgetter(1))
             node_extrema.append((j[0], i))
             values.append(j[1])
         start, finish = node_extrema[values.index(max(values))]
         extremum.append([start, finish])
-        max_path.append(nx.shortest_path(G, start, finish))
+        # Find all paths between the beginning and end, and take the longest
+        # one (last in the list)
+        long_path = \
+            list(nx.shortest_simple_paths(G, start, finish, 'weight'))[-1]
+        max_path.append(long_path)
         graphs.append(G)
 
         if verbose or save_png:
@@ -602,8 +607,7 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
                                    [1] * k))[-1][0] != label:
                         k += 1
                     intersec_pts.extend(inters[k - 1])
-                    skeleton[zip(*inters[k - 1])] = 2
-
+                    skeleton[list(zip(*inters[k - 1]))] = 2
             # Remove unnecessary pixels
             count = 0
             while True:
@@ -636,7 +640,7 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
             p.subplot(121)
             p.imshow(skeleton, origin='lower', interpolation="nearest")
             p.subplot(122)
-            p.imshow(labelisofil[num],  origin='lower',
+            p.imshow(labelisofil[num], origin='lower',
                      interpolation="nearest")
 
             if save_png:
