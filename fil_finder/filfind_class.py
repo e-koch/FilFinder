@@ -780,12 +780,13 @@ class fil_finder_2D(object):
         labeled_fil_arrays, edge_list, nodes, self.branch_properties = \
             updated_lists
 
-        self.filament_extents = extremum_pts(
-            labeled_fil_arrays, extremum, ends)
+        self.filament_extents = extremum_pts(labeled_fil_arrays,
+                                             extremum, ends)
 
         length_output = main_length(max_path, edge_list, labeled_fil_arrays,
-                                    interpts, self.branch_properties[
-                                        "length"], self.imgscale,
+                                    interpts,
+                                    self.branch_properties["length"],
+                                    self.imgscale,
                                     verbose=verbose, save_png=save_png,
                                     save_name=self.save_name)
 
@@ -803,8 +804,8 @@ class fil_finder_2D(object):
         # Convert branch lengths physical units
         for n in range(self.number_of_filaments):
             lengths = self.branch_properties["length"][n]
-            self.branch_properties["length"][n] = [
-                self.imgscale * length for length in lengths]
+            self.branch_properties["length"][n] = \
+                [self.imgscale * length for length in lengths]
 
         self.skeleton = \
             recombine_skeletons(self.filament_arrays["final"],

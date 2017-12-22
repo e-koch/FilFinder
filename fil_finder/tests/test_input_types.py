@@ -33,7 +33,7 @@ def test_3D_input():
 
     try:
         output = input_data(np.ones((3, ) * 3))
-    except Exception, e:
+    except Exception as e:
         assert isinstance(e, TypeError)
 
 
