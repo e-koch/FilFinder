@@ -8,25 +8,25 @@ FilFinder
 
 FilFinder is a Python package for extraction and analysis of filamentary structure in molecular clouds. In particular, the algorithm is capable of uniformly extracting structure over a large dynamical range in intensity (see images below).
 
-**Please note: FilFinder currently only supports python 2.x. Support for python3 is planned, but not yet available.**
+If you make use of FilFinder in a publication, please cite our accompanying paper::
 
-If you make use of FilFinder in a publication, please cite our accompanying paper:
-::
-  @ARTICLE{2015MNRAS.452.3435K,
-     author = {{Koch}, E.~W. and {Rosolowsky}, E.~W.},
-      title = "{Filament identification through mathematical morphology}",
-    journal = {\mnras},
-  archivePrefix = "arXiv",
-     eprint = {1507.02289},
-   keywords = {techniques: image processing, stars: formation, ISM: structure, submillimetre: ISM},
-       year = 2015,
-      month = oct,
-     volume = 452,
-      pages = {3435-3450},
-        doi = {10.1093/mnras/stv1521},
-     adsurl = {http://adsabs.harvard.edu/abs/2015MNRAS.452.3435K},
-    adsnote = {Provided by the SAO/NASA Astrophysics Data System}
-  }
+    @ARTICLE{2015MNRAS.452.3435K,
+       author = {{Koch}, E.~W. and {Rosolowsky}, E.~W.},
+        title = "{Filament identification through mathematical morphology}",
+      journal = {\mnras},
+    archivePrefix = "arXiv",
+       eprint = {1507.02289},
+     keywords = {techniques: image processing, stars: formation, ISM: structure, submillimetre: ISM},
+         year = 2015,
+        month = oct,
+       volume = 452,
+        pages = {3435-3450},
+          doi = {10.1093/mnras/stv1521},
+       adsurl = {http://adsabs.harvard.edu/abs/2015MNRAS.452.3435K},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+    }
+
+Citation courtesy of `ADS <https://ui.adsabs.harvard.edu/#>`_
 
 Please join the [FilFinder mailing list](https://groups.google.com/forum/#!forum/filfinder) to receive alerts on new package releases.
 
@@ -34,6 +34,7 @@ The algorithm proceeds through multiple steps:
 
 * FilFinder segments filamentary structure by using `adaptive thresholding <http://scikit-image.org/docs/dev/auto_examples/plot_threshold_adaptive.html>`_. This performs thresholding over local neighborhoods, allowing for the extraction of structure over a large dynamic range.
 * The final filament mask is constructed by applying morphological operators to remove extraneous small regions. The order of these operations are:
+
     * Flatten using an arctan transform - this removes the effects of small bright features (ie. cores) from effecting the filament mask.
     * Smooth with a small median filter (half the size of the expected filament widths) - this decreases fragmentation of regions in the final mask
     * Apply the adaptive threshold - the patch size is set to the expected filament width (0.1 pc) by default - this sets the scale of the objects to be detected. Within a factor of a few, this size does not effect the result greatly. The widths of the masked regions are not used for deriving any physical properties.
