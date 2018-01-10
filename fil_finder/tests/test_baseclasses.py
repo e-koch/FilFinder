@@ -6,9 +6,31 @@ import numpy as np
 import astropy.units as u
 from astropy.wcs import WCS
 
-from ..base_conversions import BaseInfoMixin, UnitConverter
+from ..base_conversions import UnitConverter
 
 from ._testing_data import hdr
+
+
+def test_UnitConverter_nowcs():
+    '''
+    Only pixel to pixel conversions
+    '''
+
+    convert = UnitConverter()
+
+    twopix = 2 * u.pix
+
+    assert convert.to_pixel(twopix) == twopix
+    assert convert.to_pixel_area(twopix**2) == twopix**2
+
+    with pytest.raises(AttributeError):
+        convert.ang_size
+
+    with pytest.raises(AttributeError):
+        convert.from_pixel(twopix, u.deg)
+
+    with pytest.raises(AttributeError):
+        convert.to_angular(twopix)
 
 
 def test_UnitConverter_nodistance():

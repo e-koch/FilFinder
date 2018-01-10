@@ -23,19 +23,20 @@ class UnitConverter(object):
     Handle pixel, angular, and physical spatial unit conversions. Requires
     pixels to be square. Conversions are not aware of any axis misalignment.
     """
-    def __init__(self, wcs, distance=None):
+    def __init__(self, wcs=None, distance=None):
 
-        if not wcs.is_celestial:
-            self._wcs = wcs.celestial
-        else:
-            self._wcs = wcs
+        if wcs is not None:
+            if not wcs.is_celestial:
+                self._wcs = wcs.celestial
+            else:
+                self._wcs = wcs
 
-        self._ang_size = np.abs(self._wcs.wcs.cdelt[0]) * \
-            u.Unit(self._wcs.wcs.cunit[0])
-        self._ang_size = self._ang_size.to(u.deg)
+            self._ang_size = np.abs(self._wcs.wcs.cdelt[0]) * \
+                u.Unit(self._wcs.wcs.cunit[0])
+            self._ang_size = self._ang_size.to(u.deg)
 
-        if distance is not None:
-            self.distance = distance
+            if distance is not None:
+                self.distance = distance
 
     @property
     def ang_size(self):
