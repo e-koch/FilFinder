@@ -26,6 +26,7 @@ from .width import *
 from .rollinghough import rht
 from .analysis import Analysis
 from .io_funcs import input_data
+from .base_conversions import BaseInfoMixin
 
 # The try/except is here to deal with TypeErrors when building the docs on RTD
 # This isn't really a solution... but it is lazy and does the job until I
@@ -36,7 +37,7 @@ except TypeError:
     FWHM_FACTOR = np.NaN
 
 
-class fil_finder_2D(object):
+class fil_finder_2D(BaseInfoMixin):
 
     """
     This class acts as an overall wrapper to run the fil-finder algorithm
@@ -142,6 +143,10 @@ class fil_finder_2D(object):
                  smooth_size=None, size_thresh=None, glob_thresh=None,
                  adapt_thresh=None, distance=None, region_slice=None,
                  mask=None, freq=None, save_name="FilFinder_output"):
+
+        # Deprecating this version soon
+        warnings.warn("Support for fil_finder_2D will be dropped in v2.0. Use "
+                      "the new version 'FilFinder2D'.", DeprecationWarning)
 
         # Accepts a numpy array or fits.PrimaryHDU
         output = input_data(image)
