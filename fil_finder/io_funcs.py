@@ -38,28 +38,32 @@ def input_data(data):
         is enabled.
     '''
 
-    if isinstance(data, PrimaryHDU):
-        squeeze_data = data.data.squeeze()
-        if 'BUNIT' in data.header:
-            unit = convert_bunit(data.header['BUNIT'])
+    output_data = None
+
+    if SPECTRALCUBE_INSTALL:
+        if isinstance(data, Projection) or isinstance(data, Slice):
+            # spectral-cube has dimensionality checks
+            output_data = {'data': data.quantity, 'header': data.header}
+
+    if output_data is None:
+        if isinstance(data, PrimaryHDU):
+            squeeze_data = data.data.squeeze()
+            if 'BUNIT' in data.header:
+                unit = convert_bunit(data.header['BUNIT'])
+            else:
+                unit = u.dimensionless_unscaled
+            output_data = {"data": squeeze_data * unit,
+                           "header": data.header}
+
+        elif isinstance(data, np.ndarray) or isinstance(data, u.Quantity):
+            squeeze_data = data.squeeze()
+            if not hasattr(data, 'unit'):
+                unit = u.dimensionless_unscaled
+                squeeze_data = squeeze_data * unit
+            output_data = {"data": squeeze_data}
         else:
-            unit = u.dimensionless_unscaled
-        output_data = {"data": squeeze_data * unit,
-                       "header": data.header}
-
-    elif isinstance(data, Projection) or isinstance(data, Slice):
-        # spectral-cube has dimensionality checks
-        output_data = {'data': data.quantity, 'header': data.header}
-
-    elif isinstance(data, np.ndarray) or isinstance(data, u.Quantity):
-        squeeze_data = data.squeeze()
-        if not hasattr(data, 'unit'):
-            unit = u.dimensionless_unscaled
-            squeeze_data = squeeze_data * unit
-        output_data = {"data": squeeze_data}
-    else:
-        raise TypeError("Input data is not of an accepted form:"
-                        "{}".format(allowed_types))
+            raise TypeError("Input data is not of an accepted form:"
+                            "{}".format(allowed_types))
 
     if not dim_check(output_data["data"]):
         raise TypeError("Data must be 2D. Please re-check the inputs.")
