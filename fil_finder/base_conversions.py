@@ -1,7 +1,69 @@
 # Licensed under an MIT open source license - see LICENSE
+from __future__ import print_function, absolute_import, division
 
 import astropy.units as u
 import numpy as np
+from astropy.io import fits
+from warnings import warn
+
+
+try:
+    from radio_beam import Beam
+    RADIO_BEAM_INSTALL = True
+except ImportError:
+    RADIO_BEAM_INSTALL = False
+
+
+def find_beam_properties(hdr):
+    '''
+    Try to read beam properties from a header. Uses radio_beam when installed.
+
+    Parameters
+    ----------
+    hdr : `~astropy.io.fits.Header`
+        FITS header.
+
+    Returns
+    -------
+    bmaj : `~astropy.units.Quantity`
+        Major axis of the beam in degrees.
+    bmin : `~astropy.units.Quantity`
+        Minor axis of the beam in degrees. If this cannot be read from the
+        header, assumes `bmaj=bmin`.
+    bpa : `~astropy.units.Quantity`
+        Position angle of the major axis. If this cannot read from the
+        header, assumes an angle of 0 deg.
+    '''
+
+    if RADIO_BEAM_INSTALL:
+        beam = Beam.from_fits_header(hdr)
+        bmaj = beam.major.to(u.deg)
+        bmin = beam.minor.to(u.deg)
+        bpa = beam.pa.to(u.deg)
+    else:
+        if not isinstance(hdr, fits.Header):
+            raise TypeError("Header is not a FITS header.")
+
+        if "BMAJ" in hdr:
+            bmaj = hdr["BMAJ"] * u.deg
+        else:
+            raise ValueError("Cannot find 'BMAJ' in the header. Try installing"
+                             " the `radio_beam` package for loading header"
+                             " information.")
+
+        if "BMIN" in hdr:
+            bmin = hdr["BMIN"] * u.deg
+        else:
+            warn("Cannot find 'BMIN' in the header. Assuming circular beam.")
+            bmin = bmaj
+
+        if "BPA" in hdr:
+            bpa = hdr["BPA"] * u.deg
+        else:
+            warn("Cannot find 'BPA' in the header. Assuming PA of 0.")
+            bpa = 0 * u.deg
+
+    return bmaj, bmin, bpa
 
 
 class BaseInfoMixin(object):
@@ -11,11 +73,30 @@ class BaseInfoMixin(object):
 
     @property
     def header(self):
+        '''
+        FITS Header.
+        '''
         return self._header
 
     @property
     def wcs(self):
+        '''
+        WCS Object.
+        '''
         return self._wcs
+
+    @property
+    def beamwidth(self):
+        '''
+        Beam major axis.
+        '''
+        return self._beamwidth
+
+    @property
+    def _has_beam(self):
+        if hasattr(self, '_beamwidth'):
+            return True
+        return False
 
 
 class UnitConverter(object):
@@ -149,3 +230,19 @@ class UnitConverter(object):
         else:
             raise u.UnitConversionError("unit must be an angular or physical"
                                         " unit.")
+
+
+def data_unit_check(value, unit):
+    '''
+    Check that a value has a unit equivalent to the given unit. If no unit is
+    attached, add the given unit to the value.
+    '''
+
+    if hasattr(value, 'unit'):
+        if not value.unit.is_equivalent(unit):
+            raise u.UnitConversionError("The given value does not have "
+                                        "equivalent units.")
+        return value.to(unit)
+
+    else:
+        return value * unit

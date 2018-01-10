@@ -49,10 +49,10 @@ def input_data(data):
 
     elif isinstance(data, Projection) or isinstance(data, Slice):
         # spectral-cube has dimensionality checks
-        output_data = (data.quantity, data.header)
+        output_data = {'data': data.quantity, 'header': data.header}
 
     elif isinstance(data, np.ndarray) or isinstance(data, u.Quantity):
-        squeeze_data = data.data.squeeze()
+        squeeze_data = data.squeeze()
         if not hasattr(data, 'unit'):
             unit = u.dimensionless_unscaled
             squeeze_data = squeeze_data * unit
@@ -61,7 +61,7 @@ def input_data(data):
         raise TypeError("Input data is not of an accepted form:"
                         "{}".format(allowed_types))
 
-    if dim_check(output_data["data"]):
+    if not dim_check(output_data["data"]):
         raise TypeError("Data must be 2D. Please re-check the inputs.")
 
     return output_data
