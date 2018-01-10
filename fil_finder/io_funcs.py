@@ -49,7 +49,7 @@ def input_data(data):
 
     elif isinstance(data, Projection) or isinstance(data, Slice):
         # spectral-cube has dimensionality checks
-        output_data = (data, data.header)
+        output_data = (data.quantity, data.header)
 
     elif isinstance(data, np.ndarray) or isinstance(data, u.Quantity):
         squeeze_data = data.data.squeeze()
