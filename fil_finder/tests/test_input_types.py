@@ -27,6 +27,17 @@ def test_array_input():
     assert output['data'].unit == u.dimensionless_unscaled
 
 
+def test_array_input_withheader():
+
+    new_hdr = hdr.copy()
+    new_hdr['BUNIT'] = 'K'
+    output = input_data(img, header=new_hdr)
+
+    npt.assert_equal(img, output["data"].value)
+    assert output['data'].unit == u.K
+    npt.assert_equal(new_hdr, output["header"])
+
+
 def test_quantity_input():
 
     quant = img * u.K
@@ -35,6 +46,24 @@ def test_quantity_input():
 
     npt.assert_equal(img, output["data"].value)
     assert output['data'].unit == u.K
+
+
+def test_quantity_input_withheader():
+
+    quant = img * u.K
+
+    # Give the header a different BUNIT. Always use the unit
+    # attached to the Quantity object
+    new_hdr = hdr.copy()
+    new_hdr['BUNIT'] = 'Jy/beam'
+
+    output = input_data(quant, header=new_hdr)
+
+    npt.assert_equal(img, output["data"].value)
+    assert output['data'].unit == u.K
+
+    # The header should now have K set
+    assert output['header']['BUNIT'] == 'K'
 
 
 def test_HDU_input():

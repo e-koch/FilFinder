@@ -1,6 +1,7 @@
 # Licensed under an MIT open source license - see LICENSE
 
 from astropy.io.fits import PrimaryHDU
+from astropy.utils.decorators import format_doc
 import numpy as np
 import astropy.units as u
 import re
@@ -17,25 +18,30 @@ allowed_types = ["numpy.ndarray", "astropy.io.fits.PrimaryHDU",
                  "spectral_cube.Projection", 'spectral_cube.Slice',
                  "astropy.units.Quantity"]
 
-
-def input_data(data):
+input_doc = \
     '''
     Accept a variety of input data forms and return those expected by the
     various statistics.
 
     Parameters
     ----------
-    data : astropy.io.fits.PrimaryHDU, SpectralCube,
-           spectral_cube.LowerDimensionalObject, np.ndarray or a tuple/list
-           with the data and the header
+    data : {}
         Data to be used with a given statistic or distance metric. no_header
         must be enabled when passing only an array in.
+    header : `astropy.io.fits.Header`, optional
+        Pass a header when data is a numpy array or `astropy.units.Quantity`.
 
     Returns
     -------
     ouput_data : tuple or np.ndarray
         A tuple containing the data and the header. Or an array when no_header
         is enabled.
+    '''.format(" or ".join(allowed_types))
+
+
+@format_doc(input_doc)
+def input_data(data, header=None):
+    '''
     '''
 
     output_data = None
@@ -57,10 +63,28 @@ def input_data(data):
 
         elif isinstance(data, np.ndarray) or isinstance(data, u.Quantity):
             squeeze_data = data.squeeze()
+
+            output_data = {}
+
+            if header is not None:
+                if not hasattr(data, 'unit'):
+                    # Attach the BUNIT if defined
+                    if 'BUNIT' in header:
+                        bunit = convert_bunit(header['BUNIT'])
+                        squeeze_data = squeeze_data * bunit
+
+                else:
+                    # Make sure the BUNIT in the header is the same as the data
+                    header = header.copy()
+                    header['BUNIT'] = data.unit.to_string()
+
+                output_data['header'] = header
+
             if not hasattr(data, 'unit'):
                 unit = u.dimensionless_unscaled
                 squeeze_data = squeeze_data * unit
-            output_data = {"data": squeeze_data}
+
+            output_data["data"] = squeeze_data
         else:
             raise TypeError("Input data is not of an accepted form:"
                             "{}".format(allowed_types))
