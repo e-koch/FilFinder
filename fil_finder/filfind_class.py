@@ -148,14 +148,13 @@ class fil_finder_2D(BaseInfoMixin):
         warnings.warn("Support for fil_finder_2D will be dropped in v2.0. Use "
                       "the new version 'FilFinder2D'.", DeprecationWarning)
 
-        # Accepts a numpy array or fits.PrimaryHDU
-        output = input_data(image)
+        output = input_data(image, header)
 
-        self.image = output["data"]
+        self._image = output["data"].value
         if "header" in output:
             self._header = output["header"]
         else:
-            self._header = header
+            self._header = None
 
         if self.header is not None:
             self._wcs = WCS(self.header)
@@ -227,7 +226,7 @@ class fil_finder_2D(BaseInfoMixin):
                                     " when no header is given.")
                 else:
                     Warning("Assuming given beamwidth is in pixels.")
-            self.beamwidth = beamwidth.value / FWHM_FACTOR
+            self._beamwidth = beamwidth.value / FWHM_FACTOR
             self.angular_scale = 1.0
             self.imgscale = 1.0
             self.pixel_unit_flag = True
@@ -250,9 +249,9 @@ class fil_finder_2D(BaseInfoMixin):
             if distance is None:
                 Warning("No distance given. Results will be in pixel units.")
                 if beamwidth.unit == u.pix:
-                    self.beamwidth = beamwidth.value / FWHM_FACTOR
+                    self._beamwidth = beamwidth.value / FWHM_FACTOR
                 else:
-                    self.beamwidth = ((beamwidth.to(u.deg) / FWHM_FACTOR) /
+                    self._beamwidth = ((beamwidth.to(u.deg) / FWHM_FACTOR) /
                                       pix_scale).value
                 self.imgscale = 1.0
                 self.pixel_unit_flag = True
@@ -267,11 +266,11 @@ class fil_finder_2D(BaseInfoMixin):
 
                 width = beamwidth / FWHM_FACTOR
                 if beamwidth.unit == u.pix:
-                    self.beamwidth = width.value * self.imgscale
+                    self._beamwidth = width.value * self.imgscale
                 else:
                     # Try to convert straight to pc
                     try:
-                        self.beamwidth = width.to(u.pc).value
+                        self._beamwidth = width.to(u.pc).value
                         _try_ang_units = False
                     except u.UnitConversionError:
                         _try_ang_units = True
@@ -279,7 +278,7 @@ class fil_finder_2D(BaseInfoMixin):
                     # If that fails, try converting from an angular unit
                     if _try_ang_units:
                         try:
-                            self.beamwidth = \
+                            self._beamwidth = \
                                 (width.to(u.arcsec).value / 206265.) * \
                                 distance.value
                         except u.UnitConversionError:
