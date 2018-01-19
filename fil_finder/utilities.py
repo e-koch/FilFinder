@@ -132,6 +132,29 @@ def padwithnans(vector, pad_width, iaxis, kwargs):
     return vector
 
 
+def pad_image(image, extents, pad_size, constant=0):
+    '''
+    Figure out where an image needs to be padded based on pixel extents.
+    '''
+
+    # Now we look for where the extents with padding will run into a boundary
+    pad_vector = []
+    for i, extent in enumerate(extents):
+
+        lower = extent[0] - pad_size
+        if lower > 0:
+            lower = 0
+
+        # First axis upper
+        upper = extent[1] + pad_size - image.shape[i] + 1
+        if upper < 0:
+            upper = 0
+
+        pad_vector.append((-lower, upper))
+
+    return np.pad(image, pad_vector, mode='constant', constant_values=constant)
+
+
 def round_figs(x, n):
     return round(x, int(n - np.ceil(np.log10(abs(x)))))
 
