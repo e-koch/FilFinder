@@ -1,19 +1,21 @@
 # Licensed under an MIT open source license - see LICENSE
 
 from .length import *
+from .utilities import distance
 
 import numpy as np
 import scipy.ndimage as nd
 import matplotlib.pyplot as p
 import copy
+import networkx as nx
 
 
-def isolateregions(binary_array, size_threshold=0, pad_size=5,
+def isolateregions(binary_array, size_threshold=0, pad_size=0,
                    fill_hole=False, rel_size=0.1, morph_smooth=False):
     '''
 
     Labels regions in a boolean array and returns individual arrays for each
-    region. Regions below a threshold can optionlly be removed. Small holes
+    region. Regions below a threshold can optionally be removed. Small holes
     may also be filled in.
 
     Parameters
@@ -86,7 +88,7 @@ def isolateregions(binary_array, size_threshold=0, pad_size=5,
     return output_arrays, num, corners
 
 
-def find_filpix(branches, labelfil, final=True):
+def find_filpix(branches, labelfil, final=True, debug=False):
     '''
 
     Identifies the types of pixels in the given skeletons. Identification is
@@ -102,6 +104,8 @@ def find_filpix(branches, labelfil, final=True):
         If true, corner points, intersections, and body points are all
         labeled as a body point for use when the skeletons have already
         been cleaned.
+    debug : bool, optional
+        Enable to print out (a lot) of extra info on pixel classification.
 
     Returns
     -------
@@ -142,7 +146,6 @@ def find_filpix(branches, labelfil, final=True):
 
     for k in range(1, branches + 1):
         x, y = np.where(labelfil == k)
-        # pixel_slices = np.empty((len(x)+1,8))
         for i in range(len(x)):
             if x[i] < labelfil.shape[0] - 1 and y[i] < labelfil.shape[1] - 1:
                 pix.append((x[i], y[i]))
@@ -231,8 +234,12 @@ def find_filpix(branches, labelfil, final=True):
                 bodypts.remove(i)
         # Cornerpts without a partner diagonally attached can be included as a
         # bodypt.
+        if debug:
+            print("Cornerpts: {}".format(cornerpts))
+
         if len(cornerpts) > 0:
             deleted_cornerpts = []
+
             for i, j in zip(cornerpts, cornerpts):
                 if i != j:
                     if distance(i[0], j[0], i[1], j[1]) == np.sqrt(2.0):
@@ -261,13 +268,20 @@ def find_filpix(branches, labelfil, final=True):
                              (l[0] + 1, l[1] + 1),
                              (l[0] - 1, l[1] - 1),
                              (l[0] + 1, l[1] - 1)]
+
+                # Check if the matching corner point is an end point
+                # Otherwise the pixel will be combined into a 2-pixel intersec
+                match_ends = set(endpts) & set(proximity[-4:])
+                if len(match_ends) == 1:
+                    fila_pts.append(endpts + bodypts + [l])
+                    continue
+
                 match = set(intertemps) & set(proximity)
                 if len(match) == 1:
                     intertemps.append(l)
                     fila_pts.append(endpts + bodypts)
                 else:
                     fila_pts.append(endpts + bodypts + [l])
-                    # cornerpts.remove(l)
         else:
             fila_pts.append(endpts + bodypts)
 
@@ -305,6 +319,12 @@ def find_filpix(branches, labelfil, final=True):
             repeat.append(inters[i])
     for i in repeat:
         inters.remove(i)
+
+    if debug:
+        print("Fila pts: {}".format(fila_pts))
+        print("Intersections: {}".format(inters))
+        print("End pts: {}".format(endpts_return))
+        print(labelfil)
 
     return fila_pts, inters, labelfil, endpts_return
 
@@ -571,8 +591,7 @@ def make_final_skeletons(labelisofil, inters, verbose=False, save_png=False,
     return filament_arrays
 
 
-def recombine_skeletons(skeletons, offsets, orig_size, pad_size,
-                        verbose=False):
+def recombine_skeletons(skeletons, offsets, orig_size, pad_size):
     '''
     Takes a list of skeleton arrays and combines them back into
     the original array.
@@ -588,9 +607,6 @@ def recombine_skeletons(skeletons, offsets, orig_size, pad_size,
         Size of the image.
     pad_size : int
         Size of the array padding.
-    verbose : bool, optional
-        Enables printing when a skeleton array needs to be resized to fit
-        into the image.
 
     Returns
     -------
@@ -602,8 +618,8 @@ def recombine_skeletons(skeletons, offsets, orig_size, pad_size,
 
     master_array = np.zeros(orig_size)
     for n in range(num):
-        x_off, y_off = offsets[n][0]  # These are the coordinates of the bottom
-                                     # left in the master array.
+        # These are the coordinates of the bottom left in the master array.
+        x_off, y_off = offsets[n][0]
         x_top, y_top = offsets[n][1]
 
         # Now check if padding will put the array outside of the original array
@@ -614,28 +630,19 @@ def recombine_skeletons(skeletons, offsets, orig_size, pad_size,
 
         copy_skeleton = copy.copy(skeletons[n])
 
-        size_change_flag = False
-
         if excess_x_top > 0:
             copy_skeleton = copy_skeleton[:-excess_x_top, :]
-            size_change_flag = True
 
         if excess_y_top > 0:
             copy_skeleton = copy_skeleton[:, :-excess_y_top]
-            size_change_flag = True
 
         if x_off < 0:
             copy_skeleton = copy_skeleton[-x_off:, :]
             x_off = 0
-            size_change_flag = True
 
         if y_off < 0:
             copy_skeleton = copy_skeleton[:, -y_off:]
             y_off = 0
-            size_change_flag = True
-
-        # if verbose & size_change_flag:
-        #     print "REDUCED FILAMENT %s/%s TO FIT IN ORIGINAL ARRAY" % (n, num)
 
         x, y = np.where(copy_skeleton >= 1)
         for i in range(len(x)):
