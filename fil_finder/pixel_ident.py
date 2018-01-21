@@ -446,7 +446,7 @@ def find_extran(branches, labelfil):
 ######################################################################
 
 
-def pix_identify(isolatefilarr, num):
+def pix_identify(isolatefilarr, num, debug=False):
     '''
     This function is essentially a wrapper on find_filpix. It returns the
     outputs of find_filpix in the form that are used during the analysis.
@@ -457,6 +457,8 @@ def pix_identify(isolatefilarr, num):
         Contains individual arrays of each skeleton.
     num  : int
         The number of skeletons.
+    debug : bool, optional
+        Print out identification steps in find_filpix.
 
     Returns
     -------
@@ -482,14 +484,52 @@ def pix_identify(isolatefilarr, num):
     labelisofil = []
 
     for n in range(num):
-        funcreturn = find_filpix(1, isolatefilarr[n], final=False)
+        funcreturn = find_filpix(1, isolatefilarr[n], final=False, debug=debug)
         interpts.append(funcreturn[1])
         hubs.append(len(funcreturn[1]))
         isolatefilarr.pop(n)
         isolatefilarr.insert(n, funcreturn[2])
         ends.append(funcreturn[3])
 
-        label_branch, num_branch = nd.label(isolatefilarr[n], eight_con())
+        # isolatefilarr contains end and body pts. We need to make sure the end
+        # points don't touch, and if they do, label them independently of the
+        # others. Touching endpoints can only occur for 1-pixel branches
+
+        # First label the end points
+        ends_arr = np.zeros_like(isolatefilarr[n])
+        for end in ends[n]:
+            ends_arr[end[0], end[1]] = True
+        end_label, num_end = nd.label(ends_arr, eight_con())
+        # If none are connected, label normally
+        if len(ends[n]) == num_end:
+            label_branch, num_branch = nd.label(isolatefilarr[n], eight_con())
+        else:
+            # Find the connected ends, then label and remove them
+            conn_ends = np.where(nd.sum(ends_arr, end_label,
+                                        range(1, num_end + 1)) > 1)[0] + 1
+            if conn_ends.size == 0:
+                raise ValueError("This should not be possible, since "
+                                 "num_end != len(ends[n]), but no connected"
+                                 " structure was found? Possible bug.")
+
+            fil_arr = isolatefilarr[n].copy()
+
+            end_branches = []
+            for conn in conn_ends:
+                end_posns = np.where(end_label == conn)
+                for posn in zip(*end_posns):
+                    end_branches.append(posn)
+                fil_arr[end_posns] = False
+
+            # Label the version without those ends
+            label_branch, num_branch = nd.label(fil_arr, eight_con())
+
+            # Now re-add those connected ends with a new label
+            for i, posn in enumerate(end_branches):
+                label_branch[posn[0], posn[1]] = num_branch + i + 1
+
+            num_branch = label_branch.max()
+
         filbranches.append(num_branch)
         labelisofil.append(label_branch)
 
