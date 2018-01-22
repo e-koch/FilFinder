@@ -133,24 +133,19 @@ def init_lengths(labelisofil, filbranches, array_offsets, img):
 
     Parameters
     ----------
-
     labelisofil : list
         Contains individual arrays for each skeleton where the
         branches are labeled and the intersections have been removed.
-
     filbranches : list
         Contains the number of branches in each skeleton.
-
     array_offsets : List
         The indices of where each filament array fits in the
         original image.
-
     img : numpy.ndarray
         Original image.
 
     Returns
     -------
-
     branch_properties: dict
         Contains the lengths and intensities of the branches.
         Keys are *length* and *intensity*.
@@ -190,17 +185,16 @@ def init_lengths(labelisofil, filbranches, array_offsets, img):
             # add on the offset the branch array introduces.
             x_offset = obj[0].start + array_offsets[n][0][0]
             y_offset = obj[1].start + array_offsets[n][0][1]
-            av_intensity.append(
-                np.nanmean([img[x + x_offset, y + y_offset]
-                           for x, y in zip(*branch_pts)
-                           if np.isfinite(img[x + x_offset, y + y_offset]) and
-                           not img[x + x_offset, y + y_offset] < 0.0]))
+            av_intensity.append(np.nanmean([img[x + x_offset, y + y_offset]
+                                for x, y in zip(*branch_pts)
+                                if np.isfinite(img[x + x_offset, y + y_offset]) and
+                                not img[x + x_offset, y + y_offset] < 0.0]))
 
         lengths.append(leng)
         av_branch_intensity.append(av_intensity)
 
-        branch_properties = {
-            "length": lengths, "intensity": av_branch_intensity}
+        branch_properties = {"length": lengths,
+                             "intensity": av_branch_intensity}
 
     return branch_properties
 
@@ -452,7 +446,7 @@ def longest_path(edge_list, nodes, verbose=False,
 
 
 def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
-                length_thresh, relintens_thresh=0.2):
+                prune_criteria='all', length_thresh=0, relintens_thresh=0.2):
     '''
     Function to remove unnecessary branches, while maintaining connectivity
     in the graph. Also updates edge_list, nodes, branch_lengths and
@@ -475,6 +469,9 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
         branches are labeled and the intersections have been removed.
     branch_properties : dict
         Contains the lengths and intensities of all branches.
+    prune_criteria : {'all', 'intensity', 'length'}, optional
+        Choose the property to base pruning on. 'all' requires that the branch
+        fails to satisfy the length and relative intensity checks.
     length_thresh : int or float
         Minimum length a branch must be to be kept. Can be overridden if the
         branch is bright relative to the entire skeleton.
@@ -495,6 +492,10 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
     '''
 
     num = len(labelisofil)
+
+    if prune_criteria not in ['all', 'length', 'intensity']:
+        raise ValueError("prune_criteria must be 'all', 'length' or "
+                         "'intensity'. Given {}".format(prune_criteria))
 
     for n in range(num):
         # Fix for networkx 2.0
@@ -518,8 +519,17 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
             # If its too short and relatively not as intense, delete it
             length = edge[2][2]
             av_intensity = edge[2][3]
-            if length < length_thresh \
-                    and (av_intensity / np.sum(intensities)) < relintens_thresh:
+
+            if prune_criteria == 'all':
+                criteria = length < length_thresh \
+                    and (av_intensity / np.sum(intensities)) < relintens_thresh
+            elif prune_criteria == 'intensity':
+                criteria = \
+                    (av_intensity / np.sum(intensities)) < relintens_thresh
+            else:  # Length only
+                criteria = length < length_thresh
+
+            if criteria:
                 edge_pts = np.where(labelisofil[n] == edge[2][0])
                 labelisofil[n][edge_pts] = 0
                 edge_list[n].remove(edge)
