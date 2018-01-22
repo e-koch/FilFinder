@@ -204,6 +204,9 @@ def find_filpix(branches, labelfil, final=True, debug=False):
     # where all four
     #   [0,*,*] constitute a single intersection.
     #   [1,*,*]
+    # A T-pt has the same connectivity as a block point, but with two 8-conns
+    # [*, *, *]
+    # [0, 1, 0]
     # The "final" designation is used when finding the final branch lengths.
     # At this point, blockpts and cornerpts should be eliminated.
     for k in range(branches):
@@ -212,6 +215,8 @@ def find_filpix(branches, labelfil, final=True, debug=False):
             y = [j for j, z in enumerate(vallist[k][l]) if z == k + 1]
 
             if len(x) <= 1:
+                if debug:
+                    print("End pt. {}".format(filpix[k][l]))
                 endpts.append(filpix[k][l])
                 endpts_return.append(filpix[k][l])
             elif len(x) == 2:
@@ -219,12 +224,40 @@ def find_filpix(branches, labelfil, final=True, debug=False):
                     bodypts.append(filpix[k][l])
                 else:
                     if len(y) == 2:
+                        if debug:
+                            print("Body pt. {}".format(filpix[k][l]))
                         bodypts.append(filpix[k][l])
-                    elif len(y) == 3:
-                        cornerpts.append(filpix[k][l])
-                    elif len(y) >= 4:
+
+                    elif is_tpoint(vallist[k][l]):
+                        # If there are only 3 connections to the t-point, it
+                        # is an end point
+                        if len(y) == 3:
+                            if debug:
+                                print("T-point end {}".format(filpix[k][l]))
+                            endpts.append(filpix[k][l])
+                            endpts_return.append(filpix[k][l])
+                        # If there are 4, it is a body point
+                        elif len(y) == 4:
+                            if debug:
+                                print("T-point body {}".format(filpix[k][l]))
+
+                            bodypts.append(filpix[k][l])
+                        # Otherwise it is a part of an intersection
+                        else:
+                            if debug:
+                                print("T-point inter {}".format(filpix[k][l]))
+                            intertemps.append(filpix[k][l])
+                    elif is_blockpoint(vallist[k][l]):
+                        if debug:
+                            print("Block pt. {}".format(filpix[k][l]))
                         blockpts.append(filpix[k][l])
+                    else:
+                        if debug:
+                            print("Corner pt. {}".format(filpix[k][l]))
+                        cornerpts.append(filpix[k][l])
             elif len(x) >= 3:
+                if debug:
+                    print("Inter pt. {}".format(filpix[k][l]))
                 intertemps.append(filpix[k][l])
         endpts = list(set(endpts))
         bodypts = list(set(bodypts))
@@ -253,7 +286,9 @@ def find_filpix(branches, labelfil, final=True, debug=False):
                                      (i[0] + 1, i[1] - 1)]
                         match = set(intertemps) & set(proximity)
                         if len(match) == 1:
-                            pairs.append([i, j])
+                            print("MATCH")
+                            bodypts.extend([i, j])
+                            # pairs.append([i, j])
                             deleted_cornerpts.append(i)
                             deleted_cornerpts.append(j)
             cornerpts = list(set(cornerpts).difference(set(deleted_cornerpts)))
@@ -329,7 +364,7 @@ def find_filpix(branches, labelfil, final=True, debug=False):
     return fila_pts, inters, labelfil, endpts_return
 
 
-def find_extran(branches, labelfil):
+def find_extran(branches, labelfil, debug=False):
     '''
     Identify pixels that are not necessary to keep the connectivity of the
     skeleton. It uses the same labeling process as find_filpix. Extraneous
@@ -342,6 +377,9 @@ def find_extran(branches, labelfil):
         Contains the number of branches in each skeleton.
     labelfil : list
         Contains arrays of the labeled versions of each skeleton.
+    debug : bool, optional
+        Enable plotting of each filament array to visualize where the deleted
+        pixels are.
 
     Returns
     -------
@@ -415,10 +453,17 @@ def find_extran(branches, labelfil):
         for l in range(len(filpix[k])):
             x = [j for j, y in enumerate(subvallist[k][l]) if y == k + 1]
             y = [j for j, z in enumerate(vallist[k][l]) if z == k + 1]
+
             if len(x) == 0:
+                if debug:
+                    print("Extran removal unconnect: {}".format(filpix[k][l]))
                 labelfil[filpix[k][l][0], filpix[k][l][1]] = 0
+                extran.append(filpix[k][l])
+
             if len(x) == 1:
                 if len(y) >= 2:
+                    if debug:
+                        print("Extran removal: {}".format(filpix[k][l]))
                     extran.append(filpix[k][l])
                     labelfil[filpix[k][l][0], filpix[k][l][1]] = 0
         # if len(extran) >= 2:
@@ -438,6 +483,16 @@ def find_extran(branches, labelfil):
         #                     if len(match) > 0:
         #                         for z in match:
         #                             labelfil[z[0], z[1]] = 0
+
+    if debug:
+        import matplotlib.pyplot as plt
+        plt.imshow(labelfil, origin='lower')
+        for pix in extran:
+            plt.plot(pix[1], pix[0], 'bD')
+        plt.draw()
+        raw_input("?")
+        plt.clf()
+
     return labelfil
 
 
@@ -752,3 +807,60 @@ def _fix_small_holes(mask_array, rel_size=0.1):
         mask_array[np.where(lab_holes == label)] = 1
 
     return mask_array
+
+
+def is_blockpoint(vallist):
+    '''
+    Determine if point is part of a block:
+    [X X]
+    [X X]
+
+    Will have 3 connected sides, with one as an 8-connection.
+    '''
+
+    vals = np.array(vallist)
+
+    if vals.sum() < 3:
+        return False
+
+    arrangements = [np.array([0, 1, 7]), np.array([1, 2, 3]),
+                    np.array([3, 4, 5]), np.array([5, 6, 7])]
+
+    posns = np.where(vals)[0]
+
+    # Check if all 3 in an arrangement are within the vallist
+    for arrange in arrangements:
+        if np.in1d(posns, arrange).sum() == 3:
+            return True
+
+    return False
+
+
+def is_tpoint(vallist):
+    '''
+    Determine if point is part of a block:
+    [X X X]
+    [0 X 0]
+    And all 90 deg rotation of this shape
+
+    If there are only 3 connections, this is an end point. If there are 4,
+    it is a body point, and if there are 5, it remains an intersection
+
+    '''
+
+    vals = np.array(vallist)
+
+    if vals.sum() < 3:
+        return False
+
+    arrangements = [np.array([0, 6, 7]), np.array([0, 1, 2]),
+                    np.array([2, 3, 4]), np.array([4, 5, 6])]
+
+    posns = np.where(vals)[0]
+
+    # Check if all 3 in an arrangement are within the vallist
+    for arrange in arrangements:
+        if np.in1d(posns, arrange).sum() == 3:
+            return True
+
+    return False
