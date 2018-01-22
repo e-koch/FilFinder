@@ -72,6 +72,13 @@ class BaseInfoMixin(object):
     """
 
     @property
+    def image(self):
+        '''
+        Image.
+        '''
+        return self._image
+
+    @property
     def header(self):
         '''
         FITS Header.
