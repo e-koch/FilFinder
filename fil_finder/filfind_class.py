@@ -180,7 +180,7 @@ class fil_finder_2D(BaseInfoMixin):
         # Pad the image by the pad size. Avoids slicing difficulties
         # later on.
         if self.pad_size > 0:
-            self.image = np.pad(self.image, self.pad_size, padwithnans)
+            self._image = np.pad(self.image, self.pad_size, padwithnans)
 
         # Make flattened image
         if flatten_thresh is None:
@@ -252,7 +252,7 @@ class fil_finder_2D(BaseInfoMixin):
                     self._beamwidth = beamwidth.value / FWHM_FACTOR
                 else:
                     self._beamwidth = ((beamwidth.to(u.deg) / FWHM_FACTOR) /
-                                      pix_scale).value
+                                       pix_scale).value
                 self.imgscale = 1.0
                 self.pixel_unit_flag = True
             else:
@@ -535,7 +535,7 @@ class fil_finder_2D(BaseInfoMixin):
                            morph_smooth=True, pad_size=self.skeleton_pad_size)
         self.mask = recombine_skeletons(mask_objs,
                                         corners, self.image.shape,
-                                        self.skeleton_pad_size, verbose=True)
+                                        self.skeleton_pad_size)
 
         # WARNING!! Setting some image values to 0 to avoid negative weights.
         # This may cause issues, however it will allow for proper skeletons
@@ -642,8 +642,8 @@ class fil_finder_2D(BaseInfoMixin):
 
         return self
 
-    def analyze_skeletons(self, relintens_thresh=0.2, nbeam_lengths=5,
-                          branch_nbeam_lengths=3,
+    def analyze_skeletons(self, prune_criteria='all', relintens_thresh=0.2,
+                          nbeam_lengths=5, branch_nbeam_lengths=3,
                           skel_thresh=None, branch_thresh=None,
                           verbose=False, save_png=False):
         '''
@@ -684,6 +684,9 @@ class fil_finder_2D(BaseInfoMixin):
         ----------
         verbose : bool, optional
             Enables plotting.
+        prune_criteria : {'all', 'intensity', 'length'}, optional
+            Choose the property to base pruning on. 'all' requires that the
+            branch fails to satisfy the length and relative intensity checks.
         relintens_thresh : float, optional
             Relative intensity threshold for pruning. Sets the importance
             a branch must have in intensity relative to all other branches
@@ -731,7 +734,6 @@ class fil_finder_2D(BaseInfoMixin):
             raise ValueError(
                 "relintens_thresh must be set between (0.0, 1.0].")
 
-
         if self.pixel_unit_flag:
             if self.skel_thresh is None and skel_thresh is None:
                 raise ValueError("Distance not given. Must specify skel_thresh"
@@ -777,8 +779,10 @@ class fil_finder_2D(BaseInfoMixin):
 
         updated_lists = \
             prune_graph(G, nodes, edge_list, max_path, labeled_fil_arrays,
-                        self.branch_properties, self.branch_thresh,
-                        relintens_thresh=relintens_thresh)
+                        self.branch_properties,
+                        length_thresh=self.branch_thresh,
+                        relintens_thresh=relintens_thresh,
+                        prune_criteria=prune_criteria)
 
         labeled_fil_arrays, edge_list, nodes, self.branch_properties = \
             updated_lists
@@ -813,14 +817,12 @@ class fil_finder_2D(BaseInfoMixin):
         self.skeleton = \
             recombine_skeletons(self.filament_arrays["final"],
                                 self.array_offsets, self.image.shape,
-                                self.skeleton_pad_size, verbose=True)
+                                self.skeleton_pad_size)
 
         self.skeleton_longpath = \
             recombine_skeletons(self.filament_arrays["long path"],
                                 self.array_offsets, self.image.shape,
-                                self.skeleton_pad_size, verbose=True)
-
-        return self
+                                self.skeleton_pad_size)
 
     def exec_rht(self, radius=10, ntheta=180, background_percentile=25,
                  branches=False, min_branch_length=3, verbose=False,
@@ -889,9 +891,9 @@ class fil_finder_2D(BaseInfoMixin):
             self.rht_curvature["Intensity"] = []
             self.rht_curvature["Length"] = []
 
-        for n in range(self.number_of_filaments):
         # Need to correct for how image is read in
         # fliplr aligns angles with image when shown in ds9
+        for n in range(self.number_of_filaments):
             if branches:
                 # We need intermediary arrays now
                 means = np.array([])
@@ -913,13 +915,12 @@ class fil_finder_2D(BaseInfoMixin):
                 filbranch = filbranch[0]
 
                 # Return the labeled skeleton without intersections
-                labeled_fil_array = pix_identify([skel_arr], 1)[-1][0]
                 branch_labels = \
                     np.unique(labeled_fil_array[np.nonzero(labeled_fil_array)])
 
                 for val in branch_labels:
-                    length = branch_properties["length"][0][val-1]
-                    # Only include the branches with >10 pixels
+                    length = branch_properties["length"][0][val - 1]
+                    # Only include the branches with length > min length
                     if length < min_branch_length:
                         continue
                     theta, R, quantiles = \
@@ -939,9 +940,9 @@ class fil_finder_2D(BaseInfoMixin):
                                       np.abs(sevenfive - twofive) + np.pi)
                     intensity = \
                         np.append(intensity,
-                                  branch_properties["intensity"][0][val-1])
+                                  branch_properties["intensity"][0][val - 1])
                     lengths = np.append(lengths,
-                                        branch_properties["length"][0][val-1])
+                                        branch_properties["length"][0][val - 1])
 
                 self.rht_curvature["Orientation"].append(means)
                 self.rht_curvature["Curvature"].append(iqrs)
