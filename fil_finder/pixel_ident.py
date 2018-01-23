@@ -7,7 +7,6 @@ import numpy as np
 import scipy.ndimage as nd
 import matplotlib.pyplot as p
 import copy
-import networkx as nx
 
 
 def isolateregions(binary_array, size_threshold=0, pad_size=0,
