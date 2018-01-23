@@ -139,7 +139,7 @@ def pad_image(image, extents, pad_size, constant=0):
 
     # Now we look for where the extents with padding will run into a boundary
     pad_vector = []
-    for i, extent in enumerate(extents):
+    for i, extent in enumerate(zip(*extents)):
 
         lower = extent[0] - pad_size
         if lower > 0:
