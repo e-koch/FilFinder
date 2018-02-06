@@ -165,12 +165,12 @@ def init_lengths(labelisofil, filbranches, array_offsets, img):
 
         label_copy = copy.copy(labelisofil[n])
         objects = nd.find_objects(label_copy)
-        for obj in objects:
+        for i, obj in enumerate(objects):
             # Scale the branch array to the branch size
             branch_array = label_copy[obj]
 
             # Find the skeleton points and set those to 1
-            branch_pts = np.where(branch_array > 0)
+            branch_pts = np.where(branch_array == i + 1)
             branch_array[branch_pts] = 1
 
             # Now find the length on the branch
