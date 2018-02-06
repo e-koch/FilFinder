@@ -167,18 +167,20 @@ def init_lengths(labelisofil, filbranches, array_offsets, img):
         objects = nd.find_objects(label_copy)
         for i, obj in enumerate(objects):
             # Scale the branch array to the branch size
-            branch_array = label_copy[obj]
+            branch_array = np.zeros_like(label_copy[obj])
 
             # Find the skeleton points and set those to 1
-            branch_pts = np.where(branch_array == i + 1)
+            branch_pts = np.where(label_copy[obj] == i + 1)
             branch_array[branch_pts] = 1
 
             # Now find the length on the branch
-            branch_length = skeleton_length(branch_array)
-            if branch_length == 0.0:
+            if branch_array.sum() == 1:
+                # Single pixel. No need to find length
                 # For use in longest path algorithm, will be set to zero for
                 # final analysis
                 branch_length = 0.5
+            else:
+                branch_length = skeleton_length(branch_array)
 
             leng.append(branch_length)
 
@@ -543,15 +545,15 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
                 labelisofil[n][edge_pts] = 0
                 edge_list[n].remove(edge)
                 nodes[n].remove(edge[1])
-                branch_properties["length"][n].remove(length)
-                branch_properties["intensity"][n].remove(av_intensity)
                 branch_properties["number"][n] -= 1
                 del_idx.append(idx)
 
         if len(del_idx) > 0:
             del_idx.sort()
             for idx in del_idx[::-1]:
-                branch_properties['pixels'][n].pop(idx)
+                branch_properties['pixels'][n].pop(idx - 1)
+                branch_properties['length'][n].pop(idx - 1)
+                branch_properties['intensity'][n].pop(idx - 1)
 
     return labelisofil, edge_list, nodes, branch_properties
 
