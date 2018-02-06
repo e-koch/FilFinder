@@ -156,10 +156,12 @@ def init_lengths(labelisofil, filbranches, array_offsets, img):
     # Initialize Lists
     lengths = []
     av_branch_intensity = []
+    all_branch_pts = []
 
     for n in range(num):
         leng = []
         av_intensity = []
+        branch_pix = []
 
         label_copy = copy.copy(labelisofil[n])
         objects = nd.find_objects(label_copy)
@@ -189,12 +191,16 @@ def init_lengths(labelisofil, filbranches, array_offsets, img):
                                 for x, y in zip(*branch_pts)
                                 if np.isfinite(img[x + x_offset, y + y_offset]) and
                                 not img[x + x_offset, y + y_offset] < 0.0]))
+            branch_pix.append(np.array([(x + x_offset, y + y_offset)
+                                        for x, y in zip(*branch_pts)]))
 
         lengths.append(leng)
         av_branch_intensity.append(av_intensity)
+        all_branch_pts.append(branch_pix)
 
         branch_properties = {"length": lengths,
-                             "intensity": av_branch_intensity}
+                             "intensity": av_branch_intensity,
+                             "pixels": all_branch_pts}
 
     return branch_properties
 
@@ -502,16 +508,19 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
         degree = dict(G[n].degree())
         single_connect = [key for key in degree.keys() if degree[key] == 1]
 
-        delete_candidate = list(
-            (set(nodes[n]) - set(max_path[n])) & set(single_connect))
+        delete_candidate = list((set(nodes[n]) - set(max_path[n])) &
+                                set(single_connect))
 
         if not delete_candidate:  # Nothing to delete!
             continue
 
-        edge_candidates = [edge for edge in edge_list[n] if edge[
-            0] in delete_candidate or edge[1] in delete_candidate]
+        edge_candidates = [(idx, edge) for idx, edge in enumerate(edge_list[n])
+                           if edge[0] in delete_candidate or
+                           edge[1] in delete_candidate]
         intensities = [edge[2][3] for edge in edge_list[n]]
-        for edge in edge_candidates:
+
+        del_idx = []
+        for idx, edge in edge_candidates:
             # In the odd case where a loop meets at the same intersection,
             # ensure that edge is kept.
             if isinstance(edge[0], str) & isinstance(edge[1], str):
@@ -537,6 +546,12 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
                 branch_properties["length"][n].remove(length)
                 branch_properties["intensity"][n].remove(av_intensity)
                 branch_properties["number"][n] -= 1
+                del_idx.append(idx)
+
+        if len(del_idx) > 0:
+            del_idx.sort()
+            for idx in del_idx[::-1]:
+                branch_properties['pixels'][n].pop(idx)
 
     return labelisofil, edge_list, nodes, branch_properties
 
