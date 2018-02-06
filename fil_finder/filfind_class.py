@@ -582,8 +582,6 @@ class fil_finder_2D(BaseInfoMixin):
             if in_ipynb():
                 p.clf()
 
-        return self
-
     def medskel(self, verbose=False, save_png=False):
         '''
 
@@ -639,8 +637,6 @@ class fil_finder_2D(BaseInfoMixin):
                 p.show()
             if in_ipynb():
                 p.clf()
-
-        return self
 
     def analyze_skeletons(self, prune_criteria='all', relintens_thresh=0.2,
                           nbeam_lengths=5, branch_nbeam_lengths=3,
@@ -900,31 +896,31 @@ class fil_finder_2D(BaseInfoMixin):
                 iqrs = np.array([])
                 intensity = np.array([])
                 lengths = np.array([])
-                # See above comment (613-614)
-                skel_arr = np.fliplr(self.filament_arrays["final"][n]).copy()
-                # Return the labeled skeleton without intersections
-                output = \
-                    pix_identify([skel_arr], 1)[-2:]
-                labeled_fil_array = output[1]
-                filbranch = output[0]
-                branch_properties = init_lengths(labeled_fil_array,
-                                                 filbranch,
-                                                 [self.array_offsets[n]],
-                                                 self.image)
-                labeled_fil_array = labeled_fil_array[0]
-                filbranch = filbranch[0]
 
-                # Return the labeled skeleton without intersections
-                branch_labels = \
-                    np.unique(labeled_fil_array[np.nonzero(labeled_fil_array)])
+                # for val in branch_labels:
+                for val, (pix, length) in enumerate(zip(self.branch_properties['pixels'][n],
+                                                        self.branch_properties['length'][n])):
 
-                for val in branch_labels:
-                    length = branch_properties["length"][0][val - 1]
                     # Only include the branches with length > min length
-                    if length < min_branch_length:
+                    if length < (min_branch_length * self.imgscale):
                         continue
+
+                    ymax = pix[:, 0].max()
+                    ymin = pix[:, 0].min()
+                    xmax = pix[:, 1].max()
+                    xmin = pix[:, 1].min()
+
+                    shape = (ymax - ymin + 1 + 2 * radius,
+                             xmax - xmin + 1 + 2 * radius)
+
+                    branch_array = np.zeros(shape, dtype=bool)
+                    branch_array[pix[:, 0] - ymin + radius,
+                                 pix[:, 1] - xmin + radius] = True
+
+                    branch_array = np.fliplr(branch_array)
+
                     theta, R, quantiles = \
-                        rht(labeled_fil_array == val,
+                        rht(branch_array,
                             radius, ntheta, background_percentile)
 
                     twofive, mean, sevenfive = quantiles
@@ -940,9 +936,9 @@ class fil_finder_2D(BaseInfoMixin):
                                       np.abs(sevenfive - twofive) + np.pi)
                     intensity = \
                         np.append(intensity,
-                                  branch_properties["intensity"][0][val - 1])
+                                  self.branch_properties["intensity"][0][val - 1])
                     lengths = np.append(lengths,
-                                        branch_properties["length"][0][val - 1])
+                                        self.branch_properties["length"][0][val - 1])
 
                 self.rht_curvature["Orientation"].append(means)
                 self.rht_curvature["Curvature"].append(iqrs)
@@ -993,8 +989,6 @@ class fil_finder_2D(BaseInfoMixin):
                         p.show()
                     if in_ipynb():
                         p.clf()
-
-        return self
 
     def find_widths(self, fit_model=gauss_model, try_nonparam=True,
                     use_longest_paths=False, verbose=False, save_png=False,
