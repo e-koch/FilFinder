@@ -377,7 +377,7 @@ class Filament2D(FilamentNDBase):
 
         import matplotlib.pyplot as plt
 
-        median = self.orientation
+        median = self.orientation.value
         twofive, sevenfive = self._orientation_quantiles
 
         ax1 = plt.subplot(121, polar=True)
