@@ -688,6 +688,8 @@ class FilFinder2D(BaseInfoMixin):
                                        for fil in self.filaments]
         branch_properties['intensity'] = [fil.branch_properties['intensity']
                                           for fil in self.filaments]
+        branch_properties['pixels'] = [fil.branch_properties['pixels']
+                                       for fil in self.filaments]
         branch_properties['number'] = np.array([fil.branch_properties['number']
                                                 for fil in self.filaments])
 
@@ -738,10 +740,10 @@ class FilFinder2D(BaseInfoMixin):
 
         return branches
 
-
-    def exec_rht(self, radius=10, ntheta=180, background_percentile=25,
-                 branches=False, min_branch_length=3, verbose=False,
-                 save_png=False):
+    def exec_rht(self, radius=10 * u.pix,
+                 ntheta=180, background_percentile=25,
+                 branches=False, min_branch_length=3 * u.pix,
+                 verbose=False, save_png=False):
         '''
 
         Implements the Rolling Hough Transform (Clark et al., 2014).
@@ -792,125 +794,61 @@ class FilFinder2D(BaseInfoMixin):
 
         '''
 
-        if not self.rht_curvature["Orientation"]:
-            pass
-        else:
-            self.rht_curvature = {"Orientation": [],
-                                  "Curvature": []}
-
         # Flag branch output
         self._rht_branches_flag = False
         if branches:
             self._rht_branches_flag = True
-            # Set up new dict entries.
-            self.rht_curvature["Intensity"] = []
-            self.rht_curvature["Length"] = []
 
-        for n in range(self.number_of_filaments):
-        # Need to correct for how image is read in
-        # fliplr aligns angles with image when shown in ds9
+        for i, fil in enumerate(self.filaments):
+
             if branches:
-                # We need intermediary arrays now
-                means = np.array([])
-                iqrs = np.array([])
-                intensity = np.array([])
-                lengths = np.array([])
-                # See above comment (613-614)
-                skel_arr = np.fliplr(self.filament_arrays["final"][n]).copy()
-                # Return the labeled skeleton without intersections
-                output = \
-                    pix_identify([skel_arr], 1)[-2:]
-                labeled_fil_array = output[1]
-                filbranch = output[0]
-                branch_properties = init_lengths(labeled_fil_array,
-                                                 filbranch,
-                                                 [self.array_offsets[n]],
-                                                 self.image)
-                labeled_fil_array = labeled_fil_array[0]
-                filbranch = filbranch[0]
-
-                # Return the labeled skeleton without intersections
-                labeled_fil_array = pix_identify([skel_arr], 1)[-1][0]
-                branch_labels = \
-                    np.unique(labeled_fil_array[np.nonzero(labeled_fil_array)])
-
-                for val in branch_labels:
-                    length = branch_properties["length"][0][val-1]
-                    # Only include the branches with >10 pixels
-                    if length < min_branch_length:
-                        continue
-                    theta, R, quantiles = \
-                        rht(labeled_fil_array == val,
-                            radius, ntheta, background_percentile)
-
-                    twofive, mean, sevenfive = quantiles
-
-                    means = np.append(means, mean)
-                    if sevenfive > twofive:
-                        iqrs = \
-                            np.append(iqrs,
-                                      np.abs(sevenfive - twofive))
-                    else:
-                        iqrs = \
-                            np.append(iqrs,
-                                      np.abs(sevenfive - twofive) + np.pi)
-                    intensity = \
-                        np.append(intensity,
-                                  branch_properties["intensity"][0][val-1])
-                    lengths = np.append(lengths,
-                                        branch_properties["length"][0][val-1])
-
-                self.rht_curvature["Orientation"].append(means)
-                self.rht_curvature["Curvature"].append(iqrs)
-                self.rht_curvature["Intensity"].append(intensity)
-                self.rht_curvature["Length"].append(lengths)
-
-                if verbose or save_png:
-                    Warning("No verbose mode available when running RHT on "
-                            "individual branches. No plots will be saved.")
+                fil.rht_branch_analysis(radius=radius,
+                                        ntheta=ntheta,
+                                        background_percentile=background_percentile,
+                                        min_branch_length=min_branch_length)
 
             else:
-                skel_arr = np.fliplr(self.filament_arrays["long path"][n])
-                theta, R, quantiles = rht(
-                    skel_arr, radius, ntheta, background_percentile)
+                fil.rht_analysis(radius=radius, ntheta=ntheta,
+                                 background_percentile=background_percentile)
 
-                twofive, median, sevenfive = quantiles
-
-                self.rht_curvature["Orientation"].append(median)
-                if sevenfive > twofive:
-                    self.rht_curvature["Curvature"].append(
-                        np.abs(sevenfive - twofive))  # Interquartile range
-                else:  #
-                    self.rht_curvature["Curvature"].append(
-                        np.abs(sevenfive - twofive + np.pi))
-
-                if verbose or save_png:
-                    p.clf()
-                    ax1 = p.subplot(121, polar=True)
-                    ax1.plot(2 * theta, R / R.max(), "kD")
-                    ax1.fill_between(2 * theta, 0,
-                                     R[:, 0] / R.max(),
-                                     facecolor="blue",
-                                     interpolate=True, alpha=0.5)
-                    ax1.set_rmax(1.0)
-                    ax1.plot([2 * median] * 2, np.linspace(0.0, 1.0, 2), "g")
-                    ax1.plot([2 * twofive] * 2, np.linspace(0.0, 1.0, 2),
-                             "b--")
-                    ax1.plot([2 * sevenfive] * 2, np.linspace(0.0, 1.0, 2),
-                             "b--")
-                    p.subplot(122)
-                    p.imshow(self.filament_arrays["long path"][n],
-                             cmap="binary", origin="lower")
+                if verbose:
                     if save_png:
-                        try_mkdir(self.save_name)
-                        p.savefig(os.path.join(self.save_name,
-                                               self.save_name+"_rht_"+str(n)+".png"))
-                    if verbose:
-                        p.show()
-                    if in_ipynb():
-                        p.clf()
+                        save_name = "{0}_{1}.png".format(self.save_name, i)
+                    else:
+                        save_name = None
+                    fil.plot_rht_distrib(save_name=save_name)
 
-        return self
+    @property
+    def orientation(self):
+        '''
+        Returns the orientations of the filament longest paths computed with
+        `~FilFinder2D.exec_rht` with `branches=False`.
+        '''
+        return [fil.orientation.value for fil in self.filaments] * u.rad
+
+    @property
+    def curvature(self):
+        '''
+        Returns the orientations of the filament longest paths computed with
+        `~FilFinder2D.exec_rht` with `branches=False`.
+        '''
+        return [fil.curvature.value for fil in self.filaments] * u.rad
+
+    @property
+    def orientation_branches(self):
+        '''
+        Returns the orientations of the filament longest paths computed with
+        `~FilFinder2D.exec_rht` with `branches=False`.
+        '''
+        return [fil.orientation_branches for fil in self.filaments]
+
+    @property
+    def curvature_branches(self):
+        '''
+        Returns the orientations of the filament longest paths computed with
+        `~FilFinder2D.exec_rht` with `branches=False`.
+        '''
+        return [fil.curvature_branches for fil in self.filaments]
 
     def find_widths(self, fit_model=gauss_model, try_nonparam=True,
                     use_longest_paths=False, verbose=False, save_png=False,
