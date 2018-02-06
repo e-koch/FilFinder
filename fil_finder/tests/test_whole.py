@@ -180,14 +180,39 @@ def test_FilFinder2D_w_rhtbranches():
         assert len(branch) == len(branch_old)
         npt.assert_allclose(branch, np.array(branch_old))
 
+    for branches, branches_old, off in zip(test1.branch_properties['pixels'],
+                                           test1_old.branch_properties['pixels'],
+                                           test1_old.array_offsets):
+        assert len(branches) == len(branches_old)
+        for branch, branch_old in zip(branches, branches_old):
+            # Adjust the old version by the pixel offset
+            branch_old[:, 0] -= off[0][0]
+            branch_old[:, 1] -= off[0][1]
+            npt.assert_allclose(branch, branch_old)
+
     for branch, branch_old in zip(test1.branch_properties['number'],
                                   test1_old.branch_properties['number']):
         assert branch == branch_old
 
+    test1_old.exec_rht(branches=False)
+
+    test1.exec_rht(branches=False)
+
+    assert (test1_old.rht_curvature['Orientation'] == test1.orientation.value).all()
+    assert (test1_old.rht_curvature['Curvature'] == test1.curvature.value).all()
+
+    test1_old.exec_rht(branches=True)
+
+    test1.exec_rht(branches=True)
+
+    for branch, branch_old in zip(test1.orientation_branches,
+                                  test1_old.rht_curvature['Orientation']):
+
+        npt.assert_allclose(branch.value[np.isfinite(branch)], branch_old)
+
     # XXX Remove this once the other parts of Filament2D are implemented
     print(argh)
 
-    test1.exec_rht(branches=True)
     test1.find_widths()
     test1.compute_filament_brightness()
 
