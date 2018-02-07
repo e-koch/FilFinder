@@ -4,6 +4,8 @@ import numpy as np
 import astropy.units as u
 import networkx as nx
 import warnings
+import scipy.ndimage as nd
+from astropy.nddata import extract_array
 
 from .length import (init_lengths, main_length, make_final_skeletons,
                      pre_graph, longest_path, prune_graph)
@@ -11,6 +13,7 @@ from .pixel_ident import pix_identify
 from .utilities import pad_image
 from .base_conversions import UnitConverter
 from .rollinghough import rht
+from .width import radial_profile
 
 
 class FilamentNDBase(object):
@@ -57,11 +60,12 @@ class Filament2D(FilamentNDBase):
         else:
             self._converter = UnitConverter(wcs=wcs, distance=distance)
 
-    def image_slice(self, pad_size=0):
+    def image_slice(self, pad_size=0, offset=(0, 0)):
         '''
         Returns a slice for the original image to cut out the filament region.
         '''
-        return tuple([slice(extent[0] - pad_size, extent[1] + pad_size + 1)
+        return tuple([slice(extent[0] - pad_size + offset[0],
+                            extent[1] + pad_size + offset[1] + 1)
                       for extent in zip(*self.pixel_extents)])
 
     def skeleton(self, pad_size=0, corner_pix=None, out_type='all'):
@@ -161,7 +165,7 @@ class Filament2D(FilamentNDBase):
             pix_identify([self.skeleton(pad_size=pad_size)], 1)
 
         # Do we need to pad the image before slicing?
-        input_image = pad_image(image, self.pixel_extents, pad_size)
+        input_image = pad_image(image, self.pixel_extents, pad_size)[0]
 
         # If the padded image matches the mask size, don't need additional
         # slicing
@@ -177,9 +181,6 @@ class Filament2D(FilamentNDBase):
         branch_properties = init_lengths(labeled_mask, filbranches,
                                          [[(0, 0), (0, 0)]],
                                          input_image)
-
-        from copy import deepcopy
-        self._orig_branch_properties = deepcopy(branch_properties)
 
         # Add the number of branches onto the dictionary
         branch_properties["number"] = filbranches
@@ -480,8 +481,233 @@ class Filament2D(FilamentNDBase):
         '''
         return self._curvature_branches
 
-    def width_analysis(self):
-        pass
+    def width_analysis(self, image, all_skeleton_array=None,
+                       max_dist=10 * u.pix,
+                       # fit_model=gauss_model,
+                       try_nonparam=True,
+                       use_longest_path=False, verbose=False, save_png=False,
+                       add_width_to_length=False,
+                       deconvolve_width=True,
+                       **kwargs):
+        '''
+
+        Parameters
+        ----------
+        max_dist : `~astropy.units.Quantity`, optional
+            Largest radius around the skeleton to create the profile from. This
+            can be given in physical, angular, or physical units.
+        all_skeleton_array : np.ndarray
+            An array with the skeletons of other filaments. This is used to
+            avoid double-counting pixels in the radial profiles in nearby
+            filaments.
+
+        '''
+
+        max_dist = self._converter.to_pixel(max_dist).value
+
+        # Use the max dist as the pad size
+        pad_size = int(np.ceil(max_dist))
+
+        # if given a master skeleton array, require it to be the same shape as
+        # the image
+        if all_skeleton_array is not None:
+            if all_skeleton_array.shape != image.shape:
+                raise ValueError("The shape of all_skeleton_array must match"
+                                 " the given image.")
+
+        if use_longest_path:
+            skel_array = self.skeleton(pad_size=pad_size, out_type='longpath')
+        else:
+            skel_array = self.skeleton(pad_size=pad_size, out_type='all')
+
+        # We need the centre of the skeleton array in terms of the original
+        # image position
+        arr_cent = [(skel_array.shape[0] - pad_size * 2) / 2. +
+                    self.pixel_extents[0][0],
+                    (skel_array.shape[1] - pad_size * 2) / 2. +
+                    self.pixel_extents[0][1]]
+
+        input_image = extract_array(image, skel_array.shape, arr_cent)
+
+        if all_skeleton_array is not None:
+            input_all_skeleton_array = extract_array(all_skeleton_array,
+                                                     skel_array.shape,
+                                                     arr_cent)
+        else:
+            input_all_skeleton_array = None
+
+        # Create distance arrays to build profile from
+        dist_skel_arr = nd.distance_transform_edt(np.logical_not(skel_array))
+
+        # And create a distance array from the full skeleton array if given
+        if input_all_skeleton_array is not None:
+            dist_skel_all = nd.distance_transform_edt(np.logical_not(input_all_skeleton_array))
+        else:
+            dist_skel_all = None
+
+        # Need the unbinned data for the non-parametric fit.
+        out = radial_profile(input_image, dist_skel_all,
+                             dist_skel_arr,
+                             [(0, 0), (0, 0)],
+                             max_distance=max_dist,
+                             auto_cut=False,
+                             **kwargs)
+
+        if out is None:
+            raise ValueError("Building radial profile failed. Check the input"
+                             " image for NaNs.")
+        else:
+            dist, radprof, weights, unbin_dist, unbin_radprof = out
+
+        self._radprofile = [dist, radprof]
+
+        print(STOP)
+
+        fit, fit_error, model, parameter_names, fail_flag = \
+            fit_model(dist, radprof, weights, self.beamwidth)
+
+        # Get the function's name to track where fit values come from
+        fit_type = str(model.__name__)
+
+        if not fail_flag:
+            chisq = red_chisq(radprof, model(dist, *fit[:-1]), 3, 1)
+        else:
+            # Give a value above threshold to try non-parametric fit
+            chisq = 11.0
+
+        # If the model isn't doing a good job, try it non-parametrically
+        if chisq > 10.0 and try_nonparam:
+            fit, fit_error, fail_flag = \
+                nonparam_width(dist, radprof, unbin_dist, unbin_radprof,
+                               self.beamwidth, 5, 99)
+            # Change the fit type.
+            fit_type = "nonparam"
+
+        if verbose or save_png:
+            if verbose:
+                print("%s in %s" % (n, self.number_of_filaments))
+                print("Fit Parameters: %s " % (fit))
+                print("Fit Errors: %s" % (fit_error))
+                print("Fit Type: %s" % (fit_type))
+
+            p.clf()
+            p.subplot(121)
+            p.plot(dist, radprof, "kD")
+            points = np.linspace(np.min(dist), np.max(dist), 2 * len(dist))
+            try:  # If FWHM is appended on, will get TypeError
+                p.plot(points, model(points, *fit), "r")
+            except TypeError:
+                p.plot(points, model(points, *fit[:-1]), "r")
+            p.xlabel(r'Radial Distance (pc)')
+            p.ylabel(r'Intensity')
+            p.grid(True)
+
+            p.subplot(122)
+
+            xlow, ylow = (self.array_offsets[n][0][0],
+                          self.array_offsets[n][0][1])
+            xhigh, yhigh = (self.array_offsets[n][1][0],
+                            self.array_offsets[n][1][1])
+            shape = (xhigh - xlow, yhigh - ylow)
+
+            p.contour(skel_arrays[n]
+                      [self.pad_size:shape[0] - self.pad_size,
+                       self.pad_size:shape[1] - self.pad_size], colors="r")
+
+            img_slice = self.image[xlow + self.pad_size:
+                                   xhigh - self.pad_size,
+                                   ylow + self.pad_size:
+                                   yhigh - self.pad_size]
+
+            # Use an asinh stretch to highlight all features
+            from astropy.visualization import AsinhStretch
+            from astropy.visualization.mpl_normalize import ImageNormalize
+
+            vmin = np.nanmin(img_slice)
+            vmax = np.nanmax(img_slice)
+            p.imshow(img_slice, cmap='binary', origin='lower',
+                     norm=ImageNormalize(vmin=vmin, vmax=vmax,
+                                         stretch=AsinhStretch()))
+            cbar = p.colorbar()
+            cbar.set_label(r'Intensity')
+
+            if save_png:
+                try_mkdir(self.save_name)
+                filename = \
+                    "{0}_width_fit_{1}.png".format(self.save_name, n)
+                p.savefig(os.path.join(self.save_name, filename))
+            if verbose:
+                p.show()
+            if in_ipynb():
+                p.clf()
+
+        # Final width check -- make sure length is longer than the width.
+        # If it is, add the width onto the length since the adaptive
+        # thresholding shortens each edge by the about the same.
+        if self.lengths[n] > fit[-1]:
+            self.lengths[n] += fit[-1]
+        else:
+            fail_flag = True
+
+        # If fail_flag has been set to true in any of the fitting steps,
+        # set results to nans
+        if fail_flag:
+            fit = [np.NaN] * len(fit)
+            fit_error = [np.NaN] * len(fit)
+
+        # Using the unbinned profiles, we can find the total filament
+        # brightness. This can later be used to estimate the mass
+        # contained in each filament.
+        within_width = np.where(unbin_dist <= fit[1])
+        if within_width[0].size:  # Check if its empty
+            # Subtract off the estimated background
+            fil_bright = unbin_radprof[within_width] - fit[2]
+            sum_bright = np.sum(fil_bright[fil_bright >= 0], axis=None)
+            self.total_intensity[n] = sum_bright * self.angular_scale
+        else:
+            self.total_intensity[n] = np.NaN
+
+            self.width_fits["Parameters"][n, :] = fit
+            self.width_fits["Errors"][n, :] = fit_error
+            self.width_fits["Type"][n] = fit_type
+        self.width_fits["Names"] = parameter_names
+
+    @property
+    def radprofile(self):
+        '''
+        The binned radial profile created in `~FilFinder2D.width_analysis`.
+        This contains the distances and the profile value in the distance bin.
+        '''
+        return self._radprofile
+
+    @property
+    def radprof_params(self):
+        '''
+        Fit parameters from `~FilFinder2D.width_analysis`.
+        '''
+        return self._radprof_params
+
+    @property
+    def radprof_errors(self):
+        '''
+        Fit uncertainties from `~FilFinder2D.width_analysis`.
+        '''
+        return self._radprof_errors
+
+    @property
+    def radprof_fit_table(self):
+        '''
+        Return an `~astropy.table.Table` with the fit parameters and
+        uncertainties.
+        '''
+        raise NotImplementedError("")
+
+    @property
+    def radprof_model(self):
+        '''
+        The fitted radial profile model.
+        '''
+        return self._radprof_model
 
     def profile_analysis(self):
         pass
