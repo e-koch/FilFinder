@@ -429,14 +429,26 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
 
     pad_pixel_distance = int(pad_to_distance * img_scale ** -1)
 
+    # Don't necessarily need dist_transform_all. If None, skip some parts
+    if dist_transform_all is None:
+        check_global = False
+    else:
+        check_global = True
+
     for i in range(len(x)):
         # Check overall distance transform to make sure pixel belongs to proper
         # filament
         img_val = img[x_full[i], y_full[i]]
         sep_dist = dist_transform_sep[x[i], y[i]]
-        glob_dist = dist_transform_all[x_full[i], y_full[i]]
-        if img_val != 0.0 and np.isfinite(img_val):
-            if sep_dist <= glob_dist + pad_pixel_distance:
+        if check_global:
+            glob_dist = dist_transform_all[x_full[i], y_full[i]]
+        if np.isfinite(img_val):
+            if check_global:
+                # Include the point if it falls within the pad distance.
+                if sep_dist <= glob_dist + pad_pixel_distance:
+                    width_value.append(img_val)
+                    width_distance.append(sep_dist)
+            else:
                 width_value.append(img_val)
                 width_distance.append(sep_dist)
 
