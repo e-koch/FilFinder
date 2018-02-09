@@ -815,6 +815,8 @@ class Filament2D(FilamentNDBase):
         plt.ylabel(r'Intensity')
         plt.grid(True)
 
+        plt.tight_layout()
+
         if save_name is not None:
             plt.savefig(save_name)
 
