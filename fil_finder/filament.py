@@ -500,6 +500,8 @@ class Filament2D(FilamentNDBase):
 
         Parameters
         ----------
+        image : `~astropy.unit.Quantity` or `~numpy.ndarray`
+            The image from which the filament was extracted.
         max_dist : `~astropy.units.Quantity`, optional
             Largest radius around the skeleton to create the profile from. This
             can be given in physical, angular, or physical units.
@@ -599,6 +601,18 @@ class Filament2D(FilamentNDBase):
         else:
             dist, radprof, weights, unbin_dist, unbin_radprof = out
 
+        # Attach units
+        xunit = u.pix
+        if hasattr(image, 'unit'):
+            yunit = image.unit
+        else:
+            yunit = u.dimensionless_unscaled
+
+        self._yunit = yunit
+
+        radprof = radprof * yunit
+        dist = dist * xunit
+
         self._radprofile = [dist, radprof]
 
         # Make sure the given model is valid
@@ -625,17 +639,16 @@ class Filament2D(FilamentNDBase):
             # appear in the covariance matrix.
             params = []
             names = []
-            for val, name in zip(fitted_model.parameters,
-                                 fitted_model.param_names):
+            for name in fitted_model.param_names:
                 # Check if it is fixed:
                 if fitted_model.fixed[name]:
                     continue
 
-                params.append(val)
+                params.append(getattr(fitted_model, name).quantity)
                 names.append(name)
 
-            self._radprof_params = np.array(params)
-            npar = self.radprof_params.size
+            self._radprof_params = params
+            npar = len(self.radprof_params)
 
             self._radprof_parnames = names
 
@@ -665,11 +678,15 @@ class Filament2D(FilamentNDBase):
                                None, 5, 99)
 
             # Make the equivalent Gaussian model w/ a background
-            self._radprof_model = Gaussian1D(fit[0], 0.0, fit[1]) + \
-                Const1D(fit[2])
-            # Slice out the FWHM
-            self._radprof_params = fit[:-1]
-            self._radprof_errors = fit_error[:-1]
+            self._radprof_model = Gaussian1D(fit[0] * yunit, 0.0 * xunit,
+                                             fit[1] * xunit) + \
+                Const1D(fit[2] * yunit)
+            # Slice out the FWHM and add units
+            params = [fit[0] * yunit, fit[1] * xunit, fit[2] * yunit]
+            errs = [fit_error[0] * yunit, fit_error[1] * xunit,
+                    fit_error[2] * yunit]
+            self._radprof_params = params
+            self._radprof_errors = errs
             self._radprof_parnames = ['amplitude_0', 'stddev', 'amplitude_1']
 
         if fwhm_function is not None:
@@ -704,8 +721,8 @@ class Filament2D(FilamentNDBase):
             fwhm_deconv = fwhm
             fwhm_deconv_err = fwhm_err
 
-        self._fwhm = fwhm_deconv * u.pix
-        self._fwhm_err = fwhm_deconv_err * u.pix
+        self._fwhm = fwhm_deconv
+        self._fwhm_err = fwhm_deconv_err
 
         # Final width check -- make sure length is longer than the width.
         # If it is, add the width onto the length since the adaptive
@@ -811,7 +828,7 @@ class Filament2D(FilamentNDBase):
         '''
         return self._radprof_model
 
-    def plot_radial_profile(self, save_name=None):
+    def plot_radial_profile(self, save_name=None, xunit=u.pix, yunit=None):
         '''
         Plot the radial profile of the filament and the fitted model.
         '''
@@ -820,16 +837,21 @@ class Filament2D(FilamentNDBase):
 
         model = self.radprof_model
 
+        if yunit is None:
+            yunit = self._yunit
+
+        conv_dist = self._converter.from_pixel(dist, xunit)
+
         import matplotlib.pyplot as plt
 
-        plt.plot(dist, radprof, "kD")
-        points = np.linspace(np.min(dist), np.max(dist), 2 * len(dist))
-        try:  # If FWHM is appended on, will get TypeError
-            plt.plot(points, model(points), "r")
-        except TypeError:
-            plt.plot(points, model(points), "r")
-        plt.xlabel(r'Radial Distance (pc)')
-        plt.ylabel(r'Intensity')
+        plt.plot(conv_dist, radprof.to(yunit), "kD")
+        points = np.linspace(np.min(dist),
+                             np.max(dist), 5 * len(dist))
+        conv_points = np.linspace(np.min(conv_dist),
+                                  np.max(conv_dist), 5 * len(conv_dist))
+        plt.plot(conv_points, model(points), "r")
+        plt.xlabel(r'Radial Distance ({})'.format(xunit))
+        plt.ylabel(r'Intensity ({})'.format(yunit))
         plt.grid(True)
 
         plt.tight_layout()
