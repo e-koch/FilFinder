@@ -6,14 +6,16 @@ import networkx as nx
 import warnings
 import scipy.ndimage as nd
 from astropy.nddata import extract_array
+import astropy.modeling as mod
 
 from .length import (init_lengths, main_length, make_final_skeletons,
                      pre_graph, longest_path, prune_graph)
 from .pixel_ident import pix_identify
-from .utilities import pad_image
+from .utilities import pad_image, in_ipynb, red_chisq
 from .base_conversions import UnitConverter
 from .rollinghough import rht
-from .width import radial_profile
+from .width import (radial_profile, gaussian_model, fit_radial_model,
+                    nonparam_width)
 
 
 class FilamentNDBase(object):
@@ -165,7 +167,7 @@ class Filament2D(FilamentNDBase):
             pix_identify([self.skeleton(pad_size=pad_size)], 1)
 
         # Do we need to pad the image before slicing?
-        input_image = pad_image(image, self.pixel_extents, pad_size)[0]
+        input_image = pad_image(image, self.pixel_extents, pad_size)
 
         # If the padded image matches the mask size, don't need additional
         # slicing
@@ -483,11 +485,15 @@ class Filament2D(FilamentNDBase):
 
     def width_analysis(self, image, all_skeleton_array=None,
                        max_dist=10 * u.pix,
-                       # fit_model=gauss_model,
+                       fit_model='gaussian_bkg',
+                       fitter=None,
                        try_nonparam=True,
-                       use_longest_path=False, verbose=False, save_png=False,
+                       use_longest_path=False,
                        add_width_to_length=False,
                        deconvolve_width=True,
+                       beamwidth=None,
+                       fwhm_function=None,
+                       chisq_max=10.,
                        **kwargs):
         '''
 
@@ -500,10 +506,43 @@ class Filament2D(FilamentNDBase):
             An array with the skeletons of other filaments. This is used to
             avoid double-counting pixels in the radial profiles in nearby
             filaments.
+        max_dist : `~astropy.units.Quantity`, optional
+            The maximum distance away from the skeleton to build the profile
+            to.
+        fit_model : str or `~astropy.modeling.Fittable1DModel`, optional
+            The model to fit to the profile. Built-in models include
+            'gaussian_bkg' for a Gaussian with a constant background,
+            'gaussian_nobkg' for just a Gaussian, 'nonparam' for the
+            non-parametric estimator. MORE??
+        fitter : `~astropy.modeling.fitting.Fitter`, optional
+            One of the astropy fitting classes. Defaults to a
+            Levenberg-Marquardt fitter.
+        try_nonparam : bool, optional
+            If the chosen model fit fails, fall back to a non-parametric
+            estimate.
+
+        beamwidth : `~astropy.units.Quantity`, optional
+            The beam width to deconvolve the FWHM from. Require if
+            `deconvolve_width = True`.
+        fwhm_function : function, optional
+            Convert the width parameter to the FWHM. Must take the fit model
+            as an argument and return the FWHM and its uncertainty. If no
+            function is given, the Gaussian FWHM is used.
+        chisq_max : float, optional
+            Enable the fail flag if the reduced chi-squared value is above
+            this limit.
 
         '''
 
+        # Convert quantities to pixel units.
         max_dist = self._converter.to_pixel(max_dist).value
+
+        if deconvolve_width and beamwidth is None:
+            raise ValueError("beamwidth must be given when deconvolve_width is"
+                             " enabled.")
+
+        if beamwidth is not None:
+            beamwidth = self._converter.to_pixel(beamwidth).values
 
         # Use the max dist as the pad size
         pad_size = int(np.ceil(max_dist))
@@ -561,116 +600,135 @@ class Filament2D(FilamentNDBase):
 
         self._radprofile = [dist, radprof]
 
-        print(STOP)
+        # Make sure the given model is valid
+        if not isinstance(fit_model, mod.Model):
+            skip_fitting = False
+            # Check the default types
+            if fit_model == "gaussian_bkg":
+                fit_model = gaussian_model(dist, radprof, with_bkg=True)
+            elif fit_model == "gaussian_nobkg":
+                fit_model = gaussian_model(dist, radprof, with_bkg=False)
+            elif fit_model == "non-param":
+                skip_fitting = True
+            else:
+                raise ValueError("fit_model must be an "
+                                 "astropy.modeling.Fittable1DModel or "
+                                 "one of the default models: 'gaussian_bkg',"
+                                 " 'gaussian_nobkg', or 'nonparam'.")
 
-        fit, fit_error, model, parameter_names, fail_flag = \
-            fit_model(dist, radprof, weights, self.beamwidth)
+        if not skip_fitting:
+            fitted_model, fitter = fit_radial_model(dist, radprof, fit_model,
+                                                    weights=weights)
 
-        # Get the function's name to track where fit values come from
-        fit_type = str(model.__name__)
+            self._radprof_params = fitted_model.parameters
+            npar = self.radprof_params.size
 
-        if not fail_flag:
-            chisq = red_chisq(radprof, model(dist, *fit[:-1]), 3, 1)
-        else:
-            # Give a value above threshold to try non-parametric fit
-            chisq = 11.0
+            self._radprof_parnames = fitted_model.param_names
 
-        # If the model isn't doing a good job, try it non-parametrically
-        if chisq > 10.0 and try_nonparam:
+            self._radprof_model = fitted_model
+            self._radprof_fitter = fitter
+
+            # Fail checks
+            fail_flag = False
+
+            param_cov = fitter.fit_info.get('param_cov')
+            if param_cov is not None:
+                fit_uncert = np.sqrt(np.diag(param_cov))
+            else:
+                fit_uncert = np.array([np.NaN] * npar)
+                fail_flag = True
+
+            self._radprof_errors = fit_uncert
+
+            chisq = red_chisq(radprof, fitted_model(dist), npar, 1)
+
+            if chisq > chisq_max:
+                fail_flag = True
+
+        if (skip_fitting or fail_flag) and try_nonparam:
             fit, fit_error, fail_flag = \
                 nonparam_width(dist, radprof, unbin_dist, unbin_radprof,
-                               self.beamwidth, 5, 99)
-            # Change the fit type.
-            fit_type = "nonparam"
+                               None, 5, 99)
 
-        if verbose or save_png:
-            if verbose:
-                print("%s in %s" % (n, self.number_of_filaments))
-                print("Fit Parameters: %s " % (fit))
-                print("Fit Errors: %s" % (fit_error))
-                print("Fit Type: %s" % (fit_type))
+            self._radprof_model = "non-param"
+            # Slice out the FWHM
+            self._radprof_params = fit[:-1]
+            self._radprof_errors = fit_error[:-1]
 
-            p.clf()
-            p.subplot(121)
-            p.plot(dist, radprof, "kD")
-            points = np.linspace(np.min(dist), np.max(dist), 2 * len(dist))
-            try:  # If FWHM is appended on, will get TypeError
-                p.plot(points, model(points, *fit), "r")
-            except TypeError:
-                p.plot(points, model(points, *fit[:-1]), "r")
-            p.xlabel(r'Radial Distance (pc)')
-            p.ylabel(r'Intensity')
-            p.grid(True)
+        if fwhm_function is not None:
+            fwhm = fwhm_function(fitted_model)
+        else:
+            # Default to Gaussian FWHM
+            if self.radprof_model == 'non-param':
+                idx = 1
+                found_width = True
+            else:
+                for idx, name in enumerate(self.radprof_parnames):
+                    if "stddev" in name:
+                        found_width = True
+                        break
 
-            p.subplot(122)
+            if found_width:
+                fwhm = self.radprof_params[idx] * np.sqrt(8 * np.log(2))
+                fwhm_err = self.radprof_errors[idx] * np.sqrt(8 * np.log(2))
+            else:
+                raise ValueError("Could not automatically identify which "
+                                 "parameter in the model corresponds to the "
+                                 "width. Please pass a function to "
+                                 "'fwhm_function' to identify the width "
+                                 "parameter.")
 
-            xlow, ylow = (self.array_offsets[n][0][0],
-                          self.array_offsets[n][0][1])
-            xhigh, yhigh = (self.array_offsets[n][1][0],
-                            self.array_offsets[n][1][1])
-            shape = (xhigh - xlow, yhigh - ylow)
+        if deconvolve_width:
+            fwhm_deconv_sq = fwhm**2 - beamwidth**2
+            if fwhm_deconv_sq > 0:
+                fwhm_deconv = np.sqrt(fwhm_deconv_sq)
+                fwhm_deconv_err = fwhm * fwhm_err / fwhm_deconv
+            else:
+                fwhm_deconv = np.NaN
+                warnings.warn("Width could not be deconvolved from the beam "
+                              "width.")
+        else:
+            fwhm_deconv = fwhm
+            fwhm_deconv_err = fwhm_err
 
-            p.contour(skel_arrays[n]
-                      [self.pad_size:shape[0] - self.pad_size,
-                       self.pad_size:shape[1] - self.pad_size], colors="r")
-
-            img_slice = self.image[xlow + self.pad_size:
-                                   xhigh - self.pad_size,
-                                   ylow + self.pad_size:
-                                   yhigh - self.pad_size]
-
-            # Use an asinh stretch to highlight all features
-            from astropy.visualization import AsinhStretch
-            from astropy.visualization.mpl_normalize import ImageNormalize
-
-            vmin = np.nanmin(img_slice)
-            vmax = np.nanmax(img_slice)
-            p.imshow(img_slice, cmap='binary', origin='lower',
-                     norm=ImageNormalize(vmin=vmin, vmax=vmax,
-                                         stretch=AsinhStretch()))
-            cbar = p.colorbar()
-            cbar.set_label(r'Intensity')
-
-            if save_png:
-                try_mkdir(self.save_name)
-                filename = \
-                    "{0}_width_fit_{1}.png".format(self.save_name, n)
-                p.savefig(os.path.join(self.save_name, filename))
-            if verbose:
-                p.show()
-            if in_ipynb():
-                p.clf()
+        self._fwhm = fwhm_deconv * u.pix
+        self._fwhm_err = fwhm_deconv_err * u.pix
 
         # Final width check -- make sure length is longer than the width.
         # If it is, add the width onto the length since the adaptive
         # thresholding shortens each edge by the about the same.
-        if self.lengths[n] > fit[-1]:
-            self.lengths[n] += fit[-1]
-        else:
+        if self.length() < self._fwhm:
             fail_flag = True
 
-        # If fail_flag has been set to true in any of the fitting steps,
-        # set results to nans
-        if fail_flag:
-            fit = [np.NaN] * len(fit)
-            fit_error = [np.NaN] * len(fit)
+        # Add the width onto the length if enabled
+        if add_width_to_length:
+            if fail_flag:
+                warnings.warn("Ignoring adding the width to the length because"
+                              " the fail flag was raised for the fit.")
+            else:
+                self._length += self._fwhm
+
+        self._radprof_failflag = fail_flag
 
         # Using the unbinned profiles, we can find the total filament
         # brightness. This can later be used to estimate the mass
         # contained in each filament.
-        within_width = np.where(unbin_dist <= fit[1])
-        if within_width[0].size:  # Check if its empty
-            # Subtract off the estimated background
-            fil_bright = unbin_radprof[within_width] - fit[2]
-            sum_bright = np.sum(fil_bright[fil_bright >= 0], axis=None)
-            self.total_intensity[n] = sum_bright * self.angular_scale
-        else:
-            self.total_intensity[n] = np.NaN
 
-            self.width_fits["Parameters"][n, :] = fit
-            self.width_fits["Errors"][n, :] = fit_error
-            self.width_fits["Type"][n] = fit_type
-        self.width_fits["Names"] = parameter_names
+        # within_width = np.where(unbin_dist <= fit[1])
+        # if within_width[0].size:  # Check if its empty
+        #     # Subtract off the estimated background
+        #     fil_bright = unbin_radprof[within_width] - fit[2]
+        #     sum_bright = np.sum(fil_bright[fil_bright >= 0], axis=None)
+        #     self.total_intensity[n] = sum_bright * self.angular_scale
+        # else:
+        #     self.total_intensity[n] = np.NaN
+
+    @property
+    def radprof_fit_fail_flag(self):
+        '''
+        Flag to catch poor fits.
+        '''
+        return self._radprof_failflag
 
     @property
     def radprofile(self):
@@ -694,6 +752,20 @@ class Filament2D(FilamentNDBase):
         '''
         return self._radprof_errors
 
+    def radprof_fwhm(self, unit=u.pixel):
+        '''
+        The FWHM of the fitted radial profile and its uncertainty.
+        '''
+        return self._converter.from_pixel(self._fwhm, unit), \
+            self._converter.from_pixel(self._fwhm_err, unit)
+
+    @property
+    def radprof_parnames(self):
+        '''
+        Parameter names from `~FilFinder2D.radprof_model`.
+        '''
+        return self._radprof_parnames
+
     @property
     def radprof_fit_table(self):
         '''
@@ -708,6 +780,34 @@ class Filament2D(FilamentNDBase):
         The fitted radial profile model.
         '''
         return self._radprof_model
+
+    def plot_radial_profile(self, save_name=None):
+        '''
+        Plot the radial profile of the filament and the fitted model.
+        '''
+
+        dist, radprof = self.radprofile
+
+        model = self.radprof_model
+
+        import matplotlib.pyplot as plt
+
+        plt.plot(dist, radprof, "kD")
+        points = np.linspace(np.min(dist), np.max(dist), 2 * len(dist))
+        try:  # If FWHM is appended on, will get TypeError
+            plt.plot(points, model(points), "r")
+        except TypeError:
+            plt.plot(points, model(points), "r")
+        plt.xlabel(r'Radial Distance (pc)')
+        plt.ylabel(r'Intensity')
+        plt.grid(True)
+
+        if save_name is not None:
+            plt.savefig(save_name)
+
+        plt.show()
+        if in_ipynb():
+            plt.clf()
 
     def profile_analysis(self):
         pass
