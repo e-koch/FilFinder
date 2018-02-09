@@ -620,10 +620,23 @@ class Filament2D(FilamentNDBase):
             fitted_model, fitter = fit_radial_model(dist, radprof, fit_model,
                                                     weights=weights)
 
-            self._radprof_params = fitted_model.parameters
+            # Only keep the non-fixed parameters. The fixed parameters won't
+            # appear in the covariance matrix.
+            params = []
+            names = []
+            for val, name in zip(fitted_model.parameters,
+                                 fitted_model.param_names):
+                # Check if it is fixed:
+                if fitted_model.fixed[name]:
+                    continue
+
+                params.append(val)
+                names.append(name)
+
+            self._radprof_params = np.array(params)
             npar = self.radprof_params.size
 
-            self._radprof_parnames = fitted_model.param_names
+            self._radprof_parnames = names
 
             self._radprof_model = fitted_model
             self._radprof_fitter = fitter
