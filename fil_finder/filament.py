@@ -7,6 +7,7 @@ import warnings
 import scipy.ndimage as nd
 from astropy.nddata import extract_array
 import astropy.modeling as mod
+from astropy.modeling.models import Gaussian1D, Const1D
 
 from .length import (init_lengths, main_length, make_final_skeletons,
                      pre_graph, longest_path, prune_graph)
@@ -513,7 +514,7 @@ class Filament2D(FilamentNDBase):
             The model to fit to the profile. Built-in models include
             'gaussian_bkg' for a Gaussian with a constant background,
             'gaussian_nobkg' for just a Gaussian, 'nonparam' for the
-            non-parametric estimator. MORE??
+            non-parametric estimator. Defaults to 'gaussian_bkg'.
         fitter : `~astropy.modeling.fitting.Fitter`, optional
             One of the astropy fitting classes. Defaults to a
             Levenberg-Marquardt fitter.
@@ -608,7 +609,7 @@ class Filament2D(FilamentNDBase):
                 fit_model = gaussian_model(dist, radprof, with_bkg=True)
             elif fit_model == "gaussian_nobkg":
                 fit_model = gaussian_model(dist, radprof, with_bkg=False)
-            elif fit_model == "non-param":
+            elif fit_model == "nonparam":
                 skip_fitting = True
             else:
                 raise ValueError("fit_model must be an "
@@ -663,23 +664,22 @@ class Filament2D(FilamentNDBase):
                 nonparam_width(dist, radprof, unbin_dist, unbin_radprof,
                                None, 5, 99)
 
-            self._radprof_model = "non-param"
+            # Make the equivalent Gaussian model w/ a background
+            self._radprof_model = Gaussian1D(fit[0], 0.0, fit[1]) + \
+                Const1D(fit[2])
             # Slice out the FWHM
             self._radprof_params = fit[:-1]
             self._radprof_errors = fit_error[:-1]
+            self._radprof_parnames = ['amplitude_0', 'stddev', 'amplitude_1']
 
         if fwhm_function is not None:
             fwhm = fwhm_function(fitted_model)
         else:
             # Default to Gaussian FWHM
-            if self.radprof_model == 'non-param':
-                idx = 1
-                found_width = True
-            else:
-                for idx, name in enumerate(self.radprof_parnames):
-                    if "stddev" in name:
-                        found_width = True
-                        break
+            for idx, name in enumerate(self.radprof_parnames):
+                if "stddev" in name:
+                    found_width = True
+                    break
 
             if found_width:
                 fwhm = self.radprof_params[idx] * np.sqrt(8 * np.log(2))
