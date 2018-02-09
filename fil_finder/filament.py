@@ -779,13 +779,30 @@ class Filament2D(FilamentNDBase):
         '''
         return self._radprof_parnames
 
-    @property
     def radprof_fit_table(self):
         '''
         Return an `~astropy.table.Table` with the fit parameters and
         uncertainties.
         '''
-        raise NotImplementedError("")
+
+        from astropy.table import Table
+
+        params_dict = {}
+
+        for name, val, err in zip(self.radprof_parnames, self.radprof_params,
+                                  self.radprof_errors):
+
+            params_dict[name] = [val]
+            params_dict[name + "_err"] = [err]
+
+        # Add on the FWHM
+        params_dict['fwhm'] = [self.radprof_fwhm()[0].value]
+        params_dict['fwhm_err'] = [self.radprof_fwhm()[1].value]
+
+        # Add on whether the fit was "successful"
+        params_dict['Fail_Flag'] = [self.radprof_fit_fail_flag]
+
+        return Table(params_dict)
 
     @property
     def radprof_model(self):
