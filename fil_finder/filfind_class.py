@@ -119,9 +119,7 @@ class fil_finder_2D(BaseInfoMixin):
         process. The algorithm will skeletonize and run the analysis portions
         only.
     freq : float, optional
-        **NOT FULLY SUPPORTED IN THIS RELEASE**
-        Frequency of the image. This is required for using the cylindrical
-        model (cyl_model) for the widths.
+        **Deprecated. Has no effect.**
     save_name : str, optional
         Sets the prefix name that is used for output files. Can be overridden
         in ``save_fits`` and ``save_table``. Default is "FilFinder_output".
@@ -1079,15 +1077,15 @@ class fil_finder_2D(BaseInfoMixin):
                 self.width_fits["Type"][n] = 'g'
                 continue
 
-            if fit_model == cyl_model:
-                if self.freq is None:
-                    print('''Image not converted to column density.
-                             Fit parameters will not match physical meaning.
-                             lease specify frequency.''')
-                else:
-                    assert isinstance(self.freq, float)
-                    radprof = dens_func(
-                        planck(20., self.freq), 0.2, radprof) * (5.7e19)
+            # if fit_model == cyl_model:
+            #     if self.freq is None:
+            #         print('''Image not converted to column density.
+            #                  Fit parameters will not match physical meaning.
+            #                  lease specify frequency.''')
+            #     else:
+            #         assert isinstance(self.freq, float)
+            #         radprof = dens_func(
+            #             planck(20., self.freq), 0.2, radprof) * (5.7e19)
 
             fit, fit_error, model, parameter_names, fail_flag = \
                 fit_model(dist, radprof, weights, self.beamwidth)
