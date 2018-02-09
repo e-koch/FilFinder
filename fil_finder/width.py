@@ -10,6 +10,8 @@ from scipy.stats import scoreatpercentile, percentileofscore
 from scipy.interpolate import interp1d
 from scipy.signal import argrelmax, argrelmin
 from warnings import warn
+from astropy.modeling import fitting, models
+import astropy.modeling as mod
 
 
 def dist_transform(labelisofil, filclean_all):
@@ -49,6 +51,74 @@ def dist_transform(labelisofil, filclean_all):
         np.logical_not(filclean_all))
 
     return dist_transform_all, dist_transform_sep
+
+
+def gaussian_model(dist, radprof, with_bkg=True):
+    '''
+    Return a Gaussian model with initial parameter guesses. The model is for
+    radial profiles and the peak is assumed to be fixed at the centre.
+
+    Parameters
+    ----------
+    dist : `~numpy.ndarray`
+        Distance bins of the radial profile.
+    radprof : `~numpy.ndarray`
+        The binned radial profile.
+    with_bkg : bool, optional
+        Add constant background to the fit when enabled.
+    '''
+
+    inner_width = np.std(dist)
+
+    mod = models.Gaussian1D(amplitude=np.max(radprof[dist < inner_width]),
+                            mean=0.0,
+                            stddev=inner_width)
+
+    # Fix the mean to 0, since this is for radial profiles.
+    mod.mean.fixed = True
+
+    if with_bkg:
+        bkg_mod = models.Const1D(np.min(radprof))
+        bkg_mod = bkg_mod.rename("Bkg")
+        mod = mod + bkg_mod
+
+    return mod
+
+
+def fit_radial_model(dist, radprof, model, fitter=None, weights=None,
+                     **fitter_kwargs):
+    '''
+    Fit a model to the radial profile.
+
+    Parameters
+    ----------
+    dist :
+
+    radprof :
+
+    model : `~astropy.modeling.models.Fittable1DModel`
+        An astropy model object to fit to.
+    fitter : `~astropy.modeling.fitting.Fitter`, optional
+        One of the fitting classes from astropy. This should probably be a
+        non-linear fitting algorithm, but it depends on the chosen model.
+        Defaults to a Levenberg-Marquardt fitter.
+    weights : `~numpy.ndarray`, optional
+        Weights to apply in the fitting.
+    '''
+
+    if not isinstance(model, mod.Model):
+        raise TypeError("The model must be a 1D astropy model.")
+
+    if fitter is None:
+        fitter = fitting.LevMarLSQFitter()
+    else:
+        if not isinstance(fitter, fitting.Fitter):
+            raise TypeError("The fitter must be one of the "
+                            "astropy.modeling.fitting classes.")
+
+    fitted_mod = fitter(model, dist, radprof, weights=weights, **fitter_kwargs)
+
+    return fitted_mod, fitter
 
 
 def cyl_model(distance, rad_profile, img_beam):
@@ -265,7 +335,7 @@ def lorentzian_model(distance, rad_profile, img_beam):
 
 
 def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
-                   img_beam, bkg_percent, peak_percent):
+                   img_beam=None, bkg_percent=5, peak_percent=99):
     '''
     Estimate the width and peak brightness of a filament non-parametrically.
     The intensity at the peak and background is estimated. The profile is then
@@ -283,11 +353,11 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
         Unbinned distances.
     unbin_prof : list
         Unbinned intensity values.
-    img_beam : float
+    img_beam : float, optional
         FWHM of the beam size.
-    bkg_percent : float
+    bkg_percent : float, optional
         Percentile of the data to estimate the background.
-    peak_percent : float
+    peak_percent : float, optional
         Percentile of the data to estimate the peak of the profile.
 
     Returns
@@ -329,15 +399,20 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
 
     # Deconvolve the width with the beam size.
     factor = 2 * np.sqrt(2 * np.log(2))  # FWHM factor
+    if img_beam is not None:
 
-    deconv = (width * factor) ** 2. - img_beam ** 2.
-    if deconv > 0:
-        fwhm_width = np.sqrt(deconv)
-        fwhm_error = (factor**2 * width * width_error) / fwhm_width
-    else:  # Set to zero, can't be deconvolved
-        # If you can't devolve it, set it to minimum, which is the beam-size.
-        fwhm_width = 0.0
-        fwhm_error = 0.0
+        deconv = (width * factor) ** 2. - img_beam ** 2.
+        if deconv > 0:
+            fwhm_width = np.sqrt(deconv)
+            fwhm_error = (factor**2 * width * width_error) / fwhm_width
+        else:  # Set to zero, can't be deconvolved
+            # If you can't devolve it, set it to minimum, which is the
+            # beam-size.
+            fwhm_width = 0.0
+            fwhm_error = 0.0
+    else:
+        fwhm_width = width * factor
+        fwhm_error = width_error * factor
 
     # Check where the "background" and "peak" are. If the peak distance is
     # greater, we are simply looking at a bad radial profile.
