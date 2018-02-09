@@ -660,10 +660,19 @@ class Filament2D(FilamentNDBase):
 
             param_cov = fitter.fit_info.get('param_cov')
             if param_cov is not None:
-                fit_uncert = np.sqrt(np.diag(param_cov))
+                fit_uncert = list(np.sqrt(np.diag(param_cov)))
             else:
-                fit_uncert = np.array([np.NaN] * npar)
+                fit_uncert = [np.NaN] * npar
                 fail_flag = True
+
+            if len(fit_uncert) != len(params):
+                raise ValueError("The number of parameters does not match the "
+                                 "number from the covariance matrix. Check for"
+                                 " fixed parameters.")
+
+            # Add units to errors
+            for i, par in enumerate(params):
+                fit_uncert[i] = fit_uncert[i] * par.unit
 
             self._radprof_errors = fit_uncert
 
@@ -796,28 +805,37 @@ class Filament2D(FilamentNDBase):
         '''
         return self._radprof_parnames
 
-    def radprof_fit_table(self):
+    def radprof_fit_table(self, xunit=u.pix):
         '''
         Return an `~astropy.table.Table` with the fit parameters and
         uncertainties.
         '''
 
-        from astropy.table import Table
+        from astropy.table import Table, Column
 
         params_dict = {}
 
         for name, val, err in zip(self.radprof_parnames, self.radprof_params,
                                   self.radprof_errors):
 
-            params_dict[name] = [val]
-            params_dict[name + "_err"] = [err]
+            # Try converting to the given xunit. Assume failures are not length
+            # units.
+            try:
+                conv_val = self._converter.from_pixel(val, xunit)
+                conv_err = self._converter.from_pixel(err, xunit)
+            except u.UnitsError:
+                conv_val = val
+                conv_err = err
+
+            params_dict[name] = [Column(conv_val)]
+            params_dict[name + "_err"] = [Column(conv_err)]
 
         # Add on the FWHM
-        params_dict['fwhm'] = [self.radprof_fwhm()[0].value]
-        params_dict['fwhm_err'] = [self.radprof_fwhm()[1].value]
+        params_dict['fwhm'] = [Column(self.radprof_fwhm(xunit)[0])]
+        params_dict['fwhm_err'] = [Column(self.radprof_fwhm(xunit)[1])]
 
         # Add on whether the fit was "successful"
-        params_dict['Fail_Flag'] = [self.radprof_fit_fail_flag]
+        params_dict['Fail_Flag'] = [Column(self.radprof_fit_fail_flag)]
 
         return Table(params_dict)
 
