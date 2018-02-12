@@ -545,7 +545,7 @@ class Filament2D(FilamentNDBase):
                              " enabled.")
 
         if beamwidth is not None:
-            beamwidth = self._converter.to_pixel(beamwidth).values
+            beamwidth = self._converter.to_pixel(beamwidth)
 
         # Use the max dist as the pad size
         pad_size = int(np.ceil(max_dist))
@@ -592,7 +592,6 @@ class Filament2D(FilamentNDBase):
                              dist_skel_arr,
                              [(0, 0), (0, 0)],
                              max_distance=max_dist,
-                             auto_cut=False,
                              **kwargs)
 
         if out is None:
@@ -683,7 +682,8 @@ class Filament2D(FilamentNDBase):
 
         if (skip_fitting or fail_flag) and try_nonparam:
             fit, fit_error, fail_flag = \
-                nonparam_width(dist, radprof, unbin_dist, unbin_radprof,
+                nonparam_width(dist.value, radprof.value,
+                               unbin_dist, unbin_radprof,
                                None, 5, 99)
 
             # Make the equivalent Gaussian model w/ a background
@@ -696,7 +696,7 @@ class Filament2D(FilamentNDBase):
                     fit_error[2] * yunit]
             self._radprof_params = params
             self._radprof_errors = errs
-            self._radprof_parnames = ['amplitude_0', 'stddev', 'amplitude_1']
+            self._radprof_parnames = ['amplitude_0', 'stddev_0', 'amplitude_1']
 
         if fwhm_function is not None:
             fwhm = fwhm_function(fitted_model)
@@ -846,7 +846,8 @@ class Filament2D(FilamentNDBase):
         '''
         return self._radprof_model
 
-    def plot_radial_profile(self, save_name=None, xunit=u.pix, yunit=None):
+    def plot_radial_profile(self, save_name=None, xunit=u.pix, yunit=None,
+                            ax=None):
         '''
         Plot the radial profile of the filament and the fitted model.
         '''
@@ -862,15 +863,18 @@ class Filament2D(FilamentNDBase):
 
         import matplotlib.pyplot as plt
 
-        plt.plot(conv_dist, radprof.to(yunit), "kD")
+        if ax is None:
+            ax = plt.subplot(111)
+
+        ax.plot(conv_dist, radprof.to(yunit), "kD")
         points = np.linspace(np.min(dist),
                              np.max(dist), 5 * len(dist))
         conv_points = np.linspace(np.min(conv_dist),
                                   np.max(conv_dist), 5 * len(conv_dist))
-        plt.plot(conv_points, model(points), "r")
-        plt.xlabel(r'Radial Distance ({})'.format(xunit))
-        plt.ylabel(r'Intensity ({})'.format(yunit))
-        plt.grid(True)
+        ax.plot(conv_points, model(points), "r")
+        ax.set_xlabel(r'Radial Distance ({})'.format(xunit))
+        ax.set_ylabel(r'Intensity ({})'.format(yunit))
+        ax.grid(True)
 
         plt.tight_layout()
 
