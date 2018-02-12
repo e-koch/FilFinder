@@ -162,8 +162,6 @@ class FilFinder2D(BaseInfoMixin):
         self.imgscale = self.converter.physical_size
         self.angular_scale = (self.converter.ang_size**2).to(u.sr)
 
-        self.width_fits = {"Parameters": [], "Errors": [], "Names": None}
-        self.rht_curvature = {"Orientation": [], "Curvature": []}
         self.filament_arrays = {}
 
     def preprocess_image(self, flatten_percent=None):
@@ -813,7 +811,7 @@ class FilFinder2D(BaseInfoMixin):
 
                 if verbose:
                     if save_png:
-                        save_name = "{0}_{1}.png".format(self.save_name, i)
+                        save_name = "{0}_rht_{1}.png".format(self.save_name, i)
                     else:
                         save_name = None
                     fil.plot_rht_distrib(save_name=save_name)
@@ -850,8 +848,18 @@ class FilFinder2D(BaseInfoMixin):
         '''
         return [fil.curvature_branches for fil in self.filaments]
 
-    def find_widths(self, fit_model=gauss_model, try_nonparam=True,
-                    use_longest_paths=False, verbose=False, save_png=False,
+    def find_widths(self, max_dist=10 * u.pix,
+                    fit_model='gaussian_bkg',
+                    fitter=None,
+                    try_nonparam=True,
+                    use_longest_path=False,
+                    add_width_to_length=True,
+                    deconvolve_width=True,
+                    fwhm_function=None,
+                    chisq_max=10.,
+                    set_fail_to_nan=False,
+                    verbose=False, save_png=False,
+                    xunit=u.pix,
                     **kwargs):
         '''
 
@@ -899,166 +907,64 @@ class FilFinder2D(BaseInfoMixin):
 
         '''
 
-        if use_longest_paths:
-            skel_arrays = self.filament_arrays["long path"]
-        else:
-            skel_arrays = self.filament_arrays["final"]
-
-        dist_transform_all, dist_transform_separate = \
-            dist_transform(skel_arrays,
-                           self.skeleton)
-
-        # Prepare the storage
-        self.width_fits["Parameters"] = np.empty(
-            (self.number_of_filaments, 4))
-        self.width_fits["Errors"] = np.empty(
-            (self.number_of_filaments, 4))
-        self.width_fits["Type"] = np.empty(
-            (self.number_of_filaments), dtype="S")
-        self.total_intensity = np.empty(
-            (self.number_of_filaments, ))
-
-        for n in range(self.number_of_filaments):
-
-            # Need the unbinned data for the non-parametric fit.
-            out = \
-                radial_profile(self.image, dist_transform_all,
-                               dist_transform_separate[n],
-                               self.array_offsets[n], self.imgscale,
+        for i, fil in enumerate(self.filaments):
+            fil.width_analysis(self.flat_img, all_skeleton_array=self.skeleton,
+                               max_dist=max_dist, fit_model=fit_model,
+                               fitter=fitter, try_nonparam=try_nonparam,
+                               use_longest_path=use_longest_path,
+                               add_width_to_length=add_width_to_length,
+                               deconvolve_width=deconvolve_width,
+                               beamwidth=self.beamwidth,
+                               fwhm_function=fwhm_function,
+                               chisq_max=chisq_max,
                                **kwargs)
 
-            if out is not None:
-                dist, radprof, weights, unbin_dist, unbin_radprof = out
-            else:
-                self.total_intensity[n] = np.NaN
+            if verbose:
+                if save_png:
+                    save_name = "{0}_radprof_{1}.png".format(self.save_name, i)
+                else:
+                    save_name = None
+                fil.plot_radial_profile(save_name=save_name, xunit=xunit)
 
-                self.width_fits["Parameters"][n, :] = \
-                    [np.NaN] * 4
-                self.width_fits["Errors"][n, :] = \
-                    [np.NaN] * 4
-                self.width_fits["Type"][n] = 'g'
+        # Set failed fits to NaN if enabled
+        if set_fail_to_nan:
+            raise NotImplementedError("")
+
+    def widths(self, unit=u.pix):
+        '''
+        Fitted FWHM of the filaments and their uncertainties.
+
+        Parameters
+        ----------
+        unit : `~astropy.units.Quantity`, optional
+            The output unit for the FWHM. Default is in pixel units.
+        '''
+        pix_fwhm = np.array([fil.radprof_fwhm()[0].value for fil in
+                             self.filaments])
+        pix_fwhm_err = np.array([fil.radprof_fwhm()[1].value for fil in
+                                 self.filaments])
+        return self.converter.from_pixel(pix_fwhm * u.pix, unit), \
+            self.converter.from_pixel(pix_fwhm_err * u.pix, unit)
+
+    def width_fits(self, xunit=u.pix):
+        '''
+        Return an `~astropy.table.Table` of the width fit parameters,
+        uncertainties, and whether a flag was raised for a bad fit.
+        '''
+
+        from astropy.table import vstack as tab_vstack
+
+        for i, fil in enumerate(self.filaments):
+            if i == 0:
+                tab = fil.radprof_fit_table(xunit=xunit)
                 continue
 
-            if fit_model == cyl_model:
-                if self.freq is None:
-                    print('''Image not converted to column density.
-                             Fit parameters will not match physical meaning.
-                             lease specify frequency.''')
-                else:
-                    assert isinstance(self.freq, float)
-                    radprof = dens_func(
-                        planck(20., self.freq), 0.2, radprof) * (5.7e19)
+            add_tab = fil.radprof_fit_table(xunit=xunit)
 
-            fit, fit_error, model, parameter_names, fail_flag = \
-                fit_model(dist, radprof, weights, self.beamwidth)
+            # Concatenate the row together
+            tab = tab_vstack([tab, add_tab])
 
-            # Get the function's name to track where fit values come from
-            fit_type = str(model.__name__)
-
-            if not fail_flag:
-                chisq = red_chisq(radprof, model(dist, *fit[:-1]), 3, 1)
-            else:
-                # Give a value above threshold to try non-parametric fit
-                chisq = 11.0
-
-            # If the model isn't doing a good job, try it non-parametrically
-            if chisq > 10.0 and try_nonparam:
-                fit, fit_error, fail_flag = \
-                    nonparam_width(dist, radprof, unbin_dist, unbin_radprof,
-                                   self.beamwidth, 5, 99)
-                # Change the fit type.
-                fit_type = "nonparam"
-
-            if verbose or save_png:
-                if verbose:
-                    print("%s in %s" % (n, self.number_of_filaments))
-                    print("Fit Parameters: %s " % (fit))
-                    print("Fit Errors: %s" % (fit_error))
-                    print("Fit Type: %s" % (fit_type))
-
-                p.clf()
-                p.subplot(121)
-                p.plot(dist, radprof, "kD")
-                points = np.linspace(np.min(dist), np.max(dist), 2 * len(dist))
-                try:  # If FWHM is appended on, will get TypeError
-                    p.plot(points, model(points, *fit), "r")
-                except TypeError:
-                    p.plot(points, model(points, *fit[:-1]), "r")
-                p.xlabel(r'Radial Distance (pc)')
-                p.ylabel(r'Intensity')
-                p.grid(True)
-
-                p.subplot(122)
-
-                xlow, ylow = (self.array_offsets[n][0][0],
-                              self.array_offsets[n][0][1])
-                xhigh, yhigh = (self.array_offsets[n][1][0],
-                                self.array_offsets[n][1][1])
-                shape = (xhigh - xlow, yhigh - ylow)
-
-                p.contour(skel_arrays[n]
-                          [self.pad_size:shape[0] - self.pad_size,
-                           self.pad_size:shape[1] - self.pad_size], colors="r")
-
-                img_slice = self.image[xlow + self.pad_size:
-                                       xhigh - self.pad_size,
-                                       ylow + self.pad_size:
-                                       yhigh - self.pad_size]
-
-                # Use an asinh stretch to highlight all features
-                from astropy.visualization import AsinhStretch
-                from astropy.visualization.mpl_normalize import ImageNormalize
-
-                vmin = np.nanmin(img_slice)
-                vmax = np.nanmax(img_slice)
-                p.imshow(img_slice, cmap='binary', origin='lower',
-                         norm=ImageNormalize(vmin=vmin, vmax=vmax,
-                                             stretch=AsinhStretch()))
-                cbar = p.colorbar()
-                cbar.set_label(r'Intensity')
-
-                if save_png:
-                    try_mkdir(self.save_name)
-                    filename = \
-                        "{0}_width_fit_{1}.png".format(self.save_name, n)
-                    p.savefig(os.path.join(self.save_name, filename))
-                if verbose:
-                    p.show()
-                if in_ipynb():
-                    p.clf()
-
-            # Final width check -- make sure length is longer than the width.
-            # If it is, add the width onto the length since the adaptive
-            # thresholding shortens each edge by the about the same.
-            if self.lengths[n] > fit[-1]:
-                self.lengths[n] += fit[-1]
-            else:
-                fail_flag = True
-
-            # If fail_flag has been set to true in any of the fitting steps,
-            # set results to nans
-            if fail_flag:
-                fit = [np.NaN] * len(fit)
-                fit_error = [np.NaN] * len(fit)
-
-            # Using the unbinned profiles, we can find the total filament
-            # brightness. This can later be used to estimate the mass
-            # contained in each filament.
-            within_width = np.where(unbin_dist <= fit[1])
-            if within_width[0].size:  # Check if its empty
-                # Subtract off the estimated background
-                fil_bright = unbin_radprof[within_width] - fit[2]
-                sum_bright = np.sum(fil_bright[fil_bright >= 0], axis=None)
-                self.total_intensity[n] = sum_bright * self.angular_scale
-            else:
-                self.total_intensity[n] = np.NaN
-
-            self.width_fits["Parameters"][n, :] = fit
-            self.width_fits["Errors"][n, :] = fit_error
-            self.width_fits["Type"][n] = fit_type
-        self.width_fits["Names"] = parameter_names
-
-        return self
+        return tab
 
     def compute_filament_brightness(self):
         '''
@@ -1295,49 +1201,6 @@ class FilFinder2D(BaseInfoMixin):
                                                  hdf_filename+".hdf5"),
                                     path="branch_"+str(n),
                                     append=True)
-        return self
-
-    @property
-    def mask_nopad(self):
-        if self.pad_size == 0:
-            return self.mask
-        return self.mask[self.pad_size:-self.pad_size,
-                         self.pad_size:-self.pad_size]
-
-    @property
-    def skeleton_nopad(self):
-        if self.pad_size == 0:
-            return self.skeleton
-        return self.skeleton[self.pad_size:-self.pad_size,
-                             self.pad_size:-self.pad_size]
-
-    @property
-    def skeleton_longpath_nopad(self):
-        if self.pad_size == 0:
-            return self.skeleton_longpath
-        return self.skeleton_longpath[self.pad_size:-self.pad_size,
-                                      self.pad_size:-self.pad_size]
-
-    @property
-    def flat_img_nopad(self):
-        if self.pad_size == 0:
-            self.flat_img
-        return self.flat_img[self.pad_size:-self.pad_size,
-                             self.pad_size:-self.pad_size]
-
-    @property
-    def image_nopad(self):
-        if self.pad_size == 0:
-            return self.image
-        return self.image[self.pad_size:-self.pad_size,
-                          self.pad_size:-self.pad_size]
-
-    @property
-    def medial_axis_distance_nopad(self):
-        if self.pad_size == 0:
-            return self.medial_axis_distance
-        return self.medial_axis_distance[self.pad_size:-self.pad_size,
-                                         self.pad_size:-self.pad_size]
 
     def save_fits(self, save_name=None, stamps=False, filename=None,
                   model_save=True):
@@ -1521,48 +1384,3 @@ class FilFinder2D(BaseInfoMixin):
                 (fil, self.width_fits["Parameters"][fil, -1][fil],
                  self.lengths[fil], self.rht_curvature["Std"][fil],
                  self.rht_curvature["Std"][fil]))
-
-    def run(self, verbose=False, save_name=None, save_png=False,
-            table_type="fits"):
-        '''
-        The whole algorithm in one easy step. Individual parameters have not
-        been included in this batch run. If fine-tuning is needed, it is
-        recommended to run each step individually.
-
-        Parameters
-        ----------
-        verbose : bool, optional
-            Enables the verbose option for each of the steps.
-        save_name : str, optional
-            The prefix for the saved file.
-            If None, the name from the header is used.
-        save_png : bool, optional
-            Saves the plot made in verbose mode. Disabled by default.
-        table_type : str, optional
-            Sets the output type of the table. Supported options are
-            "csv", "fits" and "latex".
-
-        '''
-
-        if save_name is None:
-                save_name = self.save_name
-
-        self.create_mask(verbose=verbose, save_png=save_png)
-        self.medskel(verbose=verbose, save_png=save_png)
-
-        self.analyze_skeletons(verbose=verbose, save_png=save_png)
-        self.exec_rht(verbose=verbose, save_png=save_png)
-        self.find_widths(verbose=verbose, save_png=save_png)
-        self.compute_filament_brightness()
-        self.find_covering_fraction()
-        self.save_table(save_name=save_name, table_type=table_type)
-        self.save_fits(save_name=save_name, stamps=False)
-
-        if verbose:
-            self.__str__()
-
-        # if save_plots:
-            # Analysis(self.dataframe, save_name=save_name).make_hists()
-            # ImageAnalysis(self.image, self.mask, skeleton=self.skeleton, save_name=save_name)
-
-        return self
