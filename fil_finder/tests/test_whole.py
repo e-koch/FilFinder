@@ -4,8 +4,10 @@ import numpy as np
 import numpy.testing as npt
 import astropy.units as u
 from copy import deepcopy
+import warnings
 
 from .. import fil_finder_2D, FilFinder2D
+from .testing_utils import generate_filament_model
 
 from ._testing_data import *
 
@@ -166,8 +168,8 @@ def test_FilFinder2D_w_rhtbranches():
 
     assert test1.number_of_filaments == test1_old.number_of_filaments
     assert (test1.skeleton == test1_old.skeleton).all()
-    npt.assert_allclose(test1.lengths.value,
-                        test1_old.lengths / test1_old.imgscale, atol=0.5)
+    npt.assert_allclose(test1.lengths().value,
+                        test1_old.lengths / test1_old.imgscale, atol=1e-3)
 
     # Same branch properties
     for branch, branch_old in zip(test1.branch_properties['length'],
@@ -210,34 +212,91 @@ def test_FilFinder2D_w_rhtbranches():
 
         npt.assert_allclose(branch.value[np.isfinite(branch)], branch_old)
 
-    # XXX Remove this once the other parts of Filament2D are implemented
-    print(argh)
+    # How the radial profiles are built in the new and old versions differs
+    # quite a bit (this is one of the biggest reasons for the new version).
+    # The fit parameters will NOT be the same because the old version is
+    # not correctly building portions of the profiles! Check that that
+    # the warning is raised
+    test1.find_widths(max_dist=0.3 * u.pc, try_nonparam=True, auto_cut=False,
+                      pad_to_distance=0 * u.pix)
 
-    test1.find_widths()
-    test1.compute_filament_brightness()
+    with warnings.catch_warnings(record=True) as w:
+        test1_old.find_widths(auto_cut=False, pad_to_distance=0.,
+                              max_distance=0.3)
 
-    assert ((mask1 > 0) == test1.mask).all()
-    assert ((skeletons1 > 0) == test1.skeleton).all()
+    assert len(w) == 1
+    assert w[0].category == UserWarning
+    assert str(w[0].message) == ("An array offset issue is present in the radial profiles"
+                                 "! Please use the new version in FilFinder2D. "
+                                 "Double-check all results from this function!")
+    # # XXX Remove this once the other parts of Filament2D are implemented
+    # print(argh)
 
-    assert test1.number_of_filaments == len(table1["Lengths"])
+    # test1.compute_filament_brightness()
 
-    for i, param in enumerate(test1.width_fits["Names"]):
-        npt.assert_allclose(test1.width_fits["Parameters"][:, i],
-                            np.asarray(table1[param]), rtol=1e-4)
-        npt.assert_allclose(test1.width_fits["Errors"][:, i],
-                            np.asarray(table1[param + " Error"]),
-                            rtol=1e-4)
 
-    npt.assert_allclose(test1.lengths,
-                        table1['Lengths'].quantity.value)
+def test_simple_filament():
+    '''
+    Check the outputs using a simple straight filament with a Gaussian profile.
+    '''
 
-    assert (test1.width_fits['Type'] == table1['Fit Type']).all()
+    mod = generate_filament_model(return_hdu=True, pad_size=30, shape=150,
+                                  width=10., background=0.1)[0]
 
-    npt.assert_allclose(test1.total_intensity,
-                        table1['Total Intensity'].quantity.value)
+    mask = mod.data > 0.5
 
-    npt.assert_allclose(test1.filament_brightness,
-                        table1['Median Brightness'].quantity.value)
+    test = FilFinder2D(mod, distance=250 * u.pc, mask=mask)
 
-    npt.assert_allclose(test1.branch_properties["number"],
-                        table1['Branches'].quantity.value)
+    test.preprocess_image(flatten_percent=85)
+
+    test.create_mask(border_masking=True, verbose=False,
+                     use_existing_mask=True)
+    test.medskel(verbose=False)
+    test.analyze_skeletons()
+    test.find_widths(auto_cut=False, max_dist=30 * u.pix)
+
+    fil1 = test.filaments[0]
+
+    test1_old = fil_finder_2D(mod,
+                              flatten_thresh=85,
+                              distance=250 * u.pc,
+                              glob_thresh=0, save_name="test1_old",
+                              skeleton_pad_size=30,
+                              mask=mask)
+
+    test1_old.create_mask(border_masking=False, use_existing_mask=True)
+    test1_old.medskel()
+    test1_old.analyze_skeletons()
+    test1_old.find_widths(auto_cut=False, verbose=False, max_distance=0.3,
+                          try_nonparam=False)
+
+    # Compare lengths
+    # Straight skeleton, so length is sum minus 1. Then add the FWHM width on
+    # Beam is set to 3 pixels FWHM, so deconvolve before adding
+    exp_length = (test.skeleton.sum() - 1) + np.sqrt(10**2 - 3**2) * 2.35
+
+    old_length = test1_old.lengths[0] / test1_old.imgscale
+
+    new_length = test.lengths()[0].value
+
+    # Require the length be within half the beam.
+    npt.assert_allclose(exp_length, old_length, atol=1.5)
+    npt.assert_allclose(exp_length, new_length, atol=1.5)
+
+    # Now compare the widths
+    # Expected profile properties
+    exp_pars = [1.1, 10.0, 0.1, np.sqrt(10**2 - 3**2) * 2.35]
+
+    old_pars = test1_old.width_fits['Parameters'][0]
+    # Convert widths into pix units
+    old_pars[1] = old_pars[1] / test1_old.imgscale
+    old_pars[-1] = old_pars[-1] / test1_old.imgscale
+
+    new_pars = [par.value for par in fil1.radprof_params] + \
+        [fil1.radprof_fwhm()[0].value]
+    # The new modeling correctly separates the Gaussian and bkg.
+    # Add the bkg to the amplitude
+    new_pars[0] += new_pars[2]
+
+    npt.assert_allclose(exp_pars, old_pars, rtol=0.05)
+    npt.assert_allclose(exp_pars, new_pars, rtol=0.05)
