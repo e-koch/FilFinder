@@ -695,30 +695,19 @@ class FilFinder2D(BaseInfoMixin):
 
         self.filament_extents = [fil.pixel_extents for fil in self.filaments]
 
-        # Returns lengths in pixels
-        self.lengths = \
-            np.array([fil.length().value for fil in self.filaments]) * u.pix
-
         # Create filament arrays still?
-        self.filament_arrays["long path"] = [fil.skeleton(out_type='longpath')
-                                             for fil in self.filaments]
+        long_path_skel = [fil.skeleton(out_type='longpath')
+                          for fil in self.filaments]
 
-        self.filament_arrays["final"] = [fil.skeleton()
-                                         for fil in self.filaments]
-
-        # Convert branch lengths physical units
-        # for n in range(self.number_of_filaments):
-        #     lengths = self.branch_properties["length"][n]
-        #     self.branch_properties["length"][n] = \
-        #         [self.imgscale * length for length in lengths]
+        final_skel = [fil.skeleton() for fil in self.filaments]
 
         self.skeleton = \
-            recombine_skeletons(self.filament_arrays["final"],
+            recombine_skeletons(final_skel,
                                 self.array_offsets, self.image.shape,
                                 0)
 
         self.skeleton_longpath = \
-            recombine_skeletons(self.filament_arrays["long path"],
+            recombine_skeletons(long_path_skel,
                                 self.array_offsets, self.image.shape,
                                 0)
 
@@ -726,7 +715,9 @@ class FilFinder2D(BaseInfoMixin):
         '''
         Return longest path lengths of the filaments
         '''
-        return self.converter.from_pixel(self._lengths, unit)
+        pix_lengths = np.array([fil.length().value
+                                for fil in self.filaments]) * u.pix
+        return self.converter.from_pixel(pix_lengths, unit)
 
     def branch_lengths(self, unit=u.pix):
         '''
@@ -849,6 +840,7 @@ class FilFinder2D(BaseInfoMixin):
         return [fil.curvature_branches for fil in self.filaments]
 
     def find_widths(self, max_dist=10 * u.pix,
+                    pad_to_distance=0 * u.pix,
                     fit_model='gaussian_bkg',
                     fitter=None,
                     try_nonparam=True,
@@ -908,8 +900,10 @@ class FilFinder2D(BaseInfoMixin):
         '''
 
         for i, fil in enumerate(self.filaments):
-            fil.width_analysis(self.flat_img, all_skeleton_array=self.skeleton,
-                               max_dist=max_dist, fit_model=fit_model,
+            fil.width_analysis(self.image, all_skeleton_array=self.skeleton,
+                               max_dist=max_dist,
+                               pad_to_distance=pad_to_distance
+                               fit_model=fit_model,
                                fitter=fitter, try_nonparam=try_nonparam,
                                use_longest_path=use_longest_path,
                                add_width_to_length=add_width_to_length,

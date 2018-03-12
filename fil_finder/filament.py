@@ -486,6 +486,7 @@ class Filament2D(FilamentNDBase):
 
     def width_analysis(self, image, all_skeleton_array=None,
                        max_dist=10 * u.pix,
+                       pad_to_distance=0 * u.pix,
                        fit_model='gaussian_bkg',
                        fitter=None,
                        try_nonparam=True,
@@ -498,20 +499,23 @@ class Filament2D(FilamentNDBase):
                        **kwargs):
         '''
 
+        Create an average radial profile for the filament and fit a given
+        model.
+
         Parameters
         ----------
         image : `~astropy.unit.Quantity` or `~numpy.ndarray`
             The image from which the filament was extracted.
-        max_dist : `~astropy.units.Quantity`, optional
-            Largest radius around the skeleton to create the profile from. This
-            can be given in physical, angular, or physical units.
         all_skeleton_array : np.ndarray
             An array with the skeletons of other filaments. This is used to
             avoid double-counting pixels in the radial profiles in nearby
             filaments.
         max_dist : `~astropy.units.Quantity`, optional
-            The maximum distance away from the skeleton to build the profile
-            to.
+            Largest radius around the skeleton to create the profile from. This
+            can be given in physical, angular, or physical units.
+        pad_to_distance : `~astropy.units.Quantity`, optional
+            Force all pixels within this distance to be kept, even if a pixel
+            is closer to another skeleton, as given in `all_skeleton_array`.
         fit_model : str or `~astropy.modeling.Fittable1DModel`, optional
             The model to fit to the profile. Built-in models include
             'gaussian_bkg' for a Gaussian with a constant background,
@@ -539,6 +543,7 @@ class Filament2D(FilamentNDBase):
 
         # Convert quantities to pixel units.
         max_dist = self._converter.to_pixel(max_dist).value
+        pad_to_distance = self._converter.to_pixel(pad_to_distance).value
 
         if deconvolve_width and beamwidth is None:
             raise ValueError("beamwidth must be given when deconvolve_width is"
@@ -564,9 +569,9 @@ class Filament2D(FilamentNDBase):
 
         # We need the centre of the skeleton array in terms of the original
         # image position
-        arr_cent = [(skel_array.shape[0] - pad_size * 2) / 2. +
+        arr_cent = [(skel_array.shape[0] - pad_size * 2 - 1) / 2. +
                     self.pixel_extents[0][0],
-                    (skel_array.shape[1] - pad_size * 2) / 2. +
+                    (skel_array.shape[1] - pad_size * 2 - 1) / 2. +
                     self.pixel_extents[0][1]]
 
         input_image = extract_array(image, skel_array.shape, arr_cent)
@@ -592,6 +597,7 @@ class Filament2D(FilamentNDBase):
                              dist_skel_arr,
                              [(0, 0), (0, 0)],
                              max_distance=max_dist,
+                             pad_to_distance=pad_to_distance,
                              **kwargs)
 
         if out is None:
@@ -613,6 +619,7 @@ class Filament2D(FilamentNDBase):
         dist = dist * xunit
 
         self._radprofile = [dist, radprof]
+        self._unbin_radprofile = [unbin_dist, unbin_radprof]
 
         # Make sure the given model is valid
         if not isinstance(fit_model, mod.Model):
@@ -676,8 +683,7 @@ class Filament2D(FilamentNDBase):
             self._radprof_errors = fit_uncert
 
             chisq = red_chisq(radprof, fitted_model(dist), npar, 1)
-
-            if chisq > chisq_max:
+            if chisq.value > chisq_max:
                 fail_flag = True
 
         if (skip_fitting or fail_flag) and try_nonparam:
