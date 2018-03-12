@@ -194,8 +194,10 @@ def gauss_model(distance, rad_profile, weights, img_beam):
         fit_errors = np.append(fit_errors, 0.0)
 
     fail_flag = False
+    # The bkg level may be quite uncertain. Only look for poor amplitude or
+    # width constraints.
     fail_conditions = fit_errors is None or \
-        fit[0] < fit[2] or (fit_errors > np.abs(fit)).any()
+        fit[0] < fit[2] or (fit_errors[:2] > np.abs(fit[:2])).any()
     if fail_conditions:
         fail_flag = True
 
@@ -367,8 +369,10 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
     x, y = np.where(np.isfinite(dist_transform_sep) *
                     (dist_transform_sep <= max_distance / img_scale))
     # Transform into coordinates of master image
-    x_full = x + offsets[0][0] - 1
-    y_full = y + offsets[0][1] - 1
+    # Originally had a +1 offset, but new code doesn't need this
+    # Correction added directly into fil_finder_2D
+    x_full = x + offsets[0][0]  # - 1
+    y_full = y + offsets[0][1]  # - 1
 
     pad_pixel_distance = int(pad_to_distance * img_scale ** -1)
 
@@ -378,10 +382,18 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
     else:
         check_global = True
 
+    # Check if the image has a unit
+    if hasattr(img, 'unit'):
+        img_vals = img.value
+    else:
+        img_vals = img
+
+    valids = np.zeros_like(img_vals, dtype=bool)
+
     for i in range(len(x)):
         # Check overall distance transform to make sure pixel belongs to proper
         # filament
-        img_val = img[x_full[i], y_full[i]]
+        img_val = img_vals[x_full[i], y_full[i]]
         sep_dist = dist_transform_sep[x[i], y[i]]
         if check_global:
             glob_dist = dist_transform_all[x_full[i], y_full[i]]
@@ -391,9 +403,11 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
                 if sep_dist <= glob_dist + pad_pixel_distance:
                     width_value.append(img_val)
                     width_distance.append(sep_dist)
+                    valids[x_full[i], y_full[i]] = True
             else:
                 width_value.append(img_val)
                 width_distance.append(sep_dist)
+                valids[x_full[i], y_full[i]] = True
 
     if len(width_distance) == 0:
         warn("No valid pixels for radial profile found.")

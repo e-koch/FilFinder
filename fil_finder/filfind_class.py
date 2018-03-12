@@ -1047,34 +1047,42 @@ class fil_finder_2D(BaseInfoMixin):
                            self.skeleton)
 
         # Prepare the storage
-        self.width_fits["Parameters"] = np.empty(
-            (self.number_of_filaments, 4))
-        self.width_fits["Errors"] = np.empty(
-            (self.number_of_filaments, 4))
-        self.width_fits["Type"] = np.empty(
-            (self.number_of_filaments), dtype="S")
-        self.total_intensity = np.empty(
-            (self.number_of_filaments, ))
+        self.width_fits["Parameters"] = np.empty((self.number_of_filaments, 4))
+        self.width_fits["Errors"] = np.empty((self.number_of_filaments, 4))
+        self.width_fits["Type"] = np.empty((self.number_of_filaments),
+                                           dtype="S")
+        self.total_intensity = np.empty((self.number_of_filaments, ))
+
+        self._rad_profiles = []
+        self._unbin_rad_profiles = []
 
         for n in range(self.number_of_filaments):
+
+            # Shift bottom offset by 1. There's a +1 running around somewhere
+            # in the old code that isn't in the new code. Just make the
+            # correction here.
+            low_corner = list(self.array_offsets[n][0])
+            low_corner[0] -= 1
+            low_corner[1] -= 1
+            offsets = (tuple(low_corner), self.array_offsets[n][1])
 
             # Need the unbinned data for the non-parametric fit.
             out = \
                 radial_profile(self.image, dist_transform_all,
                                dist_transform_separate[n],
-                               self.array_offsets[n], self.imgscale,
+                               offsets, self.imgscale,
                                **kwargs)
 
             if out is not None:
                 dist, radprof, weights, unbin_dist, unbin_radprof = out
+                self._rad_profiles.append([dist, radprof])
+                self._unbin_rad_profiles.append([unbin_dist, unbin_radprof])
             else:
                 self.total_intensity[n] = np.NaN
-
-                self.width_fits["Parameters"][n, :] = \
-                    [np.NaN] * 4
-                self.width_fits["Errors"][n, :] = \
-                    [np.NaN] * 4
+                self.width_fits["Parameters"][n, :] = [np.NaN] * 4
+                self.width_fits["Errors"][n, :] = [np.NaN] * 4
                 self.width_fits["Type"][n] = 'g'
+                self._rad_profiles.append([np.NaN, np.NaN])
                 continue
 
             # if fit_model == cyl_model:
