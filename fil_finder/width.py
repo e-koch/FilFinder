@@ -310,7 +310,8 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
 def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
                    img_scale=1.0, bins=None, bintype="linear",
                    weighting="number", return_unbinned=True, auto_cut=True,
-                   pad_to_distance=0.15, max_distance=0.3, auto_cut_kwargs={}):
+                   pad_to_distance=0.15, max_distance=0.3, auto_cut_kwargs={},
+                   debug_mode=False):
     '''
     Fits the radial profiles to all filaments in the image.
 
@@ -346,6 +347,8 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
         is done. Must be less than max_distance.
     max_distance : float, optional
         Cuts the profile at the specified physical distance (in pc).
+    debug_mode : bool, optional
+        Enables plotting of which pixels are being used in the radial profile.
 
     Returns
     -------
@@ -388,7 +391,7 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
     else:
         img_vals = img
 
-    valids = np.zeros_like(img_vals, dtype=bool)
+    valids = np.zeros_like(dist_transform_sep, dtype=bool)
 
     for i in range(len(x)):
         # Check overall distance transform to make sure pixel belongs to proper
@@ -403,11 +406,31 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
                 if sep_dist <= glob_dist + pad_pixel_distance:
                     width_value.append(img_val)
                     width_distance.append(sep_dist)
-                    valids[x_full[i], y_full[i]] = True
+                    # valids[x_full[i], y_full[i]] = True
+                    valids[x[i], y[i]] = True
             else:
                 width_value.append(img_val)
                 width_distance.append(sep_dist)
-                valids[x_full[i], y_full[i]] = True
+                # valids[x_full[i], y_full[i]] = True
+                valids[x[i], y[i]] = True
+
+    if debug_mode:
+        import matplotlib.pyplot as plt
+        plt.subplot(121)
+        plt.imshow(dist_transform_sep)
+        plt.contour(valids, colors='g')
+        plt.contour(dist_transform_all == 0., colors='m')
+        plt.contour(dist_transform_sep == 0., colors='c')
+        plt.subplot(122)
+        plt.imshow(dist_transform_all)
+        try:
+            plt.contour(dist_transform_sep <= max_distance / img_scale,
+                        colors='b')
+        except ValueError:
+            print("No contour")
+        plt.draw()
+        raw_input("?")
+        plt.clf()
 
     if len(width_distance) == 0:
         warn("No valid pixels for radial profile found.")
