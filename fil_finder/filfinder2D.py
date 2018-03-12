@@ -902,7 +902,7 @@ class FilFinder2D(BaseInfoMixin):
         for i, fil in enumerate(self.filaments):
             fil.width_analysis(self.image, all_skeleton_array=self.skeleton,
                                max_dist=max_dist,
-                               pad_to_distance=pad_to_distance
+                               pad_to_distance=pad_to_distance,
                                fit_model=fit_model,
                                fitter=fitter, try_nonparam=try_nonparam,
                                use_longest_path=use_longest_path,
