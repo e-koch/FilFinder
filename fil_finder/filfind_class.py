@@ -982,7 +982,7 @@ class fil_finder_2D(BaseInfoMixin):
                     if save_png:
                         try_mkdir(self.save_name)
                         p.savefig(os.path.join(self.save_name,
-                                               self.save_name+"_rht_"+str(n)+".png"))
+                                               self.save_name + "_rht_" + str(n) + ".png"))
                     if verbose:
                         p.show()
                     if in_ipynb():
@@ -1002,9 +1002,8 @@ class fil_finder_2D(BaseInfoMixin):
             profile is created. If the padded arrays fall outside of the
             original image, they are trimmed.
         *   A user-specified model is fit to each of the radial profiles.
-            There are three models included in this package; a gaussian,
-            lorentzian and a cylindrical filament model
-            (Arzoumanian et al., 2011). This returns the width and central
+            The default is a Gaussian with a constant background. This returns
+            the width and central
             intensity of each filament. The reported widths are the
             deconvolved FWHM of the gaussian width. For faint or crowded
             filaments, the fit can fail due to lack of data to fit to.
@@ -1037,6 +1036,10 @@ class fil_finder_2D(BaseInfoMixin):
 
         '''
 
+        warnings.warn("An array offset issue is present in the radial profiles"
+                      "! Please use the new version in FilFinder2D. "
+                      "Double-check all results from this function!")
+
         if use_longest_paths:
             skel_arrays = self.filament_arrays["long path"]
         else:
@@ -1067,11 +1070,10 @@ class fil_finder_2D(BaseInfoMixin):
             offsets = (tuple(low_corner), self.array_offsets[n][1])
 
             # Need the unbinned data for the non-parametric fit.
-            out = \
-                radial_profile(self.image, dist_transform_all,
-                               dist_transform_separate[n],
-                               offsets, self.imgscale,
-                               **kwargs)
+            out = radial_profile(self.image, dist_transform_all,
+                                 dist_transform_separate[n],
+                                 offsets, self.imgscale,
+                                 **kwargs)
 
             if out is not None:
                 dist, radprof, weights, unbin_dist, unbin_radprof = out
