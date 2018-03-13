@@ -1069,15 +1069,23 @@ class FilFinder2D(BaseInfoMixin):
 
         return model_image
 
-    def find_covering_fraction(self, max_radius=25):
+    def covering_fraction(self, max_radius=None, bkg_subtract=True,
+                          bkg_mod_index=2):
         '''
         Compute the fraction of the intensity in the image contained in
         the filamentary structure.
 
         Parameters
         ----------
-        max_radius : int, optional
-            Passed to `~fil_finder_2D.filament_model`
+        max_radius : `~astropy.units.Quantity`, optional
+            Number of pixels to extend profiles to. If None is given, each
+            filament model is computed to 3 * FWHM.
+        bkg_subtract : bool, optional
+            Subtract off the fitted background level.
+        bkg_mod_index : int, optional
+            Indicate which element in `Filament2D.radprof_params` is the
+            background level. Defaults to 2 for the Gaussian with background
+            model.
 
         Attributes
         ----------
@@ -1086,11 +1094,11 @@ class FilFinder2D(BaseInfoMixin):
             filamentary structure (based on the local, individual fits)
         '''
 
-        fil_model = self.filament_model(max_radius=max_radius)
+        fil_model = self.filament_model(max_radius=max_radius,
+                                        bkg_subtract=bkg_subtract,
+                                        bkg_mod_index=bkg_mod_index)
 
-        self.covering_fraction = np.nansum(fil_model) / np.nansum(self.image)
-
-        return self
+        return np.nansum(fil_model) / np.nansum(self.image)
 
     def save_table(self, table_type="csv", path=None, save_name=None,
                    save_branch_props=True, branch_table_type="hdf5",
