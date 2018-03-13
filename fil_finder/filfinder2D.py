@@ -1100,6 +1100,18 @@ class FilFinder2D(BaseInfoMixin):
 
         return np.nansum(fil_model) / np.nansum(self.image)
 
+    def ridge_profiles(self):
+        '''
+        Return the image values along the longest path of the skeleton.
+
+        Returns
+        -------
+        ridges : list
+            List of the ridge values for each filament.
+        '''
+
+        return [fil.ridge_profile(self.image) for fil in self.filaments]
+
     def save_table(self, table_type="csv", path=None, save_name=None,
                    save_branch_props=True, branch_table_type="hdf5",
                    hdf5_path="data"):

@@ -342,3 +342,13 @@ def test_simple_filament():
     cov_frac = test.covering_fraction()
     act_frac = (mod.data - 0.1).sum() / np.sum(mod.data)
     npt.assert_allclose(cov_frac.value, act_frac, atol=1e-4)
+
+    # Ridge profile along skeleton. Should all equal 1.1
+    ridge = fil1.ridge_profile(test.image)
+    assert ridge.unit == u.K
+    assert (ridge.value == 1.1).all()
+
+    # Make sure the version from FilFinder2D is the same
+    ridge_2 = test.ridge_profiles()
+    assert (ridge_2[0] == ridge).all()
+

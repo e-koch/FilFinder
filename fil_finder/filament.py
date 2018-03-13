@@ -979,5 +979,47 @@ class Filament2D(FilamentNDBase):
 
         return np.nanmedian(input_image[skels])
 
+    def ridge_profile(self, image):
+        '''
+        Return the image values along the longest path extent of a filament.
+
+        Parameters
+        ----------
+        image : `~numpy.ndarray` or `~astropy.units.Quantity`
+            The image from which the filament was extracted.
+        '''
+
+        pad_size = 1
+
+        # Do we need to pad the image before slicing?
+        input_image = pad_image(image, self.pixel_extents, pad_size) * \
+            u.dimensionless_unscaled
+
+        skels = self.skeleton(pad_size=pad_size, out_type='longpath')
+
+        # If the padded image matches the mask size, don't need additional
+        # slicing
+        if input_image.shape != skels.shape:
+            input_image = input_image[self.image_slice(pad_size=pad_size)]
+
+        # These should have the same shape now.
+        assert input_image.shape == skels.shape
+
+        from .width_profiles.profile_line_width import walk_through_skeleton
+
+        order_pts = walk_through_skeleton(skels)
+
+        if hasattr(image, 'unit'):
+            unit = image.unit
+        else:
+            unit = u.dimensionless_unscaled
+            input_image = input_image * unit
+
+        values = []
+        for pt in order_pts:
+            values.append(input_image[pt[0], pt[1]].value)
+
+        return values * unit
+
     def profile_analysis(self):
         pass
