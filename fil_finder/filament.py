@@ -619,7 +619,8 @@ class Filament2D(FilamentNDBase):
         dist = dist * xunit
 
         self._radprofile = [dist, radprof]
-        self._unbin_radprofile = [unbin_dist, unbin_radprof]
+        self._unbin_radprofile = [unbin_dist * xunit,
+                                  unbin_radprof * yunit]
 
         # Make sure the given model is valid
         if not isinstance(fit_model, mod.Model):
@@ -755,19 +756,6 @@ class Filament2D(FilamentNDBase):
 
         self._radprof_failflag = fail_flag
 
-        # Using the unbinned profiles, we can find the total filament
-        # brightness. This can later be used to estimate the mass
-        # contained in each filament.
-
-        # within_width = np.where(unbin_dist <= fit[1])
-        # if within_width[0].size:  # Check if its empty
-        #     # Subtract off the estimated background
-        #     fil_bright = unbin_radprof[within_width] - fit[2]
-        #     sum_bright = np.sum(fil_bright[fil_bright >= 0], axis=None)
-        #     self.total_intensity[n] = sum_bright * self.angular_scale
-        # else:
-        #     self.total_intensity[n] = np.NaN
-
     @property
     def radprof_fit_fail_flag(self):
         '''
@@ -890,6 +878,101 @@ class Filament2D(FilamentNDBase):
         plt.show()
         if in_ipynb():
             plt.clf()
+
+    def total_intensity(self, bkg_subtract=False, bkg_mod_index=2):
+        '''
+        Return the sum of all pixels within the FWHM of the filament.
+
+        .. warning::
+            `fil_finder_2D` multiplied the total intensity by the angular size
+            of a pixel. This function is just the sum of pixel values. Unit
+            conversions can be applied on the output if needed.
+
+        Parameters
+        ----------
+        bkg_subtract : bool, optional
+            Subtract off the fitted background level.
+        bkg_mod_index : int, optional
+            Indicate which element in `Filament2D.radprof_params` is the
+            background level. Defaults to 2 for the Gaussian with background
+            model.
+        '''
+
+        within_fwhm = self._unbin_radprofile[0] <= \
+            0.5 * self.radprof_fwhm()[0]
+        total_intensity = np.sum(self._unbin_radprofile[1][within_fwhm])
+
+        if bkg_subtract:
+            total_intensity -= self.radprof_params[bkg_mod_index] * \
+                within_fwhm.sum()
+
+        return total_intensity
+
+    def model_image(self, max_radius=20 * u.pix, bkg_subtract=False,
+                    bkg_mod_index=2):
+        '''
+        Return a model image from the radial profile fit.
+
+        Parameters
+        ----------
+        max_radius : `~astropy.units.Quantity`, optional
+            Set the radius to compute the model to. The outputted array
+            will be padded by the number of pixels the max_radius corresponds
+            to.
+        bkg_subtract : bool, optional
+            Subtract off the fitted background level.
+        bkg_mod_index : int, optional
+            Indicate which element in `Filament2D.radprof_params` is the
+            background level. Defaults to 2 for the Gaussian with background
+            model.
+
+        Returns
+        -------
+        model_array : `~astropy.units.Quantity`
+            A 2D array computed using the radial profile model.
+        '''
+
+        max_radius = self._converter.to_pixel(max_radius).value
+
+        pad_size = int(max_radius)
+        skel_arr = self.skeleton(pad_size)
+
+        dists = nd.distance_transform_edt(~skel_arr) * u.pix
+
+        if not bkg_subtract:
+            return self.radprof_model(dists)
+        else:
+            return self.radprof_model(dists) - self.radprof_params[bkg_mod_index]
+
+    def median_brightness(self, image):
+        '''
+        Return the median brightness along the skeleton of the filament.
+
+        Parameters
+        ----------
+        image : `~numpy.ndarray` or `~astropy.units.Quantity`
+            The image from which the filament was extracted.
+
+        Returns
+        -------
+        median_brightness : float or `~astropy.units.Quantity`
+            Median brightness along the skeleton.
+        '''
+        pad_size = 1
+
+        # Do we need to pad the image before slicing?
+        input_image = pad_image(image, self.pixel_extents, pad_size)
+
+        skels = self.skeleton(pad_size=pad_size)
+
+        # If the padded image matches the mask size, don't need additional
+        # slicing
+        if input_image.shape != skels.shape:
+            input_image = input_image[self.image_slice(pad_size=pad_size)]
+
+        assert input_image.shape == skels.shape
+
+        return np.nanmedian(input_image[skels])
 
     def profile_analysis(self):
         pass
