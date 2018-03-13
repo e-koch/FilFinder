@@ -896,6 +896,11 @@ class Filament2D(FilamentNDBase):
             Indicate which element in `Filament2D.radprof_params` is the
             background level. Defaults to 2 for the Gaussian with background
             model.
+
+        Returns
+        -------
+        total_intensity : `~astropy.units.Quantity`
+            The total intensity for the filament.
         '''
 
         within_fwhm = self._unbin_radprofile[0] <= \
@@ -908,7 +913,7 @@ class Filament2D(FilamentNDBase):
 
         return total_intensity
 
-    def model_image(self, max_radius=20 * u.pix, bkg_subtract=False,
+    def model_image(self, max_radius=20 * u.pix, bkg_subtract=True,
                     bkg_mod_index=2):
         '''
         Return a model image from the radial profile fit.

@@ -13,6 +13,7 @@ from astropy.table import Table
 from astropy import units as u
 from astropy.wcs import WCS
 from astropy.wcs.utils import proj_plane_pixel_scales
+from astropy.nddata.utils import overlap_slices
 from copy import deepcopy
 import os
 import time
@@ -23,7 +24,6 @@ from .length import *
 from .pixel_ident import *
 from .utilities import *
 from .width import *
-from .rollinghough import rht
 from .io_funcs import input_data
 from .base_conversions import (BaseInfoMixin, UnitConverter,
                                find_beam_properties, data_unit_check)
@@ -960,7 +960,43 @@ class FilFinder2D(BaseInfoMixin):
 
         return tab
 
-    def compute_filament_brightness(self):
+    def total_intensity(self, bkg_subtract=False, bkg_mod_index=2):
+        '''
+        Return the sum of all pixels within the FWHM of the filament.
+
+        .. warning::
+            `fil_finder_2D` multiplied the total intensity by the angular size
+            of a pixel. This function is just the sum of pixel values. Unit
+            conversions can be applied on the output if needed.
+
+        Parameters
+        ----------
+        bkg_subtract : bool, optional
+            Subtract off the fitted background level.
+        bkg_mod_index : int, optional
+            Indicate which element in `Filament2D.radprof_params` is the
+            background level. Defaults to 2 for the Gaussian with background
+            model.
+
+        Returns
+        -------
+        total_intensity : `~astropy.units.Quantity`
+            Array of the total intensities for the filament.
+        '''
+
+        total_intensity = []
+
+        for i, fil in enumerate(self.filaments):
+            total_fil = fil.total_intensity(bkg_subtract=bkg_subtract,
+                                            bkg_mod_index=bkg_mod_index)
+            if i == 0:
+                unit = total_fil.unit
+
+            total_intensity.append(total_fil.value)
+
+        return total_intensity * unit
+
+    def median_brightness(self):
         '''
         Returns the median brightness along the skeleton of the filament.
 
@@ -971,68 +1007,65 @@ class FilFinder2D(BaseInfoMixin):
             for each filament.
         '''
 
-        self.filament_brightness = []
+        median_bright = []
 
-        labels, n = nd.label(self.skeleton, eight_con())
+        for fil in self.filaments:
+            median_bright.append(fil.median_brightness(self.image))
 
-        for n in range(1, self.number_of_filaments+1):
-            values = self.image[np.where(labels == n)]
-            self.filament_brightness.append(np.median(values))
+        return np.array(median_bright)
 
-        return self
-
-    def filament_model(self, max_radius=25, use_nopad=True):
+    def filament_model(self, max_radius=None, bkg_subtract=False,
+                       bkg_mod_index=2):
         '''
         Returns a model of the diffuse filamentary network based
         on the radial profiles.
 
         Parameters
         ----------
-        max_radius : int, optional
-            Number of pixels to extend profiles to.
-        use_nopad : bool, optional
-            Returns the unpadded image size when enabled. Enabled by
-            default.
+        max_radius : `~astropy.units.Quantity`, optional
+            Number of pixels to extend profiles to. If None is given, each
+            filament model is computed to 3 * FWHM.
+        bkg_subtract : bool, optional
+            Subtract off the fitted background level.
+        bkg_mod_index : int, optional
+            Indicate which element in `Filament2D.radprof_params` is the
+            background level. Defaults to 2 for the Gaussian with background
+            model.
 
         Returns
         -------
-        model_image : numpy.ndarray
+        model_image : `~numpy.ndarray`
             Array of the model
 
         '''
 
-        if len(self.width_fits['Parameters']) == 0:
-            raise TypeError("Run profile fitting first!")
+        model_image = np.zeros(self.image.shape)
 
-        params = self.width_fits['Parameters']
-        scale = self.imgscale
+        for i, fil in enumerate(self.filaments):
 
-        if use_nopad:
-            skel_array = self.skeleton_nopad
-        else:
-            skel_array = self.skeleton
+            if max_radius is None:
+                max_rad = 3 * fil.radprof_fwhm()[0]
+            else:
+                max_rad = max_radius
 
-        # Create the distance transforms
-        all_fils = dist_transform(self.filament_arrays["final"],
-                                  skel_array)[0]
+            fil_model = fil.model_image(max_radius=max_rad,
+                                        bkg_subtract=bkg_subtract,
+                                        bkg_mod_index=bkg_mod_index)
 
-        model_image = np.zeros(all_fils.shape)
+            # Add to the global model.
+            if i == 0 and hasattr(fil_model, 'unit'):
+                model_image = model_image * fil_model.unit
 
-        for param, offset, fil_array in zip(params, self.array_offsets,
-                                            self.filament_arrays["final"]):
-            if np.isnan(param).any():
-                continue
-            # Avoid issues with the sizes of each filament array
-            full_size = np.ones(model_image.shape)
-            skel_posns = np.where(fil_array >= 1)
-            full_size[skel_posns[0] + offset[0][0],
-                      skel_posns[1] + offset[0][1]] = 0
-            dist_array = distance_transform_edt(full_size)
-            posns = np.where(dist_array < max_radius)
-            model_image[posns] += \
-                (param[0] - param[2]) * \
-                np.exp(-np.power(dist_array[posns], 2) /
-                       (2*(param[1]/scale)**2))
+            pad_size = int(max_rad.value)
+            arr_cent = [(fil_model.shape[0] - pad_size * 2 - 1) / 2. +
+                        fil.pixel_extents[0][0],
+                        (fil_model.shape[1] - pad_size * 2 - 1) / 2. +
+                        fil.pixel_extents[0][1]]
+
+            big_slice, small_slice = overlap_slices(model_image.shape,
+                                                    fil_model.shape,
+                                                    arr_cent)
+            model_image[big_slice] += fil_model[small_slice]
 
         return model_image
 
