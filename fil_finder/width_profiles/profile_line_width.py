@@ -39,9 +39,9 @@ four_conn_posns = [1, 3, 5, 7]
 eight_conn_posns = [0, 2, 6, 8]
 
 
-def filament_profile(skeleton, image, header, max_dist=0.025 * u.pc,
+def filament_profile(skeleton, image, pixscale, max_dist=0.025 * u.pc,
                      distance=250. * u.pc, num_avg=3, verbose=False,
-                     bright_unit="Jy km/s", noise=None):
+                     bright_unit="Jy km/s", noise=None, fit_profiles=True):
     '''
     Calculate radial profiles along the main extent of a skeleton (ie. the
     longest path). The skeleton must contain a single branch with no
@@ -54,8 +54,9 @@ def filament_profile(skeleton, image, header, max_dist=0.025 * u.pc,
     image : np.ndarray
         Image to compute the profiles from. Must match the spatial extent
         of the skeleton array.
-    header : FITS header
-        Accompanying header for the image.
+    pixscale : `~astropy.units.Quantity`
+        Angular size of a pixel in the image. Must have units equivalent to
+        degrees.
     max_dist : astropy Quantity, optional
         The angular or physical (when distance is given) extent to create the
         profile away from the centre skeleton pixel. The entire profile will
@@ -76,6 +77,9 @@ def filament_profile(skeleton, image, header, max_dist=0.025 * u.pc,
         RMS array for the accompanying image. When provided, the errors
         are calculated along each of the profiles and used as weights in the
         fitting.
+    fit_profiles : bool, optional
+        When enabled, fits a Gaussian model to the profiles. Otherwise only
+        the profiles are returned.
 
     Returns
     -------
@@ -90,7 +94,7 @@ def filament_profile(skeleton, image, header, max_dist=0.025 * u.pc,
         Table of the fit results and errors with appropriate units.
     '''
 
-    deg_per_pix = np.abs(header["CDELT2"]) * u.deg / u.pixel
+    deg_per_pix = pixscale.to(u.deg) / u.pixel
 
     if distance is not None:
         phys_per_pix = distance * (np.pi / 180.) * deg_per_pix / u.deg
@@ -107,8 +111,8 @@ def filament_profile(skeleton, image, header, max_dist=0.025 * u.pc,
                 max_pixel = max_dist.to(u.pix).value
             except u.UnitConversionError:
                 # In angular units
-                equiv = [(u.pixel, u.deg, lambda x: x / header["CDELT2"],
-                          lambda x: x * header["CDELT2"])]
+                equiv = [(u.pixel, u.deg, lambda x: x / (pixscale * u.pix),
+                          lambda x: x * pixscale * u.pix)]
                 max_pixel = max_dist.to(u.pix, equivalencies=equiv).value
 
     if bright_unit is None:
@@ -181,13 +185,14 @@ def filament_profile(skeleton, image, header, max_dist=0.025 * u.pc,
         line_distances.append(total_dists)
         profile_extents.append([line_pts[0], skel_pts[i], line_pts[1]])
 
-        # Now fit!
-        profile_fit, profile_fit_err, red_chisq = \
-            gauss_fit(total_dists.value, total_profile.value,
-                      sigma=noise_profile)
+        if fit_profiles:
+            # Now fit!
+            profile_fit, profile_fit_err, red_chisq = \
+                gauss_fit(total_dists.value, total_profile.value,
+                          sigma=noise_profile)
 
-        profile_fits.append(np.hstack([profile_fit, profile_fit_err]))
-        red_chisqs.append(red_chisq)
+            profile_fits.append(np.hstack([profile_fit, profile_fit_err]))
+            red_chisqs.append(red_chisq)
 
         if verbose:
             p.subplot(121)
@@ -201,7 +206,8 @@ def filament_profile(skeleton, image, header, max_dist=0.025 * u.pc,
             p.plot(total_dists, total_profile, 'bD')
             pts = np.linspace(total_dists.min().value,
                               total_dists.max().value, 100)
-            p.plot(pts, gaussian(pts, *profile_fit), 'r')
+            if fit_profiles:
+                p.plot(pts, gaussian(pts, *profile_fit), 'r')
 
             if distance is not None:
                 unit = (u.pix * phys_per_pix).unit.to_string()
@@ -212,33 +218,36 @@ def filament_profile(skeleton, image, header, max_dist=0.025 * u.pc,
             p.tight_layout()
             p.show()
 
-    profile_fits = np.asarray(profile_fits)
-    red_chisqs = np.asarray(red_chisqs)
+    if fit_profiles:
+        profile_fits = np.asarray(profile_fits)
+        red_chisqs = np.asarray(red_chisqs)
 
-    # Create an astropy table of the fit results
-    param_names = ["Amplitude", "Std Dev", "Background"]
-    param_errs = [par + " Error" for par in param_names]
-    colnames = param_names + param_errs
-    in_bright_units = [True, False, True] * 2
-    tab = QTable()
+        # Create an astropy table of the fit results
+        param_names = ["Amplitude", "Std Dev", "Background"]
+        param_errs = [par + " Error" for par in param_names]
+        colnames = param_names + param_errs
+        in_bright_units = [True, False, True] * 2
+        tab = QTable()
 
-    tab["Number"] = np.arange(profile_fits.shape[0])
-    tab.add_index("Number")
+        tab["Number"] = np.arange(profile_fits.shape[0])
+        tab.add_index("Number")
 
-    tab["Red Chisq"] = red_chisqs
+        tab["Red Chisq"] = red_chisqs
 
-    for i, (name, is_bright) in enumerate(zip(colnames, in_bright_units)):
-        if is_bright:
-            col_unit = bright_unit
-        else:
-            if distance is not None:
-                col_unit = (u.pix * phys_per_pix).unit
+        for i, (name, is_bright) in enumerate(zip(colnames, in_bright_units)):
+            if is_bright:
+                col_unit = bright_unit
             else:
-                col_unit = (u.pix * deg_per_pix).unit
+                if distance is not None:
+                    col_unit = (u.pix * phys_per_pix).unit
+                else:
+                    col_unit = (u.pix * deg_per_pix).unit
 
-        tab[name] = profile_fits[:, i] * col_unit
+            tab[name] = profile_fits[:, i] * col_unit
 
-    return line_distances, line_profiles, profile_extents, tab
+        return line_distances, line_profiles, profile_extents, tab
+    else:
+        return line_distances, line_profiles
 
 
 def perpendicular(a):
