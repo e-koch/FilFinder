@@ -138,6 +138,8 @@ def test_FilFinder2D_w_rhtbranches():
 
     from fil_finder.tests._testing_data import img, hdr
     from fil_finder import FilFinder2D, fil_finder_2D
+    import numpy.testing as npt
+    import warnings
 
     test1 = FilFinder2D(img, header=hdr, beamwidth=10.0 * u.arcsec,
                         distance=260 * u.pc, save_name="test1")
@@ -229,16 +231,33 @@ def test_FilFinder2D_w_rhtbranches():
     assert str(w[0].message) == ("An array offset issue is present in the radial profiles"
                                  "! Please use the new version in FilFinder2D. "
                                  "Double-check all results from this function!")
-    # # XXX Remove this once the other parts of Filament2D are implemented
-    # print(argh)
 
-    # test1.compute_filament_brightness()
+    # Compare median brightness
+    med_bright = test1.median_brightness()
+
+    test1_old.compute_filament_brightness()
+    med_bright_old = test1_old.filament_brightness
+
+    assert (med_bright == np.array(med_bright_old)).all()
+
+    # Compute model image
+    fil_model = test1.filament_model(bkg_subtract=True)
+    # Cannot compare with old version due to radial profile discrepancies.
+
+    # Same for the total intensities, but run it to make sure it works.
+    total_intensity = test1.total_intensity()
+
+    cov_frac = test1.covering_fraction()
+    npt.assert_allclose(0.544, cov_frac.value, atol=0.001)
 
 
 def test_simple_filament():
     '''
     Check the outputs using a simple straight filament with a Gaussian profile.
     '''
+
+    from fil_finder import fil_finder_2D, FilFinder2D
+    from fil_finder.tests.testing_utils import generate_filament_model
 
     mod = generate_filament_model(return_hdu=True, pad_size=30, shape=150,
                                   width=10., background=0.1)[0]
@@ -300,3 +319,26 @@ def test_simple_filament():
 
     npt.assert_allclose(exp_pars, old_pars, rtol=0.05)
     npt.assert_allclose(exp_pars, new_pars, rtol=0.05)
+
+    # Test other output of the new code.
+
+    npt.assert_allclose(1.1, fil1.median_brightness(mod.data))
+    npt.assert_allclose(mod.data[(mod.data - 0.1) > 0.5].sum(),
+                        fil1.total_intensity().value, rtol=0.01)
+    npt.assert_allclose((mod.data - 0.1)[(mod.data - 0.1) > 0.5].sum(),
+                        fil1.total_intensity(bkg_subtract=True).value,
+                        rtol=0.01)
+
+    fil_model = test.filament_model(bkg_subtract=False)
+
+    # Max difference should be where the background isn't covered
+    assert ((mod.data - fil_model.value) <= 0.1 + 1e-7).all()
+
+    # Now compare bkg subtracted versions
+    fil_model = test.filament_model(bkg_subtract=True)
+    assert ((mod.data - fil_model.value) <= 0.1 + 1e-3).all()
+
+    # Covering fraction
+    cov_frac = test.covering_fraction()
+    act_frac = (mod.data - 0.1).sum() / np.sum(mod.data)
+    npt.assert_allclose(cov_frac.value, act_frac, atol=1e-4)
