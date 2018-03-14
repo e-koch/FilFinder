@@ -406,6 +406,11 @@ class fil_finder_2D(BaseInfoMixin):
 
         if self.mask is not None and use_existing_mask:
             warnings.warn("Using inputted mask. Skipping creation of a new mask.")
+            self.glob_thresh = 'usermask'
+            self.adapt_thresh = 'usermask'
+            self.size_thresh = 'usermask'
+            self.smooth_size = 'usermask'
+
             return self  # Skip if pre-made mask given
 
         if glob_thresh is not None:
@@ -1206,8 +1211,6 @@ class fil_finder_2D(BaseInfoMixin):
             self.width_fits["Type"][n] = fit_type
         self.width_fits["Names"] = parameter_names
 
-        return self
-
     def compute_filament_brightness(self):
         '''
         Returns the median brightness along the skeleton of the filament.
@@ -1226,8 +1229,6 @@ class fil_finder_2D(BaseInfoMixin):
         for n in range(1, self.number_of_filaments+1):
             values = self.image[np.where(labels == n)]
             self.filament_brightness.append(np.median(values))
-
-        return self
 
     def filament_model(self, max_radius=25, use_nopad=True):
         '''
@@ -1304,8 +1305,6 @@ class fil_finder_2D(BaseInfoMixin):
         fil_model = self.filament_model(max_radius=max_radius)
 
         self.covering_fraction = np.nansum(fil_model) / np.nansum(self.image)
-
-        return self
 
     def save_table(self, table_type="csv", path=None, save_name=None,
                    save_branch_props=True, branch_table_type="hdf5",
@@ -1443,8 +1442,6 @@ class fil_finder_2D(BaseInfoMixin):
                                                  hdf_filename+".hdf5"),
                                     path="branch_"+str(n),
                                     append=True)
-        return self
-
     @property
     def mask_nopad(self):
         if self.pad_size == 0:
@@ -1659,8 +1656,6 @@ class fil_finder_2D(BaseInfoMixin):
                 os.path.join(self.save_name,
                              "".join([save_name, "_filament_model.fits"])))
 
-        return self
-
     def __str__(self):
         print("%s filaments found.") % (self.number_of_filaments)
         for fil in range(self.number_of_filaments):
@@ -1708,9 +1703,3 @@ class fil_finder_2D(BaseInfoMixin):
 
         if verbose:
             self.__str__()
-
-        # if save_plots:
-            # Analysis(self.dataframe, save_name=save_name).make_hists()
-            # ImageAnalysis(self.image, self.mask, skeleton=self.skeleton, save_name=save_name)
-
-        return self
