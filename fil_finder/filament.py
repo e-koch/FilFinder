@@ -1117,21 +1117,45 @@ class Filament2D(FilamentNDBase):
 
         return dists, profiles
 
-    def save_radprof(self, savename, xunit=u.pix, format="fits"):
+    def radprof_table(self, xunit=u.pix):
         '''
-        Save the radial profile as a table
+        Return the radial profile as a table.
+
+        Parameters
+        ----------
+        xunit : `~astropy.units.Unit`, optional
+            Spatial unit to convert radial profile distances.
+
+        Returns
+        -------
+        tab : `~astropy.table.Table`
+            Table with the radial profile distance and values.
         '''
         from astropy.table import Column, Table
 
         dists = Column(self._converter.from_pixel(self._radprofile[0], xunit))
         vals = Column(self._radprofile[1])
 
-        tab = Table({'Distance': dists, 'Values': vals})
-        tab.write(savename, format=format)
+        tab = Table()
+        tab['distance'] = dists
+        tab['values'] = vals
 
-    def save_branches_table(self, savename, format='fits', include_rht=False):
+        return tab
+
+    def branch_table(self, include_rht=False):
         '''
         Save the branch properties of the filament.
+
+        Parameters
+        ----------
+        include_rht : bool, optional
+            If `branches=True` is used in `Filament2D.exec_rht`, the branch
+            orientation and curvature will be added to the table.
+
+        Returns
+        -------
+        tab : `~astropy.table.Table`
+            Table with the branch properties.
         '''
 
         from astropy.table import Table, Column
@@ -1146,7 +1170,7 @@ class Filament2D(FilamentNDBase):
 
         tab = Table([Column(branch_data[key]) for key in branch_data],
                     names=branch_data.keys())
-        tab.write(savename, format=format)
+        return tab
 
     def save_fits(self, savename, image, pad_size=20 * u.pix, header=None,
                   **model_kwargs):

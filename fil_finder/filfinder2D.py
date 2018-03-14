@@ -9,7 +9,7 @@ from skimage.filters import threshold_adaptive
 from skimage.morphology import remove_small_objects, medial_axis
 from scipy.stats import scoreatpercentile
 from astropy.io import fits
-from astropy.table import Table
+from astropy.table import Table, Column
 from astropy import units as u
 from astropy.wcs import WCS
 from astropy.wcs.utils import proj_plane_pixel_scales
@@ -1128,129 +1128,75 @@ class FilFinder2D(BaseInfoMixin):
 
         return [fil.ridge_profile(self.image) for fil in self.filaments]
 
-    def save_table(self, table_type="csv", save_name=None):
+    def output_table(self, xunit=u.pix, **kwargs):
         '''
+        Return the analysis results as an astropy table.
 
-        The results of the algorithm are saved as an Astropy table in a 'csv',
-        'fits' or latex format.
+        If `~FilFinder2D.exec_rht` was run on the whole skeleton, the
+        orientation and curvature will be included in the table. If the RHT
+        was run on individual branches, use `~FilFinder2D.save_branch_tables`
+        with `include_rht=True` to save the curvature and orientations.
 
         Parameters
         ----------
+        xunit : `~astropy.units.Unit`, optional
+            Unit for spatial properties. Defaults to pixel units.
+        kwargs : Passed to `~FilFinder2D.total_intensity`.
 
-        table_type : str, optional
-            Sets the output type of the table. Supported options are
-            "csv", "fits", "latex" and "hdf5".
-        path : str, optional
-            The path where the file should be saved.
-        save_name : str, optional
-            The prefix for the saved file. If None, the save name specified
-            when ``fil_finder_2D`` was first called.
-
-        Attributes
-        ----------
-        dataframe : astropy.Table
-            The dataframe is returned for use with the ``Analysis`` class.
-
+        Return
+        ------
+        tab : `~astropy.table.Table`
+            Table with all analyzed parameters.
         '''
 
-        if save_name is None:
-            save_name = self.save_name
+        tab = Table()
 
-        save_name = save_name + "_table"
-
-        if table_type == "csv":
-            filename = save_name + ".csv"
-        elif table_type == "fits":
-            filename = save_name + ".fits"
-        elif table_type == "latex":
-            filename = save_name + ".tex"
-        elif table_type == "hdf5":
-            filename = save_name + ".hdf5"
-        else:
-            raise NameError("Only formats supported are 'csv', 'fits' \
-                           and 'latex'.")
-
-        # If path is specified, append onto filename.
-        if path is not None:
-            filename = os.path.join(path, filename)
+        tab["lengths"] = Column(self.lengths(xunit))
+        tab['branches'] = Column(self.branch_properties["number"])
+        tab['total_intensity'] = Column(self.total_intensity(**kwargs))
+        tab['median_brightness'] = Column(self.median_brightness())
 
         if not self._rht_branches_flag:
-            data = {"Lengths": self.lengths,
-                    "Orientation": self.rht_curvature["Orientation"],
-                    "Curvature": self.rht_curvature["Curvature"],
-                    "Branches": self.branch_properties["number"],
-                    "Fit Type": self.width_fits["Type"],
-                    "Total Intensity": self.total_intensity,
-                    "Median Brightness": self.filament_brightness}
+            tab['orientation'] = Column(self.orientation)
+            tab['curvature'] = Column(self.curvature)
 
-            branch_data = \
-                {"Branch Length": self.branch_properties["length"],
-                 "Branch Intensity": self.branch_properties["intensity"]}
-        else:
-            # RHT was ran on branches, and so can only be saved as a branch
-            # property due to the table shape
+        # Join with the width table
+        width_table = self.width_fits(xunit=xunit)
 
-            data = {"Lengths": self.lengths,
-                    "Fit Type": self.width_fits["Type"],
-                    "Total Intensity": self.total_intensity,
-                    "Branches": self.branch_properties["number"],
-                    "Median Brightness": self.filament_brightness}
+        from astropy.table import hstack as tab_hstack
 
-            branch_data = \
-                {"Branch Length": self.rht_curvature["Length"],
-                 "Branch Intensity": self.rht_curvature["Intensity"],
-                 "Curvature": self.rht_curvature["Curvature"],
-                 "Orientation": self.rht_curvature["Orientation"]}
+        tab = tab_hstack([tab, width_table])
+        return tab
 
-        for i, param in enumerate(self.width_fits["Names"]):
-            data[param] = self.width_fits["Parameters"][:, i]
-            data[param + " Error"] = self.width_fits["Errors"][:, i]
-
-        try_mkdir(self.save_name)
-
-        df = Table(data)
-
-        if table_type == "csv":
-            df.write(os.path.join(self.save_name, filename),
-                     format="ascii.csv")
-        elif table_type == "fits":
-            df.write(os.path.join(self.save_name, filename))
-        elif table_type == "latex":
-            df.write(os.path.join(self.save_name, filename),
-                     format="ascii.latex")
-        elif table_type == 'hdf5':
-            df.write(os.path.join(self.save_name, filename),
-                     path=hdf5_path)
-
-        self.dataframe = df
-
-    def save_branch_tables(self, save_name=None, format='fits',
-                           include_rht=False):
+    def branch_tables(self, include_rht=False):
         '''
-        Save the branch properties of each filament.
+        Return the branch properties of each filament. If the RHT was run
+        on individual branches (`branches=True` in `~FilFinder2D.exec_rht`),
+        the orientation and curvature of each branch can be included in the
+        saved table.
+
+        A table will be returned for each filament in order of the filaments
+        in `~FilFinder2D.filaments`.
 
         Parameters
         ----------
-        save_name : str, optional
-            The prefix for the saved file. If None, the save name specified
-            when ``FilFinder2D`` was first called.
-        format : str, optional
-            File format to save tables as.
         include_rht : bool, optional
             Include RHT orientation and curvature if `~FilFinder2D.exec_rht`
             is run with `branches=True`.
+
+        Returns
+        -------
+        tables : list
+            List of `~astropy.table.Table` for each filament.
         '''
 
-        if save_name is None:
-            save_name = self.save_name
+        tables = []
 
         for n, fil in enumerate(self.filaments):
 
-            save_name_fil = "{0}_branchprops_{1}.{2}".format(save_name, n + 1,
-                                                             format)
+            tables.append(fil.branch_table(include_rht=include_rht))
 
-            fil.save_branches_table(save_name_fil, format=format,
-                                    include_rht=include_rht)
+        return tables
 
     def save_fits(self, save_name=None, stamps=False, filename=None,
                   model_save=True):
