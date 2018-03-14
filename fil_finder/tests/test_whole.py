@@ -265,7 +265,8 @@ def test_simple_filament():
 
     mask = mod.data > 0.5
 
-    test = FilFinder2D(mod, distance=250 * u.pc, mask=mask)
+    test = FilFinder2D(mod, distance=250 * u.pc, mask=mask,
+                       save_name='test1')
 
     test.preprocess_image(flatten_percent=85)
 
@@ -328,6 +329,19 @@ def test_simple_filament():
     npt.assert_allclose(exp_pars, old_pars, rtol=0.05)
     npt.assert_allclose(exp_pars, new_pars, rtol=0.05)
 
+    # Test the non-param fitting in the new code
+    test.find_widths(auto_cut=False, max_dist=30 * u.pix,
+                     fit_model='nonparam')
+
+    new_pars = [par.value for par in fil1.radprof_params]
+
+    # There's a larger discrepancy compared with the Gaussian model
+    npt.assert_allclose(exp_pars[:-1], new_pars, rtol=0.2)
+
+    # Use the Gaussian fit for the model comparisons below.
+    test.find_widths(auto_cut=False, max_dist=30 * u.pix)
+
+
     # Test other output of the new code.
 
     npt.assert_allclose(1.1, fil1.median_brightness(mod.data))
@@ -369,17 +383,57 @@ def test_simple_filament():
     for prof in profs:
         npt.assert_allclose(prof.value, exp_profile)
 
-    # Test saving methods
+    # Test saving methods from Filament2D
+    from astropy.table import Table
 
-    fil1.save_radprof("test_radprof.fits")
-    os.remove("test_radprof.fits")
+    tab_rad = fil1.radprof_table()
+    npt.assert_allclose(fil1.radprofile[0], tab_rad['distance'])
+    npt.assert_allclose(fil1.radprofile[1], tab_rad['values'])
+    del tab_rad
 
-    fil1.save_branches_table("test_branchprops.fits")
-    os.remove("test_branchprops.fits")
+    tab_branch = fil1.branch_table()
+    npt.assert_allclose(fil1.branch_properties['length'],
+                        tab_branch['length'])
+    npt.assert_allclose(fil1.branch_properties['intensity'],
+                        tab_branch['intensity'])
+    del tab_branch
 
     # With RHT info
-    fil1.save_branches_table("test_branchprops.fits", include_rht=True)
-    os.remove("test_branchprops.fits")
+    tab_branch = fil1.branch_table(include_rht=True)
+    npt.assert_allclose(fil1.branch_properties['length'],
+                        tab_branch['length'])
+    npt.assert_allclose(fil1.branch_properties['intensity'],
+                        tab_branch['intensity'])
+    npt.assert_allclose(fil1.orientation_branches,
+                        tab_branch['orientation'])
+    npt.assert_allclose(fil1.curvature_branches,
+                        tab_branch['curvature'])
+    del tab_branch
+
+    # Compare saving filament stamps.
+    from astropy.io import fits
 
     fil1.save_fits("test_image_output.fits", test.image)
+
+    hdu = fits.open("test_image_output.fits")
+    skel = fil1.skeleton(pad_size=20)
+    npt.assert_allclose(skel, hdu[1].data.astype(bool))
+
+    skel = fil1.skeleton(pad_size=20, out_type='longpath')
+    npt.assert_allclose(skel, hdu[2].data.astype(bool))
+
+    mod = fil1.model_image()
+    npt.assert_allclose(mod.value, hdu[3].data)
+
     os.remove("test_image_output.fits")
+    del hdu
+
+    # Test table output from FilFinder2D
+
+    branch_tables = test.branch_tables()
+    assert (branch_tables[0] == fil1.branch_table()).all()
+
+    branch_tables = test.branch_tables(include_rht=True)
+    assert (branch_tables[0] == fil1.branch_table(include_rht=True)).all()
+
+    out_tab = test.output_table()
