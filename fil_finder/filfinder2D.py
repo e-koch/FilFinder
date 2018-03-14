@@ -294,6 +294,11 @@ class FilFinder2D(BaseInfoMixin):
             warnings.warn("Using inputted mask. Skipping creation of a"
                           "new mask.")
             # Skip if pre-made mask given
+            self.glob_thresh = 'usermask'
+            self.adapt_thresh = 'usermask'
+            self.size_thresh = 'usermask'
+            self.smooth_size = 'usermask'
+
             return
 
         if not hasattr(self.converter, 'distance'):
@@ -695,7 +700,6 @@ class FilFinder2D(BaseInfoMixin):
 
         self.filament_extents = [fil.pixel_extents for fil in self.filaments]
 
-        # Create filament arrays still?
         long_path_skel = [fil.skeleton(out_type='longpath')
                           for fil in self.filaments]
 
@@ -1198,34 +1202,27 @@ class FilFinder2D(BaseInfoMixin):
 
         return tables
 
-    def save_fits(self, save_name=None, stamps=False, filename=None,
-                  model_save=True):
+    def save_fits(self, save_name=None, **kwargs):
         '''
+        Save the mask and the skeleton array as FITS files. The header includes
+        the settings used to create them.
 
-        This function saves the mask and the skeleton array as FITS files.
-        Included in the header are the setting used to create them.
+        The mask, skeleton, longest skeletons, and model are included in the
+        outputted file. The skeletons are labeled to match their order in
+        `~FilFinder2D.filaments`.
 
         Parameters
         ----------
         save_name : str, optional
             The prefix for the saved file. If None, the save name specified
-            when `~fil_finder_2D` was first called.
-        stamps : bool, optional
-            Enables saving of individual stamps
-        filename : str, optional
-            File name of the image used. If None, assumes save_name is the
-            file name.
-        model_save : bool, optional
-            When enabled, calculates the model using `~fil_finder_2D.filament_model`
-            and saves it in a FITS file.
-
+            when `~FilFinder2D` was first called.
+        kwargs : Passed to `~FilFinder2D.filament_model`.
         '''
 
         if save_name is None:
             save_name = self.save_name
-
-        if not filename:  # Assume save_name is filename if not specified.
-            filename = save_name
+        else:
+            save_name = os.path.splitext(save_name)[0]
 
         # Create header based off of image header.
         if self.header is not None:
@@ -1233,18 +1230,21 @@ class FilFinder2D(BaseInfoMixin):
         else:
             new_hdr = fits.Header()
             new_hdr["NAXIS"] = 2
-            new_hdr["NAXIS1"] = self.mask_nopad.shape[1]
-            new_hdr["NAXIS2"] = self.mask_nopad.shape[0]
+            new_hdr["NAXIS1"] = self.image.shape[1]
+            new_hdr["NAXIS2"] = self.image.shape[0]
 
         try:  # delete the original history
             del new_hdr["HISTORY"]
         except KeyError:
             pass
 
+        from fil_finder.version import version
+
         new_hdr["BUNIT"] = ("bool", "")
 
-        new_hdr["COMMENT"] = "Mask created by fil_finder on " + \
-            time.strftime("%c")
+        new_hdr["COMMENT"] = \
+            "Mask created by fil_finder at {0}. Version {1}"\
+            .format(time.strftime("%c"), version)
         new_hdr["COMMENT"] = \
             "See fil_finder documentation for more info on parameter meanings."
         new_hdr["COMMENT"] = "Smoothing Filter Size: " + \
@@ -1255,117 +1255,75 @@ class FilFinder2D(BaseInfoMixin):
             str(self.glob_thresh) + " %"
         new_hdr["COMMENT"] = "Size of Adaptive Threshold Patch: " + \
             str(self.adapt_thresh) + " pixels"
-        new_hdr["COMMENT"] = "Original file name: " + filename
+        new_hdr['BITPIX'] = "8"
 
-        try_mkdir(self.save_name)
+        mask_hdu = fits.PrimaryHDU(self.mask.astype(int), new_hdr)
 
-        # Save mask
-        fits.writeto(os.path.join(self.save_name,
-                                  "".join([save_name, "_mask.fits"])),
-                     self.mask_nopad.astype(">i2"), new_hdr)
+        out_hdu = fits.HDUList([mask_hdu])
 
-        # Save skeletons. Includes final skeletons and the longest paths.
-        new_hdr["BUNIT"] = ("int", "")
+        # Skeletons
 
-        new_hdr["COMMENT"] = "Skeleton Size Threshold: " + \
+        new_hdr_skel = new_hdr.copy()
+        new_hdr_skel["BUNIT"] = ("int", "")
+        new_hdr_skel['BITPIX'] = "16"
+
+        new_hdr_skel["COMMENT"] = "Skeleton Size Threshold: " + \
             str(self.skel_thresh)
-        new_hdr["COMMENT"] = "Branch Size Threshold: " + \
+        new_hdr_skel["COMMENT"] = "Branch Size Threshold: " + \
             str(self.branch_thresh)
-
-        hdu_skel = fits.HDUList()
 
         # Final Skeletons - create labels which match up with table output
 
-        labels = nd.label(self.skeleton_nopad, eight_con())[0]
-        hdu_skel.append(fits.PrimaryHDU(labels.astype(">i2"), header=new_hdr))
+        labels = nd.label(self.skeleton, eight_con())[0]
+        out_hdu.append(fits.ImageHDU(labels, header=new_hdr_skel))
 
         # Longest Paths
-        labels_lp = nd.label(self.skeleton_longpath_nopad, eight_con())[0]
-        hdu_skel.append(fits.PrimaryHDU(labels_lp.astype(">i2"),
-                                        header=new_hdr))
+        labels_lp = nd.label(self.skeleton_longpath, eight_con())[0]
+        out_hdu.append(fits.ImageHDU(labels_lp,
+                                     header=new_hdr_skel))
 
-        try_mkdir(self.save_name)
+        model = self.filament_model(**kwargs).value
 
-        hdu_skel.writeto(os.path.join(self.save_name,
-                                      "".join([save_name, "_skeletons.fits"])))
+        model_hdr = new_hdr.copy()
+        model_hdr['COMMENT'] = "Image generated from fitted filament models."
+        try:
+            model_hdr['BUNIT'] = self.header['BUNIT']
+        except KeyError:
+            model_hdr['BUNIT'] = ""
+        model_hdr['BITPIX'] = fits.DTYPE2BITPIX[str(model.dtype)]
+        model_hdu = fits.ImageHDU(model, header=model_hdr)
 
-        if stamps:
-            # Save stamps of all images. Include portion of image and the
-            # skeleton for reference.
+        out_hdu.append(model_hdu)
 
-            try_mkdir(self.save_name)
+        out_hdu.writeto("{0}_image_output.fits".format(save_name))
 
-            # Make a directory for the stamps
-            out_dir = \
-                os.path.join(self.save_name, "stamps_" + save_name)
 
-            if not os.path.exists(out_dir):
-                os.makedirs(out_dir)
+    def save_stamp_fits(self, save_name=None, pad_size=20 * u.pix,
+                        **kwargs):
+        '''
+        Save stamps of each filament image, skeleton, longest-path skeleton,
+        and the model image.
 
-            final_arrays = self.filament_arrays["final"]
-            longpath_arrays = self.filament_arrays["long path"]
+        A suffix of "stamp_{num}" is added to each file, where the number is
+        is the order in the list of `~FilFinder2D.filaments`.
 
-            for n, (offset, skel_arr, lp_arr) in \
-              enumerate(zip(self.array_offsets,
-                            final_arrays,
-                            longpath_arrays)):
+        Parameters
+        ----------
+        save_name : str, optional
+            The prefix for the saved file. If None, the save name specified
+            when `~FilFinder2D` was first called.
+        stamps : bool, optional
+            Enables saving of individual stamps
+        kwargs : Passed to `~Filament2D.save_fits`.
+        '''
+        if save_name is None:
+            save_name = self.save_name
+        else:
+            save_name = os.path.splitext(save_name)[0]
 
-                xlow, ylow = (offset[0][0], offset[0][1])
-                xhigh, yhigh = (offset[1][0], offset[1][1])
+        for n, fil in enumerate(self.filaments):
 
-                # Create stamp
-                img_stamp = self.image[xlow:xhigh,
-                                       ylow:yhigh]
+            savename = "{0}_stamp_{1}.fits".format(save_name, n)
 
-                # ADD IN SOME HEADERS!
-                if self.header is not None:
-                    prim_hdr = deepcopy(self.header)
-                else:
-                    prim_hdr = fits.Header()
-                    prim_hdr["NAXIS"] = 2
-                    prim_hdr["NAXIS1"] = img_stamp.shape[1]
-                    prim_hdr["NAXIS2"] = img_stamp.shape[0]
-
-                prim_hdr["COMMENT"] = "Outputted from fil_finder."
-                prim_hdr["COMMENT"] = \
-                    "Extent in original array: (" + \
-                    str(xlow + self.pad_size) + "," + \
-                    str(ylow + self.pad_size) + ")->" + \
-                    "(" + str(xhigh - self.pad_size) + \
-                    "," + str(yhigh - self.pad_size) + ")"
-
-                hdu = fits.HDUList()
-                # Image stamp
-                hdu.append(fits.PrimaryHDU(img_stamp.astype(">f4"),
-                           header=prim_hdr))
-                # Stamp of final skeleton
-                try:
-                    prim_hdr.update("BUNIT", value="bool", comment="")
-                except KeyError:
-                    prim_hdr["BUNIT"] = ("int", "")
-
-                hdu.append(fits.PrimaryHDU(skel_arr.astype(">i2"),
-                           header=prim_hdr))
-                # Stamp of longest path
-                hdu.append(fits.PrimaryHDU(lp_arr.astype(">i2"),
-                           header=prim_hdr))
-
-                hdu.writeto(os.path.join(out_dir,
-                                         save_name+"_object_"+str(n+1)+".fits"))
-
-        if model_save:
-            model = self.filament_model(use_nopad=True)
-
-            model_hdr = new_hdr.copy()
-
-            try:
-                model_hdr.update("BUNIT", value=self.header['BUNIT'], comment="")
-            except KeyError:
-                Warning("No BUNIT specified in original header.")
-
-            model_hdu = fits.PrimaryHDU(model.astype(">f4"), header=model_hdr)
-
-            try_mkdir(self.save_name)
-            model_hdu.writeto(
-                os.path.join(self.save_name,
-                             "".join([save_name, "_filament_model.fits"])))
+            fil.save_fits(savename, self.image, pad_size=pad_size,
+                          **kwargs)

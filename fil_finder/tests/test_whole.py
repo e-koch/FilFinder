@@ -410,6 +410,17 @@ def test_simple_filament():
                         tab_branch['curvature'])
     del tab_branch
 
+    # Test table output from FilFinder2D
+
+    branch_tables = test.branch_tables()
+    assert (branch_tables[0] == fil1.branch_table()).all()
+
+    branch_tables = test.branch_tables(include_rht=True)
+    assert (branch_tables[0] == fil1.branch_table(include_rht=True)).all()
+
+    out_tab = test.output_table()
+
+
     # Compare saving filament stamps.
     from astropy.io import fits
 
@@ -428,12 +439,31 @@ def test_simple_filament():
     os.remove("test_image_output.fits")
     del hdu
 
-    # Test table output from FilFinder2D
+    test.save_stamp_fits()
+    hdu = fits.open("test1_stamp_0.fits")
+    skel = fil1.skeleton(pad_size=20)
+    npt.assert_allclose(skel, hdu[1].data.astype(bool))
 
-    branch_tables = test.branch_tables()
-    assert (branch_tables[0] == fil1.branch_table()).all()
+    skel = fil1.skeleton(pad_size=20, out_type='longpath')
+    npt.assert_allclose(skel, hdu[2].data.astype(bool))
 
-    branch_tables = test.branch_tables(include_rht=True)
-    assert (branch_tables[0] == fil1.branch_table(include_rht=True)).all()
+    mod = fil1.model_image()
+    npt.assert_allclose(mod.value, hdu[3].data)
 
-    out_tab = test.output_table()
+    os.remove("test1_stamp_0.fits")
+    del hdu
+
+    # Compare saving whole skeleton/mask/model
+
+    test.save_fits()
+    hdu = fits.open("test1_image_output.fits")
+
+    mod = test.filament_model()
+
+    npt.assert_allclose(test.mask, hdu[0].data)
+    npt.assert_allclose(test.skeleton, hdu[1].data > 0)
+    npt.assert_allclose(test.skeleton_longpath, hdu[2].data > 0)
+    npt.assert_allclose(mod.value, hdu[3].data)
+
+    os.remove("test1_image_output.fits")
+    del hdu
