@@ -4,6 +4,7 @@ import pytest
 import numpy as np
 import numpy.testing as npt
 import astropy.units as u
+from astropy.wcs import WCS
 
 from ..filament import Filament2D, FilamentNDBase
 
@@ -59,13 +60,67 @@ def test_Filament2D():
     with pytest.raises(AttributeError):
         fil.length(unit=u.pc)
 
+    # Test pickling
+    fil.to_pickle("pickled_fil.pkl")
+
+    loaded_fil = Filament2D.from_pickle("pickled_fil.pkl")
+
+    # Compare a few properties
+
+    assert (loaded_fil.length() == fil.length()).all()
+    assert (loaded_fil.skeleton(out_type='longpath', pad_size=pad) ==
+            mask_expect).all()
+
+    import os
+    os.remove('pickled_fil.pkl')
+
 
 def test_Filament2D_with_WCS():
-    pass
+
+    pixels = (np.array([0, 0, 0]), np.array([0, 1, 2]))
+
+    image = np.zeros((1, 3))
+    image[0, :] = 2.
+
+    mywcs = WCS()
+    mywcs.wcs.ctype = ['GLON-CAR', 'GLAT-CAR']
+    mywcs.wcs.cunit = ['deg', 'deg']
+
+    fil = Filament2D(pixels, wcs=mywcs)
+    fil.skeleton_analysis(image)
+
+    # Check the length
+    assert fil.length().value == 2.0
+    assert fil.length().unit == u.pix
+
+    assert fil.length(unit=u.deg) == 2.0 * u.deg
+
+    # Physical conversion still fails
+    with pytest.raises(AttributeError):
+        fil.length(unit=u.pc)
 
 
 def test_Filament2D_with_distance():
-    pass
+
+    pixels = (np.array([0, 0, 0]), np.array([0, 1, 2]))
+
+    image = np.zeros((1, 3))
+    image[0, :] = 2.
+
+    mywcs = WCS()
+    mywcs.wcs.ctype = ['GLON-CAR', 'GLAT-CAR']
+    mywcs.wcs.cunit = ['deg', 'deg']
+
+    fil = Filament2D(pixels, wcs=mywcs, distance=100 * u.pc)
+    fil.skeleton_analysis(image)
+
+    # Check the length
+    assert fil.length().value == 2.0
+    assert fil.length().unit == u.pix
+
+    assert fil.length(unit=u.deg) == 2.0 * u.deg
+
+    assert fil.length(unit=u.pc) == (2.0 * u.deg).to(u.rad).value * 100 * u.pc
 
 
 def test_Filament2D_onebranch():

@@ -8,6 +8,12 @@ import scipy.ndimage as nd
 from astropy.nddata import extract_array
 import astropy.modeling as mod
 from astropy.modeling.models import Gaussian1D, Const1D
+import sys
+
+if sys.version_info[0] >= 3:
+    import _pickle as pickle
+else:
+    import cPickle as pickle
 
 from .length import (init_lengths, main_length, make_final_skeletons,
                      pre_graph, longest_path, prune_graph)
@@ -1229,11 +1235,22 @@ class Filament2D(FilamentNDBase):
     def to_pickle(self, savename):
         '''
         Save a Filament2D class as a pickle file.
-        '''
-        pass
 
+        Parameters
+        ----------
+        savename : str
+            Name of the pickle file.
+        '''
+
+        with open(savename, 'wb') as output:
+                pickle.dump(self, output, -1)
+
+    @staticmethod
     def from_pickle(filename):
         '''
         Load a Filament2D from a pickle file.
         '''
-        pass
+        with open(filename, 'rb') as input:
+                self = pickle.load(input)
+
+        return self
