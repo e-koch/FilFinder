@@ -829,7 +829,7 @@ class Filament2D(FilamentNDBase):
 
         from astropy.table import Table, Column
 
-        params_dict = {}
+        tab = Table()
 
         for name, val, err in zip(self.radprof_parnames, self.radprof_params,
                                   self.radprof_errors):
@@ -843,20 +843,20 @@ class Filament2D(FilamentNDBase):
                 conv_val = val
                 conv_err = err
 
-            params_dict[name] = [Column(conv_val)]
-            params_dict[name + "_err"] = [Column(conv_err)]
+            tab[name] = Column(conv_val.reshape((1,)))
+            tab[name + "_err"] = Column(conv_err.reshape((1,)))
 
         # Add on the FWHM
-        params_dict['fwhm'] = [Column(self.radprof_fwhm(xunit)[0])]
-        params_dict['fwhm_err'] = [Column(self.radprof_fwhm(xunit)[1])]
+        tab['fwhm'] = Column(self.radprof_fwhm(xunit)[0].reshape((1,)))
+        tab['fwhm_err'] = Column(self.radprof_fwhm(xunit)[1].reshape((1,)))
 
         # Add on whether the fit was "successful"
-        params_dict['fail_flag'] = [Column(self.radprof_fit_fail_flag)]
+        tab['fail_flag'] = Column([self.radprof_fit_fail_flag])
 
         # Add the type of fit based on the model type
-        params_dict['model_type'] = [Column(self.radprof_type)]
+        tab['model_type'] = Column([self.radprof_type])
 
-        return Table(params_dict)
+        return tab
 
     @property
     def radprof_model(self):
