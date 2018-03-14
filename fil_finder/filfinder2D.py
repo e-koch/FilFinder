@@ -849,54 +849,69 @@ class FilFinder2D(BaseInfoMixin):
                     deconvolve_width=True,
                     fwhm_function=None,
                     chisq_max=10.,
-                    set_fail_to_nan=False,
                     verbose=False, save_png=False,
                     xunit=u.pix,
                     **kwargs):
         '''
 
-        The final step of the algorithm is to find the widths of each
-        of the skeletons. We do this by:
+        Create an average radial profile for each filaments and fit a given
+        model. See `~Filament2D.width_analysis`.
 
-        *   A Euclidean Distance Transform is performed on each skeleton.
-            The skeletons are also recombined onto a single array. The
-            individual filament arrays are padded to ensure a proper radial
-            profile is created. If the padded arrays fall outside of the
-            original image, they are trimmed.
+        *   Radial profiles are created from a Euclidean Distance Transform
+            on the skeleton.
         *   A user-specified model is fit to each of the radial profiles.
-            There are three models included in this package; a gaussian,
-            lorentzian and a cylindrical filament model
-            (Arzoumanian et al., 2011). This returns the width and central
-            intensity of each filament. The reported widths are the
-            deconvolved FWHM of the gaussian width. For faint or crowded
-            filaments, the fit can fail due to lack of data to fit to.
-            In this case, we estimate the width non-parametrically.
+            The default model is a Gaussian with a constant background
+            ('gaussian_bkg'). Other built-in models include a Gaussian with
+            no background ('gaussian_nobkg') or a non-parametric estimate
+            ('nonparam'). Any 1D astropy model (or compound model) can be
+            passed for fitting.
 
         Parameters
         ----------
-        fit_model : function
-            Function to fit to the radial profile.
+        image : `~astropy.unit.Quantity` or `~numpy.ndarray`
+            The image from which the filament was extracted.
+        all_skeleton_array : np.ndarray
+            An array with the skeletons of other filaments. This is used to
+            avoid double-counting pixels in the radial profiles in nearby
+            filaments.
+        max_dist : `~astropy.units.Quantity`, optional
+            Largest radius around the skeleton to create the profile from. This
+            can be given in physical, angular, or physical units.
+        pad_to_distance : `~astropy.units.Quantity`, optional
+            Force all pixels within this distance to be kept, even if a pixel
+            is closer to another skeleton, as given in `all_skeleton_array`.
+        fit_model : str or `~astropy.modeling.Fittable1DModel`, optional
+            The model to fit to the profile. Built-in models include
+            'gaussian_bkg' for a Gaussian with a constant background,
+            'gaussian_nobkg' for just a Gaussian, 'nonparam' for the
+            non-parametric estimator. Defaults to 'gaussian_bkg'.
+        fitter : `~astropy.modeling.fitting.Fitter`, optional
+            One of the astropy fitting classes. Defaults to a
+            Levenberg-Marquardt fitter.
         try_nonparam : bool, optional
-            If True, uses a non-parametric method to find the properties of
-            the radial profile in cases where the model fails.
-        use_longest_paths : bool, optional
-            Optionally use the longest path skeletons for the width fitting.
-            Note that this will disregard all branches off of the longest
-            path.
+            If the chosen model fit fails, fall back to a non-parametric
+            estimate.
+        use_longest_path : bool, optional
+            Only fit profile to the longest path skeleton. Disabled by
+            default.
+        add_width_to_length : bool, optional
+            Add the FWHM to the filament length. This accounts for the
+            expected shortening in the medial axis transform. Enabled by
+            default.
+        deconvolve_width : bool, optional
+            Deconvolve the beam width from the FWHM. Enabled by default.
+        fwhm_function : function, optional
+            Convert the width parameter to the FWHM. Must take the fit model
+            as an argument and return the FWHM and its uncertainty. If no
+            function is given, the Gaussian FWHM is used.
+        chisq_max : float, optional
+            Enable the fail flag if the reduced chi-squared value is above
+            this limit.
         verbose : bool, optional
             Enables plotting.
         save_png : bool, optional
             Saves the plot made in verbose mode. Disabled by default.
-
-        Attributes
-        ----------
-        width_fits : dict
-            Contains the fit parameters and estimations of the errors
-            from each fit.
-        total_intensity : list
-            Sum of the intensity in each filament within 1 FWHM of the
-            skeleton.
-
+        kwargs : Passed to `~fil_finder.width.radial_profile`.
         '''
 
         for i, fil in enumerate(self.filaments):
@@ -920,10 +935,6 @@ class FilFinder2D(BaseInfoMixin):
                     save_name = None
                 fil.plot_radial_profile(save_name=save_name, xunit=xunit)
 
-        # Set failed fits to NaN if enabled
-        if set_fail_to_nan:
-            raise NotImplementedError("")
-
     def widths(self, unit=u.pix):
         '''
         Fitted FWHM of the filaments and their uncertainties.
@@ -944,6 +955,11 @@ class FilFinder2D(BaseInfoMixin):
         '''
         Return an `~astropy.table.Table` of the width fit parameters,
         uncertainties, and whether a flag was raised for a bad fit.
+
+        Returns
+        -------
+        tab : `~astropy.table.Table`
+            Table with width fit results.
         '''
 
         from astropy.table import vstack as tab_vstack
@@ -1000,8 +1016,8 @@ class FilFinder2D(BaseInfoMixin):
         '''
         Returns the median brightness along the skeleton of the filament.
 
-        Attributes
-        ----------
+        Returns
+        -------
         filament_brightness : list
             Average brightness/intensity over the skeleton pixels
             for each filament.
@@ -1087,8 +1103,8 @@ class FilFinder2D(BaseInfoMixin):
             background level. Defaults to 2 for the Gaussian with background
             model.
 
-        Attributes
-        ----------
+        Returns
+        -------
         covering_fraction : float
             Fraction of the total image intensity contained in the
             filamentary structure (based on the local, individual fits)
@@ -1112,9 +1128,7 @@ class FilFinder2D(BaseInfoMixin):
 
         return [fil.ridge_profile(self.image) for fil in self.filaments]
 
-    def save_table(self, table_type="csv", path=None, save_name=None,
-                   save_branch_props=True, branch_table_type="hdf5",
-                   hdf5_path="data"):
+    def save_table(self, table_type="csv", save_name=None):
         '''
 
         The results of the algorithm are saved as an Astropy table in a 'csv',
@@ -1131,14 +1145,6 @@ class FilFinder2D(BaseInfoMixin):
         save_name : str, optional
             The prefix for the saved file. If None, the save name specified
             when ``fil_finder_2D`` was first called.
-        save_branch_props : bool, optional
-            When enabled, saves the lists of branch lengths and intensities
-            in a separate file(s). Default is enabled.
-        branch_table_type : str, optional
-            Any of the accepted table_types will work here. If using HDF5,
-            just one output file is created with each stored within it.
-        hdf5_path : str, optional
-            Path name within the HDF5 file.
 
         Attributes
         ----------
@@ -1218,36 +1224,33 @@ class FilFinder2D(BaseInfoMixin):
 
         self.dataframe = df
 
-        for n in range(self.number_of_filaments):
+    def save_branch_tables(self, save_name=None, format='fits',
+                           include_rht=False):
+        '''
+        Save the branch properties of each filament.
 
-            branch_df = \
-                Table([branch_data[key][n] for key in branch_data.keys()],
-                      names=branch_data.keys())
+        Parameters
+        ----------
+        save_name : str, optional
+            The prefix for the saved file. If None, the save name specified
+            when ``FilFinder2D`` was first called.
+        format : str, optional
+            File format to save tables as.
+        include_rht : bool, optional
+            Include RHT orientation and curvature if `~FilFinder2D.exec_rht`
+            is run with `branches=True`.
+        '''
 
-            branch_filename = save_name + "_branch_" + str(n)
+        if save_name is None:
+            save_name = self.save_name
 
-            if branch_table_type == "csv":
-                branch_df.write(os.path.join(self.save_name,
-                                             branch_filename+".csv"),
-                                format="ascii.csv")
-            elif branch_table_type == "fits":
-                branch_df.write(os.path.join(self.save_name,
-                                             branch_filename+".fits"))
-            elif branch_table_type == "latex":
-                branch_df.write(os.path.join(self.save_name,
-                                             branch_filename+".tex"),
-                                format="ascii.latex")
-            elif branch_table_type == 'hdf5':
-                hdf_filename = save_name + "_branch"
-                if n == 0:
-                    branch_df.write(os.path.join(self.save_name,
-                                                 hdf_filename+".hdf5"),
-                                    path="branch_"+str(n))
-                else:
-                    branch_df.write(os.path.join(self.save_name,
-                                                 hdf_filename+".hdf5"),
-                                    path="branch_"+str(n),
-                                    append=True)
+        for n, fil in enumerate(self.filaments):
+
+            save_name_fil = "{0}_branchprops_{1}.{2}".format(save_name, n + 1,
+                                                             format)
+
+            fil.save_branches_table(save_name_fil, format=format,
+                                    include_rht=include_rht)
 
     def save_fits(self, save_name=None, stamps=False, filename=None,
                   model_save=True):
@@ -1420,14 +1423,3 @@ class FilFinder2D(BaseInfoMixin):
             model_hdu.writeto(
                 os.path.join(self.save_name,
                              "".join([save_name, "_filament_model.fits"])))
-
-        return self
-
-    def __str__(self):
-        print("%s filaments found.") % (self.number_of_filaments)
-        for fil in range(self.number_of_filaments):
-            print("Filament: %s, Width: %s, Length: %s, Curvature: %s,\
-                       Orientation: %s" % \
-                (fil, self.width_fits["Parameters"][fil, -1][fil],
-                 self.lengths[fil], self.rht_curvature["Std"][fil],
-                 self.rht_curvature["Std"][fil]))
