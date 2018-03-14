@@ -527,9 +527,17 @@ class Filament2D(FilamentNDBase):
         try_nonparam : bool, optional
             If the chosen model fit fails, fall back to a non-parametric
             estimate.
-
+        use_longest_path : bool, optional
+            Only fit profile to the longest path skeleton. Disabled by
+            default.
+        add_width_to_length : bool, optional
+            Add the FWHM to the filament length. This accounts for the
+            expected shortening in the medial axis transform. Enabled by
+            default.
+        deconvolve_width : bool, optional
+            Deconvolve the beam width from the FWHM. Enabled by default.
         beamwidth : `~astropy.units.Quantity`, optional
-            The beam width to deconvolve the FWHM from. Require if
+            The beam width to deconvolve the FWHM from. Required if
             `deconvolve_width = True`.
         fwhm_function : function, optional
             Convert the width parameter to the FWHM. Must take the fit model
@@ -538,6 +546,7 @@ class Filament2D(FilamentNDBase):
         chisq_max : float, optional
             Enable the fail flag if the reduced chi-squared value is above
             this limit.
+        kwargs : Passed to `~fil_finder.width.radial_profile`.
 
         '''
 
@@ -1021,5 +1030,158 @@ class Filament2D(FilamentNDBase):
 
         return values * unit
 
-    def profile_analysis(self):
-        pass
+    def profile_analysis(self, image, max_dist=20 * u.pix,
+                         num_avg=3, xunit=u.pix):
+        '''
+        Create profiles of radial slices along the longest path skeleton.
+        Profiles created from `~fil_finder.width_profiles.filament_profile`.
+
+        .. note::
+            Does not include fitting to the radial profiles. Limited fitting
+            of Gaussian profiles is provided in
+            `~fil_finder.width_profiles.filament_profile`. See a dedicated
+            package like `radfil <https://github.com/catherinezucker/radfil>`_
+            for modeling profiles.
+
+        Parameters
+        ----------
+        image : `~numpy.ndarray` or `~astropy.units.Quantity`
+            The image from which the filament was extracted.
+        max_dist : astropy Quantity, optional
+            The angular or physical (when distance is given) extent to create
+            the profile away from the centre skeleton pixel. The entire
+            profile will be twice this value (for each side of the profile).
+        num_avg : int, optional
+            Number of points before and after a pixel that is used when
+            computing the normal vector. Using at least three points is
+            recommended due to small pixel instabilities in the skeletons.
+
+        Returns
+        -------
+    `   dists : `~astropy.units.Quantity`
+            Distances in the radial profiles from the skeleton. Units set by
+            `xunit`.
+        profiles : `~astropy.units.Quantity`
+            Radial image profiles.
+        '''
+
+        from .width_profiles import filament_profile
+
+        max_dist = self._converter.to_pixel(max_dist)
+        pad_size = int(max_dist.value)
+
+        # Do we need to pad the image before slicing?
+        input_image = pad_image(image, self.pixel_extents, pad_size)
+
+        if hasattr(image, 'unit'):
+            input_image = input_image * image.unit
+        else:
+            input_image = input_image * u.dimensionless_unscaled
+
+        skels = self.skeleton(pad_size=pad_size, out_type='longpath')
+
+        # If the padded image matches the mask size, don't need additional
+        # slicing
+        if input_image.shape != skels.shape:
+            input_image = input_image[self.image_slice(pad_size=pad_size)]
+
+        pixscale = self._converter.to_angular(1 * u.pix)
+
+        dists, profiles = filament_profile(skels, input_image, pixscale,
+                                           max_dist=max_dist,
+                                           distance=None,
+                                           fit_profiles=False,
+                                           bright_unit=input_image.unit)
+
+        # First put the distances into pixel units
+        dists = [self._converter.to_pixel(dist) for dist in dists]
+
+        # Convert the distance units
+        dists = [self._converter.from_pixel(dist, xunit) for dist in dists]
+
+        return dists, profiles
+
+    def save_radprof(self, savename, xunit=u.pix, format="fits"):
+        '''
+        Save the radial profile as a table
+        '''
+        from astropy.table import Column, Table
+
+        dists = Column(self._converter.from_pixel(self._radprofile[0], xunit))
+        vals = Column(self._radprofile[1])
+
+        tab = Table({'Distance': dists, 'Values': vals})
+        tab.write(savename, format=format)
+
+    def save_branches_table(self, savename, format='fits', include_rht=False):
+        '''
+        Save the branch properties of the filament.
+        '''
+
+        from astropy.table import Table, Column
+
+        branch_data = self.branch_properties.copy()
+        del branch_data['pixels']
+        del branch_data['number']
+
+        if include_rht:
+            branch_data['orientation'] = self.orientation_branches
+            branch_data['curvature'] = self.curvature_branches
+
+        tab = Table([Column(branch_data[key]) for key in branch_data],
+                    names=branch_data.keys())
+        tab.write(savename, format=format)
+
+    def save_fits(self, savename, image, pad_size=20 * u.pix, header=None,
+                  **model_kwargs):
+        '''
+        Save a stamp of the image centered on the filament, the skeleton,
+        the longest path skeleton, and the model.
+
+        Parameters
+        ----------
+        image : `~numpy.ndarray` or `~astropy.units.Quantity`
+            The image from which the filament was extracted.
+        pad_size : `~astropy.units.Quantity`, optional
+            Size to pad the saved arrays by.
+
+        '''
+
+        pad_size = int(self._converter.to_pixel(pad_size).value)
+
+        # Do we need to pad the image before slicing?
+        input_image = pad_image(image, self.pixel_extents, pad_size)
+
+        skels = self.skeleton(pad_size=pad_size, out_type='all')
+        skels_lp = self.skeleton(pad_size=pad_size, out_type='longpath')
+
+        # If the padded image matches the mask size, don't need additional
+        # slicing
+        if input_image.shape != skels.shape:
+            input_image = input_image[self.image_slice(pad_size=pad_size)]
+
+        model = self.model_image(max_radius=pad_size * u.pix,
+                                 **model_kwargs).value
+
+        from astropy.io import fits
+        import time
+
+        if header is None:
+            header = self._converter._wcs.to_header()
+
+        hdu = fits.PrimaryHDU(input_image, header)
+
+        skel_hdr = header.copy()
+        skel_hdr['BUNIT'] = ("", "bool")
+        skel_hdr['COMMENT'] = "Skeleton created by fil_finder on " + \
+            time.strftime("%c")
+
+        skel_hdu = fits.ImageHDU(skels.astype(int, skel_hdr))
+
+        skel_lp_hdu = fits.ImageHDU(skels_lp.astype(int, skel_hdr))
+
+        model_hdu = fits.ImageHDU(model, header)
+
+        hdulist = fits.HDUList([hdu, skel_hdu, skel_lp_hdu, model_hdu])
+
+        hdulist.writeto(savename)

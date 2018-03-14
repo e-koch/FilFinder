@@ -5,6 +5,7 @@ import numpy.testing as npt
 import astropy.units as u
 from copy import deepcopy
 import warnings
+import os
 
 from .. import fil_finder_2D, FilFinder2D
 from .testing_utils import generate_filament_model
@@ -274,6 +275,13 @@ def test_simple_filament():
     test.analyze_skeletons()
     test.find_widths(auto_cut=False, max_dist=30 * u.pix)
 
+    test.exec_rht(branches=False)
+    test.exec_rht(branches=True)
+
+    # Should be oriented along the x-axis. Set to be pi/2.
+    npt.assert_allclose(np.pi / 2., test.orientation[0].value)
+    npt.assert_allclose(np.pi / 2., test.orientation_branches[0][0].value)
+
     fil1 = test.filaments[0]
 
     test1_old = fil_finder_2D(mod,
@@ -352,3 +360,26 @@ def test_simple_filament():
     ridge_2 = test.ridge_profiles()
     assert (ridge_2[0] == ridge).all()
 
+    # Test radial profiles
+    dists, profs = fil1.profile_analysis(test.image)
+
+    # Width is 10 pixels
+    exp_profile = np.exp(- dists[0].value**2 / (2 * 10.**2)) + 0.1
+
+    for prof in profs:
+        npt.assert_allclose(prof.value, exp_profile)
+
+    # Test saving methods
+
+    fil1.save_radprof("test_radprof.fits")
+    os.remove("test_radprof.fits")
+
+    fil1.save_branches_table("test_branchprops.fits")
+    os.remove("test_branchprops.fits")
+
+    # With RHT info
+    fil1.save_branches_table("test_branchprops.fits", include_rht=True)
+    os.remove("test_branchprops.fits")
+
+    fil1.save_fits("test_image_output.fits", test.image)
+    os.remove("test_image_output.fits")
