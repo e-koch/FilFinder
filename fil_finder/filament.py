@@ -634,6 +634,7 @@ class Filament2D(FilamentNDBase):
         # Make sure the given model is valid
         if not isinstance(fit_model, mod.Model):
             skip_fitting = False
+            self._radprof_type = fit_model
             # Check the default types
             if fit_model == "gaussian_bkg":
                 fit_model = gaussian_model(dist, radprof, with_bkg=True)
@@ -646,6 +647,10 @@ class Filament2D(FilamentNDBase):
                                  "astropy.modeling.Fittable1DModel or "
                                  "one of the default models: 'gaussian_bkg',"
                                  " 'gaussian_nobkg', or 'nonparam'.")
+        else:
+            # Record the fit type
+            self._radprof_type = fit_model.name
+
 
         if not skip_fitting:
             fitted_model, fitter = fit_radial_model(dist, radprof, fit_model,
@@ -701,6 +706,7 @@ class Filament2D(FilamentNDBase):
                 nonparam_width(dist.value, radprof.value,
                                unbin_dist, unbin_radprof,
                                None, 5, 99)
+            self._radprof_type = 'nonparam'
 
             # Make the equivalent Gaussian model w/ a background
             self._radprof_model = Gaussian1D(fit[0] * yunit, 0.0 * xunit,
@@ -773,6 +779,13 @@ class Filament2D(FilamentNDBase):
         return self._radprof_failflag
 
     @property
+    def radprof_type(self):
+        '''
+        The model type used to fit the radial profile.
+        '''
+        return self._radprof_type
+
+    @property
     def radprofile(self):
         '''
         The binned radial profile created in `~FilFinder2D.width_analysis`.
@@ -838,7 +851,10 @@ class Filament2D(FilamentNDBase):
         params_dict['fwhm_err'] = [Column(self.radprof_fwhm(xunit)[1])]
 
         # Add on whether the fit was "successful"
-        params_dict['Fail_Flag'] = [Column(self.radprof_fit_fail_flag)]
+        params_dict['fail_flag'] = [Column(self.radprof_fit_fail_flag)]
+
+        # Add the type of fit based on the model type
+        params_dict['model_type'] = [Column(self.radprof_type)]
 
         return Table(params_dict)
 
@@ -1185,3 +1201,15 @@ class Filament2D(FilamentNDBase):
         hdulist = fits.HDUList([hdu, skel_hdu, skel_lp_hdu, model_hdu])
 
         hdulist.writeto(savename)
+
+    def to_pickle(self, savename):
+        '''
+        Save a Filament2D class as a pickle file.
+        '''
+        pass
+
+    def from_pickle(filename):
+        '''
+        Load a Filament2D from a pickle file.
+        '''
+        pass
