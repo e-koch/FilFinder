@@ -93,6 +93,15 @@ def gaussian_model(dist, radprof, with_bkg=True):
         bkg_mod = bkg_mod.rename("Bkg")
         mod = mod + bkg_mod
 
+        # Check if the compound model can handle units?
+        if not mod._supports_unit_fitting:
+            # Strip the units out. Hopefully I can get rid of this in a
+            # future release...
+            mod.amplitude_0 = mod.amplitude_0.value
+            mod.mean_0 = mod.mean_0.value
+            mod.stddev_0 = mod.stddev_0.value
+            mod.amplitude_1 = mod.amplitude_1.value
+
     return mod
 
 
@@ -126,6 +135,13 @@ def fit_radial_model(dist, radprof, model, fitter=None, weights=None,
         if not isinstance(fitter, fitting.Fitter):
             raise TypeError("The fitter must be one of the "
                             "astropy.modeling.fitting classes.")
+
+    if model._supports_unit_fitting:
+        xdata = dist
+        ydata = radprof
+    else:
+        xdata = dist.value
+        ydata = radprof.value
 
     fitted_mod = fitter(model, dist, radprof, weights=weights, **fitter_kwargs)
 
