@@ -720,7 +720,13 @@ class Filament2D(FilamentNDBase):
                 if fitted_model.fixed[name]:
                     continue
 
-                params.append(getattr(fitted_model, name).quantity)
+                param = getattr(fitted_model, name)
+                if hasattr(param, 'unit'):
+                    params.append(param.quantity)
+                else:
+                    # Assign a dimensionless unit
+                    param.append(param.value * u.dimensionless_unscaled)
+
                 names.append(name)
 
             self._radprof_params = params
