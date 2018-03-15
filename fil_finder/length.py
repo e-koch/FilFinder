@@ -427,8 +427,8 @@ def longest_path(edge_list, nodes, verbose=False,
                 # Check if skeleton_arrays is a list
                 assert isinstance(skeleton_arrays, list)
                 import matplotlib.pyplot as p
-                if verbose:
-                    print("Filament: %s / %s" % (n + 1, num))
+                # if verbose:
+                #     print("Filament: %s / %s" % (n + 1, num))
                 p.subplot(1, 2, 1)
                 p.imshow(skeleton_arrays[n], interpolation="nearest",
                          origin="lower")
@@ -443,12 +443,11 @@ def longest_path(edge_list, nodes, verbose=False,
                 p.axis('off')
 
                 if save_png:
-                    try_mkdir(save_name)
-                    p.savefig(os.path.join(save_name,
-                                           save_name + "_longest_path_" + str(n) + ".png"))
+                    p.savefig(save_name)
+                    p.close()
                 if verbose:
                     p.show()
-                p.clf()
+                    p.clf()
 
     return max_path, extremum, graphs
 
@@ -658,11 +657,11 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
 
         if verbose or save_png:
             if save_png and save_name is None:
-                Warning("Must give a save_name when save_png is enabled. No"
-                        " plots will be created.")
+                ValueError("Must give a save_name when save_png is enabled. No"
+                           " plots will be created.")
             import matplotlib.pyplot as p
-            if verbose:
-                print("Filament: %s / %s" % (num + 1, len(labelisofil)))
+            # if verbose:
+            #     print("Filament: %s / %s" % (num + 1, len(labelisofil)))
 
             p.subplot(121)
             p.imshow(skeleton, origin='lower', interpolation="nearest")
@@ -671,11 +670,10 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
                      interpolation="nearest")
 
             if save_png:
-                try_mkdir(save_name)
-                p.savefig(os.path.join(save_name,
-                                       save_name + "_main_length_" + str(num) + ".png"))
+                p.savefig(save_name)
+                p.close()
             if verbose:
                 p.show()
-            p.clf()
+                p.clf()
 
     return main_lengths, longpath_arrays

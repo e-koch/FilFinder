@@ -667,16 +667,15 @@ def make_final_skeletons(labelisofil, inters, verbose=False, save_png=False,
 
         if verbose or save_png:
             if save_png and save_name is None:
-                Warning("Must give a save_name when save_png is enabled. No"
-                        " plots will be created.")
+                ValueError("Must give a save_name when save_png is enabled. No"
+                           " plots will be created.")
 
             p.clf()
             p.imshow(cleaned_array, origin='lower', interpolation='nearest')
 
             if save_png:
-                try_mkdir(save_name)
-                p.savefig(os.path.join(save_name,
-                                       save_name+"_final_skeleton_"+str(n)+".png"))
+                p.savefig(save_name)
+                p.close()
             if verbose:
                 p.show()
             if in_ipynb():

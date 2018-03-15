@@ -135,27 +135,32 @@ class Filament2D(FilamentNDBase):
                           relintens_thresh=0.2,
                           branch_thresh=0 * u.pix):
         '''
-        Run the skeleton analysis. See a full description in
-        `~fil_finder.FilFinder2D`.
+        Run the skeleton analysis.
+
+        Separates skeleton structures into branches and intersections. Branches
+        below the pruning criteria are removed. The structure is converted into
+        a graph object to find the longest path. The pruned skeleton is used in
+        the subsequent analysis steps.
 
         Parameters
         ----------
-        img : `~numpy.ndarray`
+        image : `~numpy.ndarray` or `~astropy.units.Quantity`
             Data the filament was extracted from.
-
+        verbose : bool, optional
+            Show intermediate plots.
+        save_png : bool, optional
+            Save the plots in verbose mode.
+        save_name : str, optional
+            Prefix for the saved plots.
         prune_criteria : {'all', 'intensity', 'length'}, optional
             Choose the property to base pruning on. 'all' requires that the
             branch fails to satisfy the length and relative intensity checks.
-
-        Attributes
-        ----------
-        branch_properties :
-
-        length :
-
-        longpath_pixel_coords :
-
-        graph :
+        relintens_thresh : float, optional
+            Value between 0 and 1 that sets the relative importance of the
+            intensity-to-length criteria when pruning. Only used if
+            `prune_criteria='all'`.
+        branch_thresh : `~astropy.units.Quantity`, optional
+            Minimum length for a branch to be eligible to be pruned.
         '''
 
         # NOTE:
@@ -164,6 +169,9 @@ class Filament2D(FilamentNDBase):
         # filament property as an element. Everything is wrapped to be a list
         # because of this, but will be removed once fil_finder_2D is removed.
         # A lot of this can be streamlined in that process.
+
+        if save_png and save_name is None:
+            raise ValueError("save_name must be given when save_png=True.")
 
         # Must have a pad size of 1 for the morphological operations.
         pad_size = 1
@@ -198,11 +206,12 @@ class Filament2D(FilamentNDBase):
                                      branch_properties,
                                      interpts, ends)
 
-        max_path, extremum, G = longest_path(edge_list, nodes,
-                                             verbose=verbose,
-                                             save_png=save_png,
-                                             save_name=save_name,
-                                             skeleton_arrays=labeled_mask)
+        max_path, extremum, G = \
+            longest_path(edge_list, nodes,
+                         verbose=verbose,
+                         save_png=save_png,
+                         save_name="{0}_graphstruct.png".format(save_name),
+                         skeleton_arrays=labeled_mask)
 
         updated_lists = \
             prune_graph(G, nodes, edge_list, max_path, labeled_mask,
@@ -210,8 +219,7 @@ class Filament2D(FilamentNDBase):
                         length_thresh=branch_thresh.value,
                         relintens_thresh=relintens_thresh)
 
-        labeled_mask, edge_list, nodes, branch_properties = \
-            updated_lists
+        labeled_mask, edge_list, nodes, branch_properties = updated_lists
 
         self._graph = G[0]
 
@@ -220,7 +228,7 @@ class Filament2D(FilamentNDBase):
                                     branch_properties["length"],
                                     1.,
                                     verbose=verbose, save_png=save_png,
-                                    save_name=save_name)
+                                    save_name="{0}_longestpath.png".format(save_name))
         lengths, long_path_array = length_output
 
         good_long_pix = np.where(long_path_array[0])
@@ -233,7 +241,7 @@ class Filament2D(FilamentNDBase):
         final_fil_arrays =\
             make_final_skeletons(labeled_mask, interpts,
                                  verbose=verbose, save_png=save_png,
-                                 save_name=save_name)
+                                 save_name="{0}_finalskeleton.png".format(save_name))
 
         # Update the skeleton pixels
         good_pix = np.where(final_fil_arrays[0])
@@ -249,6 +257,9 @@ class Filament2D(FilamentNDBase):
 
     @property
     def branch_properties(self):
+        '''
+        Dictionary with branch lengths, average intensity, and pixels.
+        '''
         return self._branch_properties
 
     @property
@@ -273,12 +284,20 @@ class Filament2D(FilamentNDBase):
     #     return self.pixel_coords[self._ends_idx]
 
     def length(self, unit=u.pixel):
+        '''
+        The longest path length of the skeleton
+
+        Parameters
+        ----------
+        unit : `~astropy.units.Unit`, optional
+            Pixel, angular, or physical unit to convert to.
+        '''
         return self._converter.from_pixel(self._length, unit)
 
     @property
     def longpath_pixel_coords(self):
         '''
-        Pixel coordinates of the longest path
+        Pixel coordinates of the longest path.
         '''
         return self._longpath_pixel_coords
 
@@ -291,7 +310,14 @@ class Filament2D(FilamentNDBase):
 
     def plot_graph(self, save_name=None, layout_func=nx.spring_layout):
         '''
-        Show the graph structure
+        Plot the graph structure.
+
+        Parameters
+        ----------
+        save_name : str, optional
+            Name of saved plot. A plot is only saved if a name is given.
+        layout_func : networkx layout function, optional
+            Layout function from networkx. Defaults to `spring_layout`.
         '''
         import matplotlib.pyplot as plt
 
@@ -308,9 +334,10 @@ class Filament2D(FilamentNDBase):
 
         if save_name is not None:
             # Save the plot
-            pass
-
-        plt.draw()
+            plt.savefig(save_name)
+            plt.close()
+        else:
+            plt.show()
 
         # Add in the ipynb checker
 
@@ -325,6 +352,11 @@ class Filament2D(FilamentNDBase):
         radius : `~astropy.units.Quantity`, optional
             Radius of the region to compute the orientation within. Converted
             to pixel units and rounded to the nearest integer.
+        ntheta : int, optional
+            Number of angles to sample at. Default is 180.
+        background_percentile : float, optional
+            Float between 0 and 100 that sets a background level for the RHT
+            distribution before calculating orientation and curvature.
         '''
 
         if not hasattr(radius, 'unit'):
@@ -380,6 +412,11 @@ class Filament2D(FilamentNDBase):
     def plot_rht_distrib(self, save_name=None):
         '''
         Plot the RHT distribution from `Filament2D.rht_analysis`.
+
+        Parameters
+        ----------
+        save_name : str, optional
+            Name of saved plot. A plot is only saved if a name is given.
         '''
 
         theta = self.orientation_hist[0]
@@ -407,18 +444,30 @@ class Filament2D(FilamentNDBase):
                    cmap="binary", origin="lower")
         if save_name is not None:
             plt.savefig(save_name)
-        plt.show()
+            plt.close()
+        else:
+            plt.show()
 
     def rht_branch_analysis(self, radius=10 * u.pix, ntheta=180,
                             background_percentile=25,
-                            min_branch_length=3 * u.pix,
-                            verbose=False, save_png=False):
+                            min_branch_length=3 * u.pix):
         '''
         Use the RHT to find the filament orientation and dispersion of each
         branch in the filament.
 
         Parameters
         ----------
+        radius : `~astropy.units.Quantity`, optional
+            Radius of the region to compute the orientation within. Converted
+            to pixel units and rounded to the nearest integer.
+        ntheta : int, optional
+            Number of angles to sample at. Default is 180.
+        background_percentile : float, optional
+            Float between 0 and 100 that sets a background level for the RHT
+            distribution before calculating orientation and curvature.
+        min_branch_length : `~astropy.units.Quantity`, optional
+            Minimum length of a branch to run the RHT on. Branches that are
+            too short will cause spikes along the axis angles or 45 deg. off.
         '''
 
         # Convert length cut to pixel units
@@ -816,6 +865,11 @@ class Filament2D(FilamentNDBase):
     def radprof_fwhm(self, unit=u.pixel):
         '''
         The FWHM of the fitted radial profile and its uncertainty.
+
+        Parameters
+        ----------
+        unit : `~astropy.units.Unit`, optional
+            Pixel, angular, or physical unit to convert to.
         '''
         return self._converter.from_pixel(self._fwhm, unit), \
             self._converter.from_pixel(self._fwhm_err, unit)
@@ -827,10 +881,15 @@ class Filament2D(FilamentNDBase):
         '''
         return self._radprof_parnames
 
-    def radprof_fit_table(self, xunit=u.pix):
+    def radprof_fit_table(self, unit=u.pix):
         '''
         Return an `~astropy.table.Table` with the fit parameters and
         uncertainties.
+
+        Parameters
+        ----------
+        unit : `~astropy.units.Unit`, optional
+            Pixel, angular, or physical unit to convert to.
         '''
 
         from astropy.table import Table, Column
@@ -840,11 +899,11 @@ class Filament2D(FilamentNDBase):
         for name, val, err in zip(self.radprof_parnames, self.radprof_params,
                                   self.radprof_errors):
 
-            # Try converting to the given xunit. Assume failures are not length
+            # Try converting to the given unit. Assume failures are not length
             # units.
             try:
-                conv_val = self._converter.from_pixel(val, xunit)
-                conv_err = self._converter.from_pixel(err, xunit)
+                conv_val = self._converter.from_pixel(val, unit)
+                conv_err = self._converter.from_pixel(err, unit)
             except u.UnitsError:
                 conv_val = val
                 conv_err = err
@@ -853,8 +912,8 @@ class Filament2D(FilamentNDBase):
             tab[name + "_err"] = Column(conv_err.reshape((1,)))
 
         # Add on the FWHM
-        tab['fwhm'] = Column(self.radprof_fwhm(xunit)[0].reshape((1,)))
-        tab['fwhm_err'] = Column(self.radprof_fwhm(xunit)[1].reshape((1,)))
+        tab['fwhm'] = Column(self.radprof_fwhm(unit)[0].reshape((1,)))
+        tab['fwhm_err'] = Column(self.radprof_fwhm(unit)[1].reshape((1,)))
 
         # Add on whether the fit was "successful"
         tab['fail_flag'] = Column([self.radprof_fit_fail_flag])
@@ -871,10 +930,17 @@ class Filament2D(FilamentNDBase):
         '''
         return self._radprof_model
 
-    def plot_radial_profile(self, save_name=None, xunit=u.pix, yunit=None,
+    def plot_radial_profile(self, save_name=None, xunit=u.pix,
                             ax=None):
         '''
         Plot the radial profile of the filament and the fitted model.
+
+        Parameters
+        ----------
+        xunit : `~astropy.units.Unit`, optional
+            Pixel, angular, or physical unit to convert to.
+        ax : `~matplotlib.axes`, optional
+            Use an existing set of axes to plot the profile.
         '''
 
         dist, radprof = self.radprofile
@@ -891,7 +957,7 @@ class Filament2D(FilamentNDBase):
         if ax is None:
             ax = plt.subplot(111)
 
-        ax.plot(conv_dist, radprof.to(yunit), "kD")
+        ax.plot(conv_dist, radprof, "kD")
         points = np.linspace(np.min(dist),
                              np.max(dist), 5 * len(dist))
         conv_points = np.linspace(np.min(conv_dist),
@@ -1012,7 +1078,8 @@ class Filament2D(FilamentNDBase):
 
     def ridge_profile(self, image):
         '''
-        Return the image values along the longest path extent of a filament.
+        Return the image values along the longest path extent of a filament, or
+        from radial slices along the longest path.
 
         Parameters
         ----------
@@ -1190,6 +1257,10 @@ class Filament2D(FilamentNDBase):
             The image from which the filament was extracted.
         pad_size : `~astropy.units.Quantity`, optional
             Size to pad the saved arrays by.
+        header : `~astropy.io.fits.Header`, optional
+            Provide a FITS header to save to. If `~Filament2D` was
+            given WCS information, this will be used if no header is given.
+        model_kwargs : Passed to `~Filament2D.model_image`.
 
         '''
 
@@ -1249,6 +1320,11 @@ class Filament2D(FilamentNDBase):
     def from_pickle(filename):
         '''
         Load a Filament2D from a pickle file.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the pickle file.
         '''
         with open(filename, 'rb') as input:
                 self = pickle.load(input)

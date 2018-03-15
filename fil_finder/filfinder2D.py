@@ -4,26 +4,20 @@ import numpy as np
 import matplotlib.pyplot as p
 import scipy.ndimage as nd
 from scipy.stats import lognorm
-from scipy.ndimage import distance_transform_edt
 from skimage.filters import threshold_adaptive
 from skimage.morphology import remove_small_objects, medial_axis
-from scipy.stats import scoreatpercentile
 from astropy.io import fits
 from astropy.table import Table, Column
 from astropy import units as u
 from astropy.wcs import WCS
-from astropy.wcs.utils import proj_plane_pixel_scales
 from astropy.nddata.utils import overlap_slices
 from copy import deepcopy
 import os
 import time
 import warnings
 
-from .cores import *
-from .length import *
-from .pixel_ident import *
-from .utilities import *
-from .width import *
+from .pixel_ident import recombine_skeletons, isolateregions
+from .utilities import eight_con, round_to_odd
 from .io_funcs import input_data
 from .base_conversions import (BaseInfoMixin, UnitConverter,
                                find_beam_properties, data_unit_check)
@@ -41,12 +35,11 @@ except TypeError:
 class FilFinder2D(BaseInfoMixin):
 
     """
-    This class acts as an overall wrapper to run the fil-finder algorithm
-    on 2D images and contains visualization and saving capabilities.
+    Extract and analyze filamentary structure from a 2D image.
 
     Parameters
     ----------
-    image : numpy.ndarray or astropy.io.fits.PrimaryHDU
+    image : `~numpy.ndarray` or `~astropy.io.fits.PrimaryHDU`
         A 2D array of the data to be analyzed. If a FITS HDU is passed, the
         header is automatically loaded.
     header : FITS header, optional
@@ -61,23 +54,6 @@ class FilFinder2D(BaseInfoMixin):
     ang_scale : `~astropy.units.Quantity`, optional
         Give the angular to pixel units conversion. If none is given, it will
         be read from the header. The units must be a valid angular unit.
-    skel_thresh : float, optional
-        Given in pixel units.Below this cut off, skeletons with less pixels
-        will be deleted. The default value is 0.3 pc converted to pixels.
-    branch_thresh : float, optional
-        Any branches shorter than this length (in pixels) will be labeled as
-        extraneous and pruned off. The default value is 3 times the FWHM
-        beamwidth.
-    pad_size :  int, optional
-        The size of the pad (in pixels) used to pad the individual
-        filament arrays. By default this is disabled. **If the data continue
-        up to the edge of the image, padding should not be enabled as this
-        causes deviations in the mask around the edges!**
-    skeleton_pad_size : int, optional
-        Number of pixels to pad the individual skeleton arrays by. For
-        the skeleton to graph conversion, the pad must always be greater
-        then 0. The amount of padding can slightly effect the extent of the
-        radial intensity profile..
     distance : float, optional
         The distance to the region being examined (in pc). If None, the
         analysis is carried out in pixel and angular units. In this case,
@@ -93,13 +69,21 @@ class FilFinder2D(BaseInfoMixin):
 
     Examples
     --------
-    >>> from fil_finder import fil_finder_2D
+    >>> from fil_finder import FilFinder2D
     >>> from astropy.io import fits
     >>> import astropy.units as u
     >>> hdu = fits.open("twod.fits")[0] # doctest: +SKIP
     >>> filfind = FilFinder2D(hdu, beamwidth=15*u.arcsec, distance=170*u.pc, save_name='twod_filaments') # doctest: +SKIP
-    >>> filfind.run(verbose=False) # doctest: +SKIP
-
+    >>> filfind.preprocess_image(verbose=False) # doctest: +SKIP
+    >>> filfind.create_mask(verbose=False) # doctest: +SKIP
+    >>> filfind.medskel(verbose=False) # doctest: +SKIP
+    >>> filfind.analyze_skeletons(verbose=False) # doctest: +SKIP
+    >>> filfind.exec_rht(verbose=False) # doctest: +SKIP
+    >>> filfind.find_widths(verbose=False) # doctest: +SKIP
+    >>> fil_table = filfind.output_table(verbose=False) # doctest: +SKIP
+    >>> branch_table = filfind.branch_tables(verbose=False) # doctest: +SKIP
+    >>> filfind.save_fits() # doctest: +SKIP
+    >>> filfind.save_stamp_fits() # doctest: +SKIP
     """
 
     def __init__(self, image, header=None, beamwidth=None, ang_scale=None,
@@ -545,48 +529,21 @@ class FilFinder2D(BaseInfoMixin):
             if in_ipynb():
                 p.clf()
 
-    def analyze_skeletons(self, relintens_thresh=0.2, nbeam_lengths=5,
-                          branch_nbeam_lengths=3,
+    def analyze_skeletons(self, prune_criteria='all', relintens_thresh=0.2,
+                          nbeam_lengths=5, branch_nbeam_lengths=3,
                           skel_thresh=None, branch_thresh=None,
                           verbose=False, save_png=False, save_name=None):
         '''
 
-        This function wraps most of the skeleton analysis. Several steps are
-        completed here:
+        Prune skeleton structure and calculate the branch and longest-path
+        lengths. See `~Filament2D.skeleton_analysis`.
 
-        *   isolatefilaments is run to separate each skeleton into its own
-            array. If the skeletons are under the threshold set by
-            self.size_thresh, the region is removed. An updated mask is
-            also returned.
-        *   pix_identify classifies each of the pixels in a skeleton as a
-            body, end, or intersection point. See the documentation on
-            find_filpix for a complete explanation. The function labels the
-            branches and intersections of each skeletons.
-        *   init_lengths finds the length of each branch in each skeleton and
-            also returns the coordinates of each of these branches for use in
-            the graph representation.
-        *   pre_graph turns the skeleton structures into a graphing format
-            compatible with networkx. Hubs in the graph are the intersections
-            and end points, labeled as letters and numbers respectively. Edges
-            define the connectivity of the hubs and they are weighted by their
-            length.
-        *   longest_path utilizes networkx.shortest_path_length to find the
-            overall length of each of the filaments. The returned path is the
-            longest path through the skeleton. If loops exist in the skeleton,
-            the longest path is chosen (this shortest path algorithm fails when
-            used on loops).
-        *   extremum_pts returns the locations of the longest path's extent
-            so its performance can be evaluated.
-        *   final_lengths takes the path returned from longest_path and
-            calculates the overall length of the filament. This step also acts
-            as to prune the skeletons.
-        *   final_analysis combines the outputs and returns the results for
-            further analysis.
 
         Parameters
         ----------
-        verbose : bool, optional
-            Enables plotting.
+        prune_criteria : {'all', 'intensity', 'length'}, optional
+            Choose the property to base pruning on. 'all' requires that the
+            branch fails to satisfy the length and relative intensity checks.
         relintens_thresh : float, optional
             Relative intensity threshold for pruning. Sets the importance
             a branch must have in intensity relative to all other branches
@@ -598,36 +555,18 @@ class FilFinder2D(BaseInfoMixin):
             Sets the minimum branch length based on the number of beam
             sizes specified.
         skel_thresh : float, optional
-            Manually set the minimum skeleton threshold. Overrides all
-            previous settings.
+            Given in pixel units.Below this cut off, skeletons with less pixels
+            will be deleted. The default value is 0.3 pc converted to pixels.
         branch_thresh : float, optional
-            Manually set the minimum branch length threshold. Overrides all
-            previous settings.
+            Any branches shorter than this length (in pixels) will be labeled as
+            extraneous and pruned off. The default value is 3 times the FWHM
+            beamwidth.
+        verbose : bool, optional
+            Enables plotting.
         save_png : bool, optional
             Saves the plot made in verbose mode. Disabled by default.
-
-        Attributes
-        ----------
-        filament_arrays : list of numpy.ndarray
-            Contains individual arrays of each skeleton
-        number_of_filaments : int
-            The number of individual filaments.
-        array_offsets : list
-            A list of coordinates for each filament array.This will
-            be used to recombine the final skeletons into one array.
-        filament_extents : list
-            This contains the coordinates of the initial and final
-            position of the skeleton's extent. It may be used to
-            test the performance of the shortest path algorithm.
-        lengths : list
-            Contains the overall lengths of the skeletons
-        labeled_fil_arrays : list of numpy.ndarray
-            Contains the final labeled versions of the skeletons.
-        branch_properties : dict
-            The significant branches of the skeletons have their length
-            and number of branches in each skeleton stored here.
-            The keys are: *filament_branches*, *branch_lengths*
-
+        save_name : str, optional
+            Prefix for the saved plots.
         '''
 
         if relintens_thresh > 1.0 or relintens_thresh <= 0.0:
@@ -638,6 +577,9 @@ class FilFinder2D(BaseInfoMixin):
             if self.skel_thresh is None and skel_thresh is None:
                 raise ValueError("Distance not given. Must specify skel_thresh"
                                  " in pixel units.")
+
+        if save_name is None:
+            save_name = self.save_name
 
         # Set the skeleton length threshold to some factor of the beam width
         if skel_thresh is None:
@@ -677,9 +619,15 @@ class FilFinder2D(BaseInfoMixin):
                           range(1, num + 1)]
 
         # Now loop over the skeleton analysis for each filament object
-        for fil in self.filaments:
+        for n, fil in enumerate(self.filaments):
+            savename = "{0}_{1}".format(save_name, n)
+            if verbose:
+                print("Filament: %s / %s" % (n + 1, self.number_of_filaments))
+
             fil.skeleton_analysis(self.image, verbose=verbose,
-                                  save_png=save_png, save_name=save_name,
+                                  save_png=save_png,
+                                  save_name=savename,
+                                  prune_criteria=prune_criteria,
                                   relintens_thresh=relintens_thresh,
                                   branch_thresh=self.branch_thresh)
 
@@ -717,7 +665,12 @@ class FilFinder2D(BaseInfoMixin):
 
     def lengths(self, unit=u.pix):
         '''
-        Return longest path lengths of the filaments
+        Return longest path lengths of the filaments.
+
+        Parameters
+        ----------
+        unit : `~astropy.units.Unit`, optional
+            Pixel, angular, or physical unit to convert to.
         '''
         pix_lengths = np.array([fil.length().value
                                 for fil in self.filaments]) * u.pix
@@ -726,6 +679,11 @@ class FilFinder2D(BaseInfoMixin):
     def branch_lengths(self, unit=u.pix):
         '''
         Return the length of all branches in all filaments.
+
+        Parameters
+        ----------
+        unit : `~astropy.units.Unit`, optional
+            Pixel, angular, or physical unit to convert to.
         '''
         branches = []
         for lengths in self.branch_properties['length']:
@@ -736,7 +694,7 @@ class FilFinder2D(BaseInfoMixin):
     def exec_rht(self, radius=10 * u.pix,
                  ntheta=180, background_percentile=25,
                  branches=False, min_branch_length=3 * u.pix,
-                 verbose=False, save_png=False):
+                 verbose=False, save_png=False, save_name=None):
         '''
 
         Implements the Rolling Hough Transform (Clark et al., 2014).
@@ -773,6 +731,8 @@ class FilFinder2D(BaseInfoMixin):
             Enables plotting.
         save_png : bool, optional
             Saves the plot made in verbose mode. Disabled by default.
+        save_name : str, optional
+            Prefix for the saved plots.
 
         Attributes
         ----------
@@ -792,7 +752,12 @@ class FilFinder2D(BaseInfoMixin):
         if branches:
             self._rht_branches_flag = True
 
+        if save_name is None:
+            save_name = self.save_name
+
         for i, fil in enumerate(self.filaments):
+            if verbose:
+                print("Filament: %s / %s" % (n + 1, self.number_of_filaments))
 
             if branches:
                 fil.rht_branch_analysis(radius=radius,
@@ -806,7 +771,7 @@ class FilFinder2D(BaseInfoMixin):
 
                 if verbose:
                     if save_png:
-                        save_name = "{0}_rht_{1}.png".format(self.save_name, i)
+                        savename = "{0}_{1}_rht.png".format(save_name, i)
                     else:
                         save_name = None
                     fil.plot_rht_distrib(save_name=save_name)
@@ -853,7 +818,7 @@ class FilFinder2D(BaseInfoMixin):
                     deconvolve_width=True,
                     fwhm_function=None,
                     chisq_max=10.,
-                    verbose=False, save_png=False,
+                    verbose=False, save_png=False, save_name=None,
                     xunit=u.pix,
                     **kwargs):
         '''
@@ -915,10 +880,21 @@ class FilFinder2D(BaseInfoMixin):
             Enables plotting.
         save_png : bool, optional
             Saves the plot made in verbose mode. Disabled by default.
+        save_name : str, optional
+            Prefix for the saved plots.
+        xunit : `~astropy.units.Unit`, optional
+            Pixel, angular, or physical unit to convert to in the plot.
         kwargs : Passed to `~fil_finder.width.radial_profile`.
         '''
+        if save_name is None:
+            save_name = self.save_name
 
         for i, fil in enumerate(self.filaments):
+            savename = "{0}_{1}".format(save_name, n)
+            if verbose:
+                print("Filament: %s / %s" % (n + 1, self.number_of_filaments))
+
+
             fil.width_analysis(self.image, all_skeleton_array=self.skeleton,
                                max_dist=max_dist,
                                pad_to_distance=pad_to_distance,
@@ -934,7 +910,7 @@ class FilFinder2D(BaseInfoMixin):
 
             if verbose:
                 if save_png:
-                    save_name = "{0}_radprof_{1}.png".format(self.save_name, i)
+                    save_name = "{0}_{1}_radprof.png".format(self.save_name, i)
                 else:
                     save_name = None
                 fil.plot_radial_profile(save_name=save_name, xunit=xunit)
@@ -959,6 +935,11 @@ class FilFinder2D(BaseInfoMixin):
         '''
         Return an `~astropy.table.Table` of the width fit parameters,
         uncertainties, and whether a flag was raised for a bad fit.
+
+        Parameters
+        ----------
+        xunit : `~astropy.units.Unit`, optional
+            Pixel, angular, or physical unit to convert to.
 
         Returns
         -------
@@ -1123,6 +1104,7 @@ class FilFinder2D(BaseInfoMixin):
     def ridge_profiles(self):
         '''
         Return the image values along the longest path of the skeleton.
+        See `~Filament2D.ridge_profile`.
 
         Returns
         -------
