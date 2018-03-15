@@ -24,7 +24,6 @@ from .pixel_ident import *
 from .utilities import *
 from .width import *
 from .rollinghough import rht
-from .analysis import Analysis
 from .io_funcs import input_data
 from .base_conversions import BaseInfoMixin
 
