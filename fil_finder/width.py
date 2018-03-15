@@ -97,7 +97,7 @@ def gaussian_model(dist, radprof, with_bkg=True):
         if not mod._supports_unit_fitting:
             # Strip the units out. Hopefully I can get rid of this in a
             # future release...
-            mod = Gaussian1D() + Const1D()
+            mod = models.Gaussian1D() + models.Const1D()
 
             mod.amplitude_0 = mod.amplitude_0.value
             mod.mean_0 = mod.mean_0.value
