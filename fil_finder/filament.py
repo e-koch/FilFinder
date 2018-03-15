@@ -753,6 +753,7 @@ class Filament2D(FilamentNDBase):
                                  " fixed parameters.")
 
             # Add units to errors
+            print(params)
             for i, par in enumerate(params):
                 fit_uncert[i] = fit_uncert[i] * par.unit
 
