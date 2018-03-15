@@ -888,7 +888,7 @@ class FilFinder2D(BaseInfoMixin):
         if save_name is None:
             save_name = self.save_name
 
-        for i, fil in enumerate(self.filaments):
+        for n, fil in enumerate(self.filaments):
             savename = "{0}_{1}".format(save_name, n)
             if verbose:
                 print("Filament: %s / %s" % (n + 1, self.number_of_filaments))
@@ -909,7 +909,7 @@ class FilFinder2D(BaseInfoMixin):
 
             if verbose:
                 if save_png:
-                    save_name = "{0}_{1}_radprof.png".format(self.save_name, i)
+                    save_name = "{0}_{1}_radprof.png".format(self.save_name, n)
                 else:
                     save_name = None
                 fil.plot_radial_profile(save_name=save_name, xunit=xunit)
@@ -950,10 +950,10 @@ class FilFinder2D(BaseInfoMixin):
 
         for i, fil in enumerate(self.filaments):
             if i == 0:
-                tab = fil.radprof_fit_table(xunit=xunit)
+                tab = fil.radprof_fit_table(unit=xunit)
                 continue
 
-            add_tab = fil.radprof_fit_table(xunit=xunit)
+            add_tab = fil.radprof_fit_table(unit=xunit)
 
             # Concatenate the row together
             tab = tab_vstack([tab, add_tab])
