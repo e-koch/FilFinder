@@ -145,7 +145,7 @@ def fit_radial_model(dist, radprof, model, fitter=None, weights=None,
         xdata = dist.value
         ydata = radprof.value
 
-    fitted_mod = fitter(model, dist, radprof, weights=weights, **fitter_kwargs)
+    fitted_mod = fitter(model, xdata, ydata, weights=weights, **fitter_kwargs)
 
     return fitted_mod, fitter
 
