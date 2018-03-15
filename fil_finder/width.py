@@ -70,15 +70,26 @@ def gaussian_model(dist, radprof, with_bkg=True):
 
     inner_width = np.std(dist)
 
-    mod = models.Gaussian1D(amplitude=np.max(radprof[dist < inner_width]),
-                            mean=0.0,
-                            stddev=inner_width)
+    mod = models.Gaussian1D()
+    # Check if the version of astropy supports units in the model.
+    if mod._supports_unit_fitting:
+        mod.amplitude = np.max(radprof[dist < inner_width])
+        mod.mean = 0.0 * inner_width.unit
+        mod.stddev = inner_width
+    else:
+        mod.amplitude = np.max(radprof[dist < inner_width]).value
+        mod.mean = 0.0
+        mod.stddev = inner_width.value
 
     # Fix the mean to 0, since this is for radial profiles.
     mod.mean.fixed = True
 
     if with_bkg:
-        bkg_mod = models.Const1D(np.min(radprof))
+        bkg_mod = models.Const1D()
+        if bkg_mod._supports_unit_fitting:
+            bkg_mod.amplitude = np.min(radprof)
+        else:
+            bkg_mod.amplitude = np.min(radprof).value
         bkg_mod = bkg_mod.rename("Bkg")
         mod = mod + bkg_mod
 
