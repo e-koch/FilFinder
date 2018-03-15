@@ -205,3 +205,19 @@ def in_ipynb():
 
 def round_to_odd(x):
     return int((np.ceil((np.ceil(x) / 2) + 0.5) * 2) - 1)
+
+
+def threshold_local(image, *args, **kwargs):
+    '''
+    skimage changed threshold_adaptive to threshold_local. This wraps both
+    to ensure the same behaviour with old and new versions.
+    '''
+    try:
+        from skimage.filters import threshold_local
+        mask = image > threshold_local(image, *args, **kwargs)
+    except ImportError:
+        from skimage.filters import threshold_adaptive
+        mask = threshold_adaptive(image, *args, **kwargs)
+
+    return mask
+

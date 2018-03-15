@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as p
 import scipy.ndimage as nd
 from scipy.stats import lognorm
-from skimage.filters import threshold_adaptive
 from skimage.morphology import remove_small_objects, medial_axis
 from astropy.io import fits
 from astropy.table import Table, Column
@@ -17,7 +16,7 @@ import time
 import warnings
 
 from .pixel_ident import recombine_skeletons, isolateregions
-from .utilities import eight_con, round_to_odd
+from .utilities import eight_con, round_to_odd, threshold_local
 from .io_funcs import input_data
 from .base_conversions import (BaseInfoMixin, UnitConverter,
                                find_beam_properties, data_unit_check)
@@ -382,10 +381,10 @@ class FilFinder2D(BaseInfoMixin):
         smooth_img = nd.median_filter(masking_img,
                                       size=med_filter_size)
 
-        adapt = threshold_adaptive(smooth_img,
-                                   round_to_odd(ratio *
-                                                self.adapt_thresh.value),
-                                   method="mean")
+        adapt = threshold_local(smooth_img,
+                                round_to_odd(ratio *
+                                             self.adapt_thresh.value),
+                                method="mean")
 
         if regrid:
             regrid_factor = float(regrid_factor)
