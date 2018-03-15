@@ -725,7 +725,7 @@ class Filament2D(FilamentNDBase):
                     params.append(param.quantity)
                 else:
                     # Assign a dimensionless unit
-                    param.append(param.value * u.dimensionless_unscaled)
+                    params.append(param.value * u.dimensionless_unscaled)
 
                 names.append(name)
 
