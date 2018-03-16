@@ -5,7 +5,6 @@ import matplotlib.pyplot as p
 import scipy.ndimage as nd
 from scipy.stats import lognorm
 from scipy.ndimage import distance_transform_edt
-from skimage.filters import threshold_adaptive
 from skimage.morphology import remove_small_objects, medial_axis
 from scipy.stats import scoreatpercentile
 from astropy.io import fits
@@ -504,9 +503,9 @@ class fil_finder_2D(BaseInfoMixin):
             smooth_img[:, :pad_size + 1] = 0.0
             smooth_img[:, -pad_size - 1:] = 0.0
 
-        adapt = threshold_adaptive(smooth_img,
-                                   round_to_odd(ratio * self.adapt_thresh),
-                                   method="mean")
+        adapt = threshold_local(smooth_img,
+                                round_to_odd(ratio * self.adapt_thresh),
+                                method="mean")
 
         if regrid:
             regrid_factor = float(regrid_factor)
