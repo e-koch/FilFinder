@@ -531,6 +531,7 @@ class FilFinder2D(BaseInfoMixin):
     def analyze_skeletons(self, prune_criteria='all', relintens_thresh=0.2,
                           nbeam_lengths=5, branch_nbeam_lengths=3,
                           skel_thresh=None, branch_thresh=None,
+                          max_prune_iter=10,
                           verbose=False, save_png=False, save_name=None):
         '''
 
@@ -560,6 +561,8 @@ class FilFinder2D(BaseInfoMixin):
             Any branches shorter than this length (in pixels) will be labeled as
             extraneous and pruned off. The default value is 3 times the FWHM
             beamwidth.
+        max_prune_iter : int, optional
+            Maximum number of pruning iterations to apply.
         verbose : bool, optional
             Enables plotting.
         save_png : bool, optional
@@ -628,7 +631,8 @@ class FilFinder2D(BaseInfoMixin):
                                   save_name=savename,
                                   prune_criteria=prune_criteria,
                                   relintens_thresh=relintens_thresh,
-                                  branch_thresh=self.branch_thresh)
+                                  branch_thresh=self.branch_thresh,
+                                  max_prune_iter=max_prune_iter)
 
         self.number_of_filaments = num
         self.array_offsets = [fil.pixel_extents for fil in self.filaments]

@@ -10,7 +10,7 @@ import networkx as nx
 import operator
 import string
 import copy
-import os
+import warnings
 
 # Create 4 to 8-connected elements to use with binary hit-or-miss
 struct1 = np.array([[1, 0, 0],
@@ -453,7 +453,8 @@ def longest_path(edge_list, nodes, verbose=False,
 
 
 def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
-                prune_criteria='all', length_thresh=0, relintens_thresh=0.2):
+                prune_criteria='all', length_thresh=0, relintens_thresh=0.2,
+                max_iter=10):
     '''
     Function to remove unnecessary branches, while maintaining connectivity
     in the graph. Also updates edge_list, nodes, branch_lengths and
@@ -506,53 +507,72 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
 
     for n in range(num):
         # Fix for networkx 2.0
-        degree = dict(G[n].degree())
-        single_connect = [key for key in degree.keys() if degree[key] == 1]
+        iterat = 0
+        while True:
+            degree = dict(G[n].degree())
 
-        delete_candidate = list((set(nodes[n]) - set(max_path[n])) &
-                                set(single_connect))
+            # Look for unconnected nodes and remove from the graph
+            unconn = [key for key in degree.keys() if degree[key] == 0]
+            if len(unconn) > 0:
+                for node in unconn:
+                    G[n].remove_node(node)
 
-        if not delete_candidate:  # Nothing to delete!
-            continue
+            single_connect = [key for key in degree.keys() if degree[key] == 1]
 
-        edge_candidates = [(idx, edge) for idx, edge in enumerate(edge_list[n])
-                           if edge[0] in delete_candidate or
-                           edge[1] in delete_candidate]
-        intensities = [edge[2][3] for edge in edge_list[n]]
+            delete_candidate = list((set(nodes[n]) - set(max_path[n])) &
+                                    set(single_connect))
 
-        del_idx = []
-        for idx, edge in edge_candidates:
-            # In the odd case where a loop meets at the same intersection,
-            # ensure that edge is kept.
-            if isinstance(edge[0], str) & isinstance(edge[1], str):
-                continue
-            # If its too short and relatively not as intense, delete it
-            length = edge[2][2]
-            av_intensity = edge[2][3]
+            if not delete_candidate:  # Nothing to delete!
+                break
 
-            if prune_criteria == 'all':
-                criteria = length < length_thresh \
-                    and (av_intensity / np.sum(intensities)) < relintens_thresh
-            elif prune_criteria == 'intensity':
-                criteria = \
-                    (av_intensity / np.sum(intensities)) < relintens_thresh
-            else:  # Length only
-                criteria = length < length_thresh
+            edge_candidates = [(idx, edge) for idx, edge in
+                               enumerate(edge_list[n])
+                               if edge[0] in delete_candidate or
+                               edge[1] in delete_candidate]
+            intensities = [edge[2][3] for edge in edge_list[n]]
 
-            if criteria:
-                edge_pts = np.where(labelisofil[n] == edge[2][0])
-                labelisofil[n][edge_pts] = 0
-                edge_list[n].remove(edge)
-                nodes[n].remove(edge[1])
-                branch_properties["number"][n] -= 1
-                del_idx.append(idx)
+            del_idx = []
+            for idx, edge in edge_candidates:
+                # In the odd case where a loop meets at the same intersection,
+                # ensure that edge is kept.
+                if isinstance(edge[0], str) & isinstance(edge[1], str):
+                    continue
+                # If its too short and relatively not as intense, delete it
+                length = edge[2][2]
+                av_intensity = edge[2][3]
 
-        if len(del_idx) > 0:
-            del_idx.sort()
-            for idx in del_idx[::-1]:
-                branch_properties['pixels'][n].pop(idx - 1)
-                branch_properties['length'][n].pop(idx - 1)
-                branch_properties['intensity'][n].pop(idx - 1)
+                if prune_criteria == 'all':
+                    criterion1 = length < length_thresh
+                    criterion2 = (av_intensity / np.sum(intensities)) < \
+                        relintens_thresh
+                    criteria = criterion1 & criterion2
+                elif prune_criteria == 'intensity':
+                    criteria = \
+                        (av_intensity / np.sum(intensities)) < relintens_thresh
+                else:  # Length only
+                    criteria = length < length_thresh
+
+                if criteria:
+                    edge_pts = np.where(labelisofil[n] == edge[2][0])
+                    labelisofil[n][edge_pts] = 0
+                    edge_list[n].remove(edge)
+                    nodes[n].remove(edge[1])
+                    branch_properties["number"][n] -= 1
+                    G[n].remove_edge(edge[0], edge[1])
+                    del_idx.append(idx)
+
+            if len(del_idx) > 0:
+                del_idx.sort()
+                for idx in del_idx[::-1]:
+                    branch_properties['pixels'][n].pop(idx - 1)
+                    branch_properties['length'][n].pop(idx - 1)
+                    branch_properties['intensity'][n].pop(idx - 1)
+
+            iterat += 1
+
+            if iterat == max_iter:
+                warnings.warn("Graph pruning reached max iterations.")
+                break
 
     return labelisofil, edge_list, nodes, branch_properties
 

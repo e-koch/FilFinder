@@ -132,7 +132,7 @@ class Filament2D(FilamentNDBase):
 
     def skeleton_analysis(self, image, verbose=False, save_png=False,
                           save_name=None, prune_criteria='all',
-                          relintens_thresh=0.2,
+                          relintens_thresh=0.2, max_prune_iter=10,
                           branch_thresh=0 * u.pix):
         '''
         Run the skeleton analysis.
@@ -159,6 +159,8 @@ class Filament2D(FilamentNDBase):
             Value between 0 and 1 that sets the relative importance of the
             intensity-to-length criteria when pruning. Only used if
             `prune_criteria='all'`.
+        max_prune_iter : int, optional
+            Maximum number of pruning iterations to apply.
         branch_thresh : `~astropy.units.Quantity`, optional
             Minimum length for a branch to be eligible to be pruned.
         '''
@@ -217,7 +219,8 @@ class Filament2D(FilamentNDBase):
             prune_graph(G, nodes, edge_list, max_path, labeled_mask,
                         branch_properties, prune_criteria=prune_criteria,
                         length_thresh=branch_thresh.value,
-                        relintens_thresh=relintens_thresh)
+                        relintens_thresh=relintens_thresh,
+                        max_iter=max_prune_iter)
 
         labeled_mask, edge_list, nodes, branch_properties = updated_lists
 
@@ -721,10 +724,8 @@ class Filament2D(FilamentNDBase):
                     continue
 
                 param = getattr(fitted_model, name)
-                print(param)
-                print(param.quantity)
-                print(param.value)
-                if hasattr(param, 'unit'):
+
+                if param.quantity is not None:
                     params.append(param.quantity)
                 else:
                     # Assign a dimensionless unit
