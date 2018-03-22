@@ -893,10 +893,9 @@ class FilFinder2D(BaseInfoMixin):
             save_name = self.save_name
 
         for n, fil in enumerate(self.filaments):
-            savename = "{0}_{1}".format(save_name, n)
+
             if verbose:
                 print("Filament: %s / %s" % (n + 1, self.number_of_filaments))
-
 
             fil.width_analysis(self.image, all_skeleton_array=self.skeleton,
                                max_dist=max_dist,

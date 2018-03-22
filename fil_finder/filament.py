@@ -709,7 +709,6 @@ class Filament2D(FilamentNDBase):
             # Record the fit type
             self._radprof_type = fit_model.name
 
-
         if not skip_fitting:
             fitted_model, fitter = fit_radial_model(dist, radprof, fit_model,
                                                     weights=weights)
@@ -757,13 +756,18 @@ class Filament2D(FilamentNDBase):
                                  " fixed parameters.")
 
             # Add units to errors
-            print(params)
             for i, par in enumerate(params):
                 fit_uncert[i] = fit_uncert[i] * par.unit
 
             self._radprof_errors = fit_uncert
 
-            chisq = red_chisq(radprof, fitted_model(dist), npar, 1)
+            # Check if units should be kept
+            if fitted_model._supports_unit_fitting:
+                modvals = fitted_model(dist)
+            else:
+                modvals = fitted_model(dist.value)
+
+            chisq = red_chisq(radprof, modvals, npar, 1)
             if chisq.value > chisq_max:
                 fail_flag = True
 
@@ -958,9 +962,6 @@ class Filament2D(FilamentNDBase):
 
         model = self.radprof_model
 
-        if yunit is None:
-            yunit = self._yunit
-
         conv_dist = self._converter.from_pixel(dist, xunit)
 
         import matplotlib.pyplot as plt
@@ -971,11 +972,15 @@ class Filament2D(FilamentNDBase):
         ax.plot(conv_dist, radprof, "kD")
         points = np.linspace(np.min(dist),
                              np.max(dist), 5 * len(dist))
+        # Check if units should be kept when evaluating the model
+        if not model._supports_unit_fitting:
+            points = points.value
+
         conv_points = np.linspace(np.min(conv_dist),
                                   np.max(conv_dist), 5 * len(conv_dist))
         ax.plot(conv_points, model(points), "r")
         ax.set_xlabel(r'Radial Distance ({})'.format(xunit))
-        ax.set_ylabel(r'Intensity ({})'.format(yunit))
+        ax.set_ylabel(r'Intensity ({})'.format(self._yunit))
         ax.grid(True)
 
         plt.tight_layout()
