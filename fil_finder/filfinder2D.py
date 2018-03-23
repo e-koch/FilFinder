@@ -1017,7 +1017,7 @@ class FilFinder2D(BaseInfoMixin):
 
         return np.array(median_bright)
 
-    def filament_model(self, max_radius=None, bkg_subtract=False,
+    def filament_model(self, max_radius=None, bkg_subtract=True,
                        bkg_mod_index=2):
         '''
         Returns a model of the diffuse filamentary network based
