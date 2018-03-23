@@ -849,8 +849,8 @@ class Filament2D(FilamentNDBase):
                     break
 
             if found_width:
-                fwhm = self.radprof_params[idx] * np.sqrt(8 * np.log(2))
-                fwhm_err = self.radprof_errors[idx] * np.sqrt(8 * np.log(2))
+                fwhm = self.radprof_params[idx].value * np.sqrt(8 * np.log(2)) * xunit
+                fwhm_err = self.radprof_errors[idx].value * np.sqrt(8 * np.log(2)) * xunit
             else:
                 raise ValueError("Could not automatically identify which "
                                  "parameter in the model corresponds to the "

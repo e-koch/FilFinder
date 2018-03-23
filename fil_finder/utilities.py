@@ -181,7 +181,10 @@ def dens_func(B, kappa, I):
 
 def red_chisq(data, fit, nparam, sd):
     N = data.shape[0]
-    return np.sum(((fit - data) / sd) ** 2.) / float(N - nparam - 1)
+    stat = np.sum(((fit - data) / sd) ** 2.) / float(N - nparam - 1)
+    if hasattr(stat, 'unit'):
+        stat = stat.value
+    return stat
 
 
 def try_mkdir(name):
