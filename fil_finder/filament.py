@@ -880,6 +880,7 @@ class Filament2D(FilamentNDBase):
                 fwhm_deconv_err = fwhm * fwhm_err / fwhm_deconv
             else:
                 fwhm_deconv = np.NaN
+                fwhm_deconv_err = np.NaN
                 warnings.warn("Width could not be deconvolved from the beam "
                               "width.")
         else:
@@ -1085,8 +1086,11 @@ class Filament2D(FilamentNDBase):
         total_intensity = np.sum(self._unbin_radprofile[1][within_fwhm])
 
         if bkg_subtract:
-            total_intensity -= self.radprof_params[bkg_mod_index] * \
-                within_fwhm.sum()
+            bkg = self.radprof_params[bkg_mod_index]
+            if not self.radprof_model._supports_unit_fitting:
+                bkg = bkg.value * total_intensity.unit
+
+            total_intensity -= bkg * within_fwhm.sum()
 
         return total_intensity
 
@@ -1363,7 +1367,9 @@ class Filament2D(FilamentNDBase):
             input_image = input_image[self.image_slice(pad_size=pad_size)]
 
         model = self.model_image(max_radius=pad_size * u.pix,
-                                 **model_kwargs).value
+                                 **model_kwargs)
+        if hasattr(model, 'unit'):
+            model = model.value
 
         from astropy.io import fits
         import time

@@ -354,13 +354,19 @@ def test_simple_filament():
                         rtol=0.01)
 
     fil_model = test.filament_model(bkg_subtract=False)
+    # Some astropy 3.0.1 does not support compound model units. Check
+    # the output type here.
+    if hasattr(fil_model, 'unit'):
+        fil_model = fil_model.value
 
     # Max difference should be where the background isn't covered
-    assert ((mod.data - fil_model.value) <= 0.1 + 1e-7).all()
+    assert ((mod.data - fil_model) <= 0.1 + 1e-7).all()
 
     # Now compare bkg subtracted versions
     fil_model = test.filament_model(bkg_subtract=True)
-    assert ((mod.data - fil_model.value) <= 0.1 + 1e-3).all()
+    if hasattr(fil_model, 'unit'):
+        fil_model = fil_model.value
+    assert ((mod.data - fil_model) <= 0.1 + 1e-3).all()
 
     # Covering fraction
     cov_frac = test.covering_fraction()
@@ -436,7 +442,9 @@ def test_simple_filament():
     npt.assert_allclose(skel, hdu[2].data.astype(bool))
 
     mod = fil1.model_image()
-    npt.assert_allclose(mod.value, hdu[3].data)
+    if hasattr(mod, 'unit'):
+        mod = mod.value
+    npt.assert_allclose(mod, hdu[3].data)
 
     os.remove("test_image_output.fits")
     hdu.close()
@@ -451,7 +459,9 @@ def test_simple_filament():
     npt.assert_allclose(skel, hdu[2].data.astype(bool))
 
     mod = fil1.model_image()
-    npt.assert_allclose(mod.value, hdu[3].data)
+    if hasattr(mod, 'unit'):
+        mod = mod.value
+    npt.assert_allclose(mod, hdu[3].data)
 
     os.remove("test1_stamp_0.fits")
     hdu.close()
@@ -463,11 +473,13 @@ def test_simple_filament():
     hdu = fits.open("test1_image_output.fits")
 
     mod = test.filament_model()
+    if hasattr(mod, 'unit'):
+        mod = mod.value
 
     npt.assert_allclose(test.mask, hdu[0].data)
     npt.assert_allclose(test.skeleton, hdu[1].data > 0)
     npt.assert_allclose(test.skeleton_longpath, hdu[2].data > 0)
-    npt.assert_allclose(mod.value, hdu[3].data)
+    npt.assert_allclose(mod, hdu[3].data)
 
     os.remove("test1_image_output.fits")
     hdu.close()

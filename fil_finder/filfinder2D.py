@@ -1266,7 +1266,9 @@ class FilFinder2D(BaseInfoMixin):
         out_hdu.append(fits.ImageHDU(labels_lp,
                                      header=new_hdr_skel))
 
-        model = self.filament_model(**kwargs).value
+        model = self.filament_model(**kwargs)
+        if hasattr(model, 'unit'):
+            model = model.value
 
         model_hdr = new_hdr.copy()
         model_hdr['COMMENT'] = "Image generated from fitted filament models."
