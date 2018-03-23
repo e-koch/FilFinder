@@ -1104,12 +1104,17 @@ class Filament2D(FilamentNDBase):
         pad_size = int(max_radius)
         skel_arr = self.skeleton(pad_size)
 
-        dists = nd.distance_transform_edt(~skel_arr) * u.pix
+        dists = nd.distance_transform_edt(~skel_arr)
+        if self.radprof_model._supports_unit_fitting:
+            dists = dists * u.pix
 
         if not bkg_subtract:
             return self.radprof_model(dists)
         else:
-            return self.radprof_model(dists) - self.radprof_params[bkg_mod_index]
+            bkg = self.radprof_params[bkg_mod_index]
+            if not self.radprof_model._supports_unit_fitting:
+                bkg = bkg.value
+            return self.radprof_model(dists) - bkg
 
     def median_brightness(self, image):
         '''
