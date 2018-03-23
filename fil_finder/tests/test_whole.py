@@ -439,6 +439,7 @@ def test_simple_filament():
     npt.assert_allclose(mod.value, hdu[3].data)
 
     os.remove("test_image_output.fits")
+    hdu.close()
     del hdu
 
     test.save_stamp_fits()
@@ -453,6 +454,7 @@ def test_simple_filament():
     npt.assert_allclose(mod.value, hdu[3].data)
 
     os.remove("test1_stamp_0.fits")
+    hdu.close()
     del hdu
 
     # Compare saving whole skeleton/mask/model
@@ -468,4 +470,5 @@ def test_simple_filament():
     npt.assert_allclose(mod.value, hdu[3].data)
 
     os.remove("test1_image_output.fits")
+    hdu.close()
     del hdu
