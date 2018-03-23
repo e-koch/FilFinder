@@ -147,12 +147,15 @@ class FilFinder2D(BaseInfoMixin):
 
         self.filament_arrays = {}
 
-    def preprocess_image(self, flatten_percent=None):
+    def preprocess_image(self, skip_flatten=False, flatten_percent=None):
         '''
         Preprocess and flatten the image before running the masking routine.
 
         Parameters
         ----------
+        skip_flatten : bool, optional
+            Skip the flattening step and use the original image to construct
+            the mask. Default is False.
         flatten_percent : int, optional
             The percentile of the data (0-100) to set the normalization of the
             arctan transform. By default, a log-normal distribution is fit and
@@ -161,23 +164,29 @@ class FilFinder2D(BaseInfoMixin):
             this be set >95 percentile.
 
         '''
-        # Make flattened image
-        if flatten_percent is None:
-            # Fit to a log-normal
-            fit_vals = lognorm.fit(self.image[~np.isnan(self.image)])
-
-            median = lognorm.median(*fit_vals)
-            std = lognorm.std(*fit_vals)
-            thresh_val = median + 2 * std
+        if skip_flatten:
+            self._flatten_threshold = None
+            self.flat_img = self.image
         else:
-            thresh_val = np.percentile(self.image[~np.isnan(self.image)],
-                                       flatten_percent)
 
-        self._flatten_threshold = data_unit_check(thresh_val, self.image.unit)
+            # Make flattened image
+            if flatten_percent is None:
+                # Fit to a log-normal
+                fit_vals = lognorm.fit(self.image[~np.isnan(self.image)])
 
-        # Make the units dimensionless
-        self.flat_img = thresh_val * \
-            np.arctan(self.image / self.flatten_threshold) / u.rad
+                median = lognorm.median(*fit_vals)
+                std = lognorm.std(*fit_vals)
+                thresh_val = median + 2 * std
+            else:
+                thresh_val = np.percentile(self.image[~np.isnan(self.image)],
+                                           flatten_percent)
+
+            self._flatten_threshold = data_unit_check(thresh_val,
+                                                      self.image.unit)
+
+            # Make the units dimensionless
+            self.flat_img = thresh_val * \
+                np.arctan(self.image / self.flatten_threshold) / u.rad
 
     @property
     def flatten_threshold(self):
