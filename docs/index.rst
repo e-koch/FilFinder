@@ -64,7 +64,7 @@ Contents:
    :maxdepth: 3
 
    install.rst
-   tutorial.rst
+   tutorial.ipynb
    filfinder.rst
 
 
