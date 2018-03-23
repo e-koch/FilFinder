@@ -166,7 +166,9 @@ def test_FilFinder2D_w_rhtbranches():
 
     assert (test1.skeleton == test1_old.skeleton).all()
 
-    test1.analyze_skeletons(skel_thresh=40 * u.pix, branch_thresh=2.0 * u.pix)
+    # Don't use iterative pruning in order to match old version.
+    test1.analyze_skeletons(skel_thresh=40 * u.pix, branch_thresh=2.0 * u.pix,
+                            max_prune_iter=1)
     test1_old.analyze_skeletons()
 
     assert test1.number_of_filaments == test1_old.number_of_filaments

@@ -3,6 +3,7 @@
 import numpy as np
 import astropy.units as u
 import networkx as nx
+import networkx.algorithms.isomorphism as iso
 import warnings
 import scipy.ndimage as nd
 from astropy.nddata import extract_array
@@ -180,51 +181,97 @@ class Filament2D(FilamentNDBase):
 
         branch_thresh = self._converter.to_pixel(branch_thresh)
 
-        interpts, hubs, ends, filbranches, labeled_mask =  \
-            pix_identify([self.skeleton(pad_size=pad_size)], 1)
-
         # Do we need to pad the image before slicing?
         input_image = pad_image(image, self.pixel_extents, pad_size)
 
+        skel_mask = self.skeleton(pad_size=pad_size)
+
         # If the padded image matches the mask size, don't need additional
         # slicing
-        if input_image.shape != labeled_mask[0].shape:
+        if input_image.shape != skel_mask.shape:
             input_image = input_image[self.image_slice(pad_size=pad_size)]
 
         # The mask and sliced image better have the same shape!
-        if input_image.shape != labeled_mask[0].shape:
+        if input_image.shape != skel_mask.shape:
             raise AssertionError("Sliced image shape does not equal the mask "
                                  "shape. This should never happen! If you see"
                                  " this issue, please report it as a bug!")
 
-        branch_properties = init_lengths(labeled_mask, filbranches,
-                                         [[(0, 0), (0, 0)]],
-                                         input_image)
+        iter = 0
 
-        # Add the number of branches onto the dictionary
-        branch_properties["number"] = filbranches
+        while True:
 
-        edge_list, nodes = pre_graph(labeled_mask,
-                                     branch_properties,
-                                     interpts, ends)
+            skel_mask = self.skeleton(pad_size=pad_size)
 
+            interpts, hubs, ends, filbranches, labeled_mask =  \
+                pix_identify([skel_mask], 1)
+
+            branch_properties = init_lengths(labeled_mask, filbranches,
+                                             [[(0, 0), (0, 0)]],
+                                             input_image)
+
+            # Add the number of branches onto the dictionary
+            branch_properties["number"] = filbranches
+
+            edge_list, nodes = pre_graph(labeled_mask,
+                                         branch_properties,
+                                         interpts, ends)
+
+            max_path, extremum, G = \
+                longest_path(edge_list, nodes,
+                             verbose=False,
+                             skeleton_arrays=labeled_mask)
+
+            # Skip pruning if skeleton has only one branch
+            if len(G[0].nodes()) > 1:
+                updated_lists = \
+                    prune_graph(G, nodes, edge_list, max_path, labeled_mask,
+                                branch_properties,
+                                prune_criteria=prune_criteria,
+                                length_thresh=branch_thresh.value,
+                                relintens_thresh=relintens_thresh,
+                                max_iter=1)
+                labeled_mask, edge_list, nodes, branch_properties = updated_lists
+
+            final_fil_arrays =\
+                make_final_skeletons(labeled_mask, interpts,
+                                     verbose=False)
+
+            # Update the skeleton pixels
+            good_pix = np.where(final_fil_arrays[0])
+            self._pixel_coords = \
+                (good_pix[0] + self.pixel_extents[0][0] - pad_size,
+                 good_pix[1] + self.pixel_extents[0][1] - pad_size)
+
+            if iter == 0:
+                prev_G = G[0]
+                iter += 1
+                if iter == max_prune_iter:
+                    break
+                else:
+                    continue
+
+            edge_match = iso.numerical_edge_match('weight', 1)
+            if nx.is_isomorphic(prev_G, G[0],
+                                edge_match=edge_match):
+                break
+
+            prev_G = G[0]
+            iter += 1
+
+            if iter >= max_prune_iter:
+                warnings.warn("Graph pruning reached max iterations.")
+                break
+
+        self._graph = G[0]
+
+        # Run final analyses for plotting, etc.
         max_path, extremum, G = \
             longest_path(edge_list, nodes,
                          verbose=verbose,
                          save_png=save_png,
                          save_name="{0}_graphstruct.png".format(save_name),
                          skeleton_arrays=labeled_mask)
-
-        updated_lists = \
-            prune_graph(G, nodes, edge_list, max_path, labeled_mask,
-                        branch_properties, prune_criteria=prune_criteria,
-                        length_thresh=branch_thresh.value,
-                        relintens_thresh=relintens_thresh,
-                        max_iter=max_prune_iter)
-
-        labeled_mask, edge_list, nodes, branch_properties = updated_lists
-
-        self._graph = G[0]
 
         length_output = main_length(max_path, edge_list, labeled_mask,
                                     interpts,
@@ -764,10 +811,12 @@ class Filament2D(FilamentNDBase):
             # Check if units should be kept
             if fitted_model._supports_unit_fitting:
                 modvals = fitted_model(dist)
+                radprof_vals = radprof
             else:
                 modvals = fitted_model(dist.value)
+                radprof_vals = radprof.value
 
-            chisq = red_chisq(radprof, modvals, npar, 1)
+            chisq = red_chisq(radprof_vals, modvals, npar, 1)
             if chisq.value > chisq_max:
                 fail_flag = True
 

@@ -454,7 +454,7 @@ def longest_path(edge_list, nodes, verbose=False,
 
 def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
                 prune_criteria='all', length_thresh=0, relintens_thresh=0.2,
-                max_iter=10):
+                max_iter=1):
     '''
     Function to remove unnecessary branches, while maintaining connectivity
     in the graph. Also updates edge_list, nodes, branch_lengths and
@@ -568,10 +568,24 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
                     branch_properties['length'][n].pop(idx - 1)
                     branch_properties['intensity'][n].pop(idx - 1)
 
+            # Now check to see if we need to merge any nodes in the graph
+            # after deletion. These will be intersection nodes with 2
+            # connections
+            while True:
+                degree = dict(G[n].degree())
+                doub_connect = [key for key in degree.keys()
+                                if degree[key] == 2]
+
+                if len(doub_connect) == 0:
+                    break
+
+                for node in doub_connect:
+                    G[n] = merge_nodes(node, G[n])
+
             iterat += 1
 
             if iterat == max_iter:
-                warnings.warn("Graph pruning reached max iterations.")
+                # warnings.warn("Graph pruning reached max iterations.")
                 break
 
     return labelisofil, edge_list, nodes, branch_properties

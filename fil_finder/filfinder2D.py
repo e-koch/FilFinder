@@ -16,7 +16,7 @@ import time
 import warnings
 
 from .pixel_ident import recombine_skeletons, isolateregions
-from .utilities import eight_con, round_to_odd, threshold_local
+from .utilities import eight_con, round_to_odd, threshold_local, in_ipynb
 from .io_funcs import input_data
 from .base_conversions import (BaseInfoMixin, UnitConverter,
                                find_beam_properties, data_unit_check)
