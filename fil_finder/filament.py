@@ -834,9 +834,18 @@ class Filament2D(FilamentNDBase):
             self._radprof_type = 'nonparam'
 
             # Make the equivalent Gaussian model w/ a background
-            self._radprof_model = Gaussian1D(fit[0] * yunit, 0.0 * xunit,
-                                             fit[1] * xunit) + \
-                Const1D(fit[2] * yunit)
+            self._radprof_model = Gaussian1D() + Const1D()
+            if self._radprof_model._supports_unit_fitting:
+                self._radprof_model.amplitude_0 = fit[0] * yunit
+                self._radprof_model.mean_0 = 0.0 * xunit
+                self._radprof_model.sigma_0 = fit[1] * xunit
+                self._radprof_model.amplitude_1 = fit[2] * yunit
+            else:
+                self._radprof_model.amplitude_0 = fit[0]
+                self._radprof_model.mean_0 = 0.0
+                self._radprof_model.sigma_0 = fit[1]
+                self._radprof_model.amplitude_1 = fit[2]
+
             # Slice out the FWHM and add units
             params = [fit[0] * yunit, fit[1] * xunit, fit[2] * yunit]
             errs = [fit_error[0] * yunit, fit_error[1] * xunit,

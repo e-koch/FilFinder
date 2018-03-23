@@ -101,6 +101,7 @@ def gaussian_model(dist, radprof, with_bkg=True):
 
             mod.amplitude_0 = mod.amplitude_0.value
             mod.mean_0 = mod.mean_0.value
+            mod.mean_0.fixed = True
             mod.stddev_0 = mod.stddev_0.value
             mod.amplitude_1 = mod.amplitude_1.value
 
