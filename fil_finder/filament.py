@@ -817,7 +817,7 @@ class Filament2D(FilamentNDBase):
                 radprof_vals = radprof.value
 
             chisq = red_chisq(radprof_vals, modvals, npar, 1)
-            if chisq.value > chisq_max:
+            if chisq > chisq_max:
                 fail_flag = True
 
         if (skip_fitting or fail_flag) and try_nonparam:
