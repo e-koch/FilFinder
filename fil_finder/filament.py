@@ -251,9 +251,15 @@ class Filament2D(FilamentNDBase):
                 else:
                     continue
 
-            edge_match = iso.numerical_edge_match('weight', 1)
-            if nx.is_isomorphic(prev_G, G[0],
-                                edge_match=edge_match):
+            # Isomorphic comparison is failing for networkx 2.1
+            # I don't understand the error, so we'll instead require
+            # that the nodes be the same. This should be safe as
+            # pruning can only remove nodes.
+
+            # edge_match = iso.numerical_edge_match('weight', 1)
+            # if nx.is_isomorphic(prev_G, G[0],
+            #                     edge_match=edge_match):
+            if prev_G.node == G[0].node:
                 break
 
             prev_G = G[0]

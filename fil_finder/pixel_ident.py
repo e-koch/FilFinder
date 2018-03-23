@@ -869,7 +869,7 @@ def merge_nodes(node, G):
     Combine a node into its neighbors.
     '''
 
-    neigb = G[node].keys()
+    neigb = list(G[node])
 
     if len(neigb) != 2:
         return G

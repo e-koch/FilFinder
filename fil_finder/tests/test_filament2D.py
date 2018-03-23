@@ -356,8 +356,8 @@ def test_Filament2D_onebranchprune_wpadding():
 
     # The pruned graph should be reduced to a single node representing the
     # remaining branch
-    assert fil.graph.nodes() == [1]
-    assert fil.graph.degree() == {1: 0}
+    assert list(fil.graph.nodes()) == [1]
+    assert dict(fil.graph.degree()) == {1: 0}
 
     # The branch properties should match those of the longest path
     assert fil.branch_properties['length'] == fil.length()
@@ -417,8 +417,8 @@ def test_Filament2D_iteratbranchprune_leavenone():
 
     # The pruned graph should be reduced to a single node representing the
     # remaining branch
-    assert fil.graph.nodes() == [1]
-    assert fil.graph.degree() == {1: 0}
+    assert list(fil.graph.nodes()) == [1]
+    assert dict(fil.graph.degree()) == {1: 0}
 
     # The branch properties should match those of the longest path
     assert fil.branch_properties['length'] == fil.length()
@@ -486,8 +486,8 @@ def test_Filament2D_iteratbranchprune_leaveone():
 
     # The pruned graph should be reduced to a single node representing the
     # remaining branch
-    assert fil.graph.nodes() == ['A', 1, 2, 3]
-    assert fil.graph.degree() == {1: 1, 2: 1, 3: 1, 'A': 3}
+    assert len(set(list(fil.graph.nodes())) - set(['A', 1, 2, 3])) == 0
+    assert dict(fil.graph.degree()) == {1: 1, 2: 1, 3: 1, 'A': 3}
 
     # The branch properties should match those of the longest path
     assert (fil.branch_properties['length'] == [2 * np.sqrt(2), 3., 1. + np.sqrt(2)] * u.pix).all()
