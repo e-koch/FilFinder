@@ -68,16 +68,19 @@ def gaussian_model(dist, radprof, with_bkg=True):
         Add constant background to the fit when enabled.
     '''
 
-    inner_width = np.std(dist)
+    amp = radprof.max()
+    wid_amp = amp / np.exp(0.5)
+    idx = np.abs(radprof - wid_amp).argmin()
+    inner_width = dist[idx]
 
     mod = models.Gaussian1D()
     # Check if the version of astropy supports units in the model.
     if mod._supports_unit_fitting:
-        mod.amplitude = np.max(radprof[dist < inner_width])
+        mod.amplitude = amp
         mod.mean = 0.0 * inner_width.unit
         mod.stddev = inner_width
     else:
-        mod.amplitude = np.max(radprof[dist < inner_width]).value
+        mod.amplitude = amp.value
         mod.mean = 0.0
         mod.stddev = inner_width.value
 
@@ -97,13 +100,15 @@ def gaussian_model(dist, radprof, with_bkg=True):
         if not mod._supports_unit_fitting:
             # Strip the units out. Hopefully I can get rid of this in a
             # future release...
-            mod = models.Gaussian1D() + models.Const1D()
+            mod_new = models.Gaussian1D() + models.Const1D()
 
-            mod.amplitude_0 = mod.amplitude_0.value
-            mod.mean_0 = mod.mean_0.value
-            mod.mean_0.fixed = True
-            mod.stddev_0 = mod.stddev_0.value
-            mod.amplitude_1 = mod.amplitude_1.value
+            mod_new.amplitude_0 = mod.amplitude_0.value
+            mod_new.mean_0 = mod.mean_0.value
+            mod_new.mean_0.fixed = True
+            mod_new.stddev_0 = mod.stddev_0.value
+            mod_new.amplitude_1 = mod.amplitude_1.value
+
+            mod = mod_new
 
     return mod
 
