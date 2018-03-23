@@ -98,10 +98,8 @@ Requires:
 
 Optional:
 
- * aplpy
  * radio-beam
  * spectral-cube
- * h5py
 
 Example Images
 --------------
