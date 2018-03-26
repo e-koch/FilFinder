@@ -583,10 +583,9 @@ class FilFinder2D(BaseInfoMixin):
             raise ValueError("relintens_thresh must be set between "
                              "(0.0, 1.0].")
 
-        if not hasattr(self.converter, 'distance'):
-            if self.skel_thresh is None and skel_thresh is None:
-                raise ValueError("Distance not given. Must specify skel_thresh"
-                                 " in pixel units.")
+        if not hasattr(self.converter, 'distance') and skel_thresh is None:
+            raise ValueError("Distance not given. Must specify skel_thresh"
+                             " in pixel units.")
 
         if save_name is None:
             save_name = self.save_name
@@ -1280,10 +1279,15 @@ class FilFinder2D(BaseInfoMixin):
 
         model_hdr = new_hdr.copy()
         model_hdr['COMMENT'] = "Image generated from fitted filament models."
-        try:
-            model_hdr['BUNIT'] = self.header['BUNIT']
-        except KeyError:
+        if self.header is not None:
+            bunit = self.header.get('BUNIT', None)
+            if bunit is not None:
+                model_hdr['BUNIT'] = bunit
+            else:
+                model_hdr['BUNIT'] = ""
+        else:
             model_hdr['BUNIT'] = ""
+
         model_hdr['BITPIX'] = fits.DTYPE2BITPIX[str(model.dtype)]
         model_hdu = fits.ImageHDU(model, header=model_hdr)
 

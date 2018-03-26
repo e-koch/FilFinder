@@ -1263,7 +1263,13 @@ class Filament2D(FilamentNDBase):
         if input_image.shape != skels.shape:
             input_image = input_image[self.image_slice(pad_size=pad_size)]
 
-        pixscale = self._converter.to_angular(1 * u.pix)
+        # Check if angular conversions are defined. If not, stay in pixel units
+        if hasattr(self._converter, '_ang_size'):
+            pixscale = self._converter.to_angular(1 * u.pix)
+            ang_conv = True
+        else:
+            pixscale = 1.0 * u.deg
+            ang_conv = False
 
         dists, profiles = filament_profile(skels, input_image, pixscale,
                                            max_dist=max_dist,
@@ -1272,7 +1278,11 @@ class Filament2D(FilamentNDBase):
                                            bright_unit=input_image.unit)
 
         # First put the distances into pixel units
-        dists = [self._converter.to_pixel(dist) for dist in dists]
+        if ang_conv:
+            dists = [self._converter.to_pixel(dist) for dist in dists]
+        else:
+            # Already in pixel units.
+            dists = [dist.value * u.pix for dist in dists]
 
         # Convert the distance units
         dists = [self._converter.from_pixel(dist, xunit) for dist in dists]
@@ -1375,7 +1385,10 @@ class Filament2D(FilamentNDBase):
         import time
 
         if header is None:
-            header = self._converter._wcs.to_header()
+            if hasattr(self._converter, "_wcs"):
+                header = self._converter._wcs.to_header()
+            else:
+                header = fits.Header()
 
         hdu = fits.PrimaryHDU(input_image, header)
 
