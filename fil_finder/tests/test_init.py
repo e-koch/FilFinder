@@ -49,8 +49,12 @@ def test_with_distance_FilFinder2D():
     imgscale = hdr['CDELT2'] * \
         (np.pi / 180.0) * distance.to(u.pc).value
     ang_pix = hdr['CDELT2'] * u.deg
-    npt.assert_almost_equal(test1.imgscale.value, imgscale)
-    npt.assert_almost_equal(test1.angular_scale.value,
+
+    filfind_scale = test1.converter.from_pixel(1 * u.pix, u.pc).value
+    npt.assert_almost_equal(filfind_scale, imgscale)
+
+    filfind_scale = (test1.converter.from_pixel(1 * u.pix, u.deg)**2).to(u.sr).value
+    npt.assert_almost_equal(filfind_scale,
                             (ang_pix**2).to(u.sr).value)
     npt.assert_almost_equal(test1.beamwidth.value,
                             (beamwidth.to(u.deg).value / hdr['CDELT2']))

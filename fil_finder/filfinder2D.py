@@ -123,10 +123,16 @@ class FilFinder2D(BaseInfoMixin):
         if beamwidth is None:
             if self.header is not None:
                 major = find_beam_properties(self.header)[0]
+            else:
+                major = beamwidth
         else:
             major = beamwidth
 
-        self._beamwidth = self.converter.to_pixel(major)
+        if major is not None:
+            self._beamwidth = self.converter.to_pixel(major)
+        else:
+            warnings.warn("No beam width given. Using 0 pixels.")
+            self._beamwidth = 0.0 * u.pix
 
         self.save_name = save_name
 
@@ -138,14 +144,6 @@ class FilFinder2D(BaseInfoMixin):
                                  "same shape as the image.")
             mask[np.isnan(mask)] = 0.0
             self.mask = mask
-
-        # beam width was defined to be the Gaussian width, NOT the FWHM
-        # XXX imgscale is the pixel scale of one pixel in pc
-        # ang_scale is the pixel area
-        self.imgscale = self.converter.physical_size
-        self.angular_scale = (self.converter.ang_size**2).to(u.sr)
-
-        self.filament_arrays = {}
 
     def preprocess_image(self, skip_flatten=False, flatten_percent=None):
         '''
@@ -172,7 +170,7 @@ class FilFinder2D(BaseInfoMixin):
             # Make flattened image
             if flatten_percent is None:
                 # Fit to a log-normal
-                fit_vals = lognorm.fit(self.image[~np.isnan(self.image)])
+                fit_vals = lognorm.fit(self.image[~np.isnan(self.image)].value)
 
                 median = lognorm.median(*fit_vals)
                 std = lognorm.std(*fit_vals)
@@ -474,6 +472,7 @@ class FilFinder2D(BaseInfoMixin):
             p.contour(self.mask, colors="r")
             p.title("Mask on Flattened Image.")
             if save_png:
+                ARGH
                 try_mkdir(self.save_name)
                 p.savefig(os.path.join(self.save_name,
                                        self.save_name + "_mask.png"))
@@ -767,7 +766,7 @@ class FilFinder2D(BaseInfoMixin):
         if save_name is None:
             save_name = self.save_name
 
-        for i, fil in enumerate(self.filaments):
+        for n, fil in enumerate(self.filaments):
             if verbose:
                 print("Filament: %s / %s" % (n + 1, self.number_of_filaments))
 
@@ -783,7 +782,7 @@ class FilFinder2D(BaseInfoMixin):
 
                 if verbose:
                     if save_png:
-                        savename = "{0}_{1}_rht.png".format(save_name, i)
+                        savename = "{0}_{1}_rht.png".format(save_name, n)
                     else:
                         save_name = None
                     fil.plot_rht_distrib(save_name=save_name)
@@ -1291,7 +1290,6 @@ class FilFinder2D(BaseInfoMixin):
         out_hdu.append(model_hdu)
 
         out_hdu.writeto("{0}_image_output.fits".format(save_name))
-
 
     def save_stamp_fits(self, save_name=None, pad_size=20 * u.pix,
                         **kwargs):
