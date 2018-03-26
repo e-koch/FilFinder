@@ -137,7 +137,7 @@ def filament_profile(skeleton, image, pixscale, max_dist=0.025 * u.pc,
     profile_fits = []
     red_chisqs = []
 
-    for j, i in enumerate(xrange(num_avg, len(skel_pts) - num_avg)):
+    for j, i in enumerate(range(num_avg, len(skel_pts) - num_avg)):
         # Calculate the normal direction from the surrounding pixels
         pt1 = avg_pts([skel_pts[i + j] for j in range(-num_avg, 0)])
         pt2 = avg_pts([skel_pts[i + j] for j in range(1, num_avg + 1)])
@@ -281,7 +281,7 @@ def walk_through_skeleton(skeleton):
     yy = yy.ravel()
     xx = xx.ravel()
 
-    for i in xrange(all_pts):
+    for i in range(all_pts):
         if i == 0:
             ordered_pts = [end_pts[0]]
             prev_pt = end_pts[0]
