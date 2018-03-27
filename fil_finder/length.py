@@ -255,6 +255,7 @@ def pre_graph(labelisofil, branch_properties, interpts, ends):
     inter_nodes = []
     nodes = []
     edge_list = []
+    loop_edges = []
 
     def path_weighting(idx, length, intensity, w=0.5):
         '''
@@ -320,6 +321,7 @@ def pre_graph(labelisofil, branch_properties, interpts, ends):
             nodes[n].append(alpha)
         # Edges are created from the information contained in the nodes.
         edge_list_temp = []
+        loops_temp = []
         for i, inters in enumerate(inter_nodes[n]):
             end_match = list(set(inters[1]) & set(end_nodes[n]))
             for k in end_match:
@@ -332,19 +334,35 @@ def pre_graph(labelisofil, branch_properties, interpts, ends):
                     if len(match) == 1:
                         new_edge = (inters[0], inters_2[0], match[0])
                     elif len(match) > 1:
+                        # Multiple connections (a loop)
                         multi = [match[l][1] for l in range(len(match))]
                         keep = multi.index(min(multi))
                         new_edge = (inters[0], inters_2[0], match[keep])
+
+                        # Keep the other edges information in another list
+                        for jj in range(len(multi)):
+                            if jj == keep:
+                                continue
+                            loop_edge = (inters[0], inters_2[0], match[jj])
+                            dup_check = loop_edge not in loops_temp and \
+                                (loop_edge[1], loop_edge[0], loop_edge[2]) \
+                                not in loops_temp
+                            if dup_check:
+                                loops_temp.append(loop_edge)
+
                     if new_edge is not None:
-                        if not (new_edge[1], new_edge[0], new_edge[2]) in edge_list_temp \
-                                and new_edge not in edge_list_temp:
+                        dup_check = (new_edge[1], new_edge[0], new_edge[2]) \
+                            not in edge_list_temp \
+                            and new_edge not in edge_list_temp
+                        if dup_check:
                             edge_list_temp.append(new_edge)
 
         # Remove duplicated edges between intersections
 
         edge_list.append(edge_list_temp)
+        loop_edges.append(loops_temp)
 
-    return edge_list, nodes
+    return edge_list, nodes, loop_edges
 
 
 def longest_path(edge_list, nodes, verbose=False,
@@ -453,8 +471,8 @@ def longest_path(edge_list, nodes, verbose=False,
 
 
 def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
-                prune_criteria='all', length_thresh=0, relintens_thresh=0.2,
-                max_iter=1):
+                loop_edges, prune_criteria='all', length_thresh=0,
+                relintens_thresh=0.2, max_iter=1):
     '''
     Function to remove unnecessary branches, while maintaining connectivity
     in the graph. Also updates edge_list, nodes, branch_lengths and
@@ -477,6 +495,9 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
         branches are labeled and the intersections have been removed.
     branch_properties : dict
         Contains the lengths and intensities of all branches.
+    loop_edges : list
+        List of edges that create loops in the graph. These are not included
+        in `edge_list` or the graph to avoid making self-loops.
     prune_criteria : {'all', 'intensity', 'length'}, optional
         Choose the property to base pruning on. 'all' requires that the branch
         fails to satisfy the length and relative intensity checks.
@@ -522,22 +543,27 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
             delete_candidate = list((set(nodes[n]) - set(max_path[n])) &
                                     set(single_connect))
 
-            if not delete_candidate:  # Nothing to delete!
+            # Nothing to delete!
+            if not delete_candidate and len(loop_edges[n]) == 0:
                 break
 
-            edge_candidates = [(idx, edge) for idx, edge in
+            edge_candidates = [(edge[2][0], edge) for idx, edge in
                                enumerate(edge_list[n])
                                if edge[0] in delete_candidate or
                                edge[1] in delete_candidate]
             intensities = [edge[2][3] for edge in edge_list[n]]
 
+            # Add in loop edges for candidates to delete
+            edge_candidates += [(edge[2][0], edge) for edge in loop_edges[n]]
+            intensities += [edge[2][3] for edge in loop_edges[n]]
+
             del_idx = []
             for idx, edge in edge_candidates:
                 # In the odd case where a loop meets at the same intersection,
                 # ensure that edge is kept.
-                if isinstance(edge[0], str) & isinstance(edge[1], str):
-                    continue
-                # If its too short and relatively not as intense, delete it
+                # if isinstance(edge[0], str) & isinstance(edge[1], str):
+                #     continue
+
                 length = edge[2][2]
                 av_intensity = edge[2][3]
 
@@ -554,11 +580,15 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
 
                 if criteria:
                     edge_pts = np.where(labelisofil[n] == edge[2][0])
+                    assert len(edge_pts[0]) == len(branch_properties['pixels'][n][idx-1])
                     labelisofil[n][edge_pts] = 0
-                    edge_list[n].remove(edge)
-                    nodes[n].remove(edge[1])
+                    try:
+                        edge_list[n].remove(edge)
+                        nodes[n].remove(edge[1])
+                        G[n].remove_edge(edge[0], edge[1])
+                    except ValueError:
+                        loop_edges[n].remove(edge)
                     branch_properties["number"][n] -= 1
-                    G[n].remove_edge(edge[0], edge[1])
                     del_idx.append(idx)
 
             if len(del_idx) > 0:

@@ -764,7 +764,7 @@ class fil_finder_2D(BaseInfoMixin):
         # Add the number of branches onto the dictionary
         self.branch_properties["number"] = filbranches
 
-        edge_list, nodes = pre_graph(
+        edge_list, nodes, loop_edges = pre_graph(
             labeled_fil_arrays, self.branch_properties, interpts, ends)
 
         max_path, extremum, G = \
@@ -776,7 +776,7 @@ class fil_finder_2D(BaseInfoMixin):
 
         updated_lists = \
             prune_graph(G, nodes, edge_list, max_path, labeled_fil_arrays,
-                        self.branch_properties,
+                        self.branch_properties, loop_edges,
                         length_thresh=self.branch_thresh,
                         relintens_thresh=relintens_thresh,
                         prune_criteria=prune_criteria)

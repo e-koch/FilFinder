@@ -213,9 +213,8 @@ class Filament2D(FilamentNDBase):
             # Add the number of branches onto the dictionary
             branch_properties["number"] = filbranches
 
-            edge_list, nodes = pre_graph(labeled_mask,
-                                         branch_properties,
-                                         interpts, ends)
+            edge_list, nodes, loop_edges = \
+                pre_graph(labeled_mask, branch_properties, interpts, ends)
 
             max_path, extremum, G = \
                 longest_path(edge_list, nodes,
@@ -226,12 +225,13 @@ class Filament2D(FilamentNDBase):
             if len(G[0].nodes()) > 1:
                 updated_lists = \
                     prune_graph(G, nodes, edge_list, max_path, labeled_mask,
-                                branch_properties,
+                                branch_properties, loop_edges,
                                 prune_criteria=prune_criteria,
                                 length_thresh=branch_thresh.value,
                                 relintens_thresh=relintens_thresh,
                                 max_iter=1)
-                labeled_mask, edge_list, nodes, branch_properties = updated_lists
+                labeled_mask, edge_list, nodes, branch_properties = \
+                    updated_lists
 
             final_fil_arrays =\
                 make_final_skeletons(labeled_mask, interpts,
