@@ -252,9 +252,6 @@ def test_FilFinder2D_iterat_prune():
     Check that iterative pruning converges to the longest path.
     '''
 
-    from fil_finder.tests._testing_data import img, hdr
-    from fil_finder import FilFinder2D
-
     test1 = FilFinder2D(img, header=hdr, beamwidth=10.0 * u.arcsec,
                         distance=260 * u.pc, save_name="test1")
 
