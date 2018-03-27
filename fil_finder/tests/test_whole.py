@@ -4,6 +4,7 @@ import numpy as np
 import numpy.testing as npt
 import astropy.units as u
 from copy import deepcopy
+import warnings
 
 from .. import fil_finder_2D, FilFinder2D
 
@@ -134,11 +135,6 @@ def test_FilFinder2D_w_rhtbranches():
     Make sure the new FilFinder2D gives consistent results
     '''
 
-    from fil_finder.tests._testing_data import img, hdr
-    from fil_finder import FilFinder2D, fil_finder_2D
-    import numpy.testing as npt
-    import warnings
-
     test1 = FilFinder2D(img, header=hdr, beamwidth=10.0 * u.arcsec,
                         distance=260 * u.pc, save_name="test1")
 
@@ -249,3 +245,32 @@ def test_FilFinder2D_w_rhtbranches():
 
     cov_frac = test1.covering_fraction()
     npt.assert_allclose(0.544, cov_frac.value, atol=0.001)
+
+
+def test_FilFinder2D_iterat_prune():
+    '''
+    Check that iterative pruning converges to the longest path.
+    '''
+
+    from fil_finder.tests._testing_data import img, hdr
+    from fil_finder import FilFinder2D
+
+    test1 = FilFinder2D(img, header=hdr, beamwidth=10.0 * u.arcsec,
+                        distance=260 * u.pc, save_name="test1")
+
+    test1.preprocess_image(flatten_percent=95)
+    test1.create_mask(glob_thresh=np.nanpercentile(img, 20),
+                      size_thresh=430 * u.pix**2,
+                      border_masking=False)
+    test1.medskel()
+
+    # Don't use iterative pruning in order to match old version.
+    # Extremely high branch threshold should force all branches off of the
+    # longest path to be removed.
+    test1.analyze_skeletons(skel_thresh=40 * u.pix,
+                            branch_thresh=400 * u.pix,
+                            max_prune_iter=20,
+                            prune_criteria='length')
+
+    # All of the skeletons should now be equal to the longest path
+    assert (test1.skeleton == test1.skeleton_longpath).all()
