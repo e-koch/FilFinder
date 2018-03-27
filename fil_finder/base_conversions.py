@@ -8,7 +8,7 @@ from warnings import warn
 
 
 try:
-    from radio_beam import Beam
+    from radio_beam import Beam, NoBeamException
     RADIO_BEAM_INSTALL = True
 except ImportError:
     RADIO_BEAM_INSTALL = False
@@ -36,10 +36,15 @@ def find_beam_properties(hdr):
     '''
 
     if RADIO_BEAM_INSTALL:
-        beam = Beam.from_fits_header(hdr)
-        bmaj = beam.major.to(u.deg)
-        bmin = beam.minor.to(u.deg)
-        bpa = beam.pa.to(u.deg)
+        try:
+            beam = Beam.from_fits_header(hdr)
+            bmaj = beam.major.to(u.deg)
+            bmin = beam.minor.to(u.deg)
+            bpa = beam.pa.to(u.deg)
+        except NoBeamException:
+            bmaj = None
+            bmin = None
+            bpa = None
     else:
         if not isinstance(hdr, fits.Header):
             raise TypeError("Header is not a FITS header.")
@@ -47,9 +52,10 @@ def find_beam_properties(hdr):
         if "BMAJ" in hdr:
             bmaj = hdr["BMAJ"] * u.deg
         else:
-            raise ValueError("Cannot find 'BMAJ' in the header. Try installing"
-                             " the `radio_beam` package for loading header"
-                             " information.")
+            warn("Cannot find 'BMAJ' in the header. Try installing"
+                 " the `radio_beam` package for loading header"
+                 " information.")
+            bmaj = None
 
         if "BMIN" in hdr:
             bmin = hdr["BMIN"] * u.deg

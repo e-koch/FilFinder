@@ -106,8 +106,12 @@ class FilFinder2D(BaseInfoMixin):
                 hdr_dict = {"NAXIS": 2,
                             "NAXIS1": self.image.shape[1],
                             "NAXIS2": self.image.shape[0],
-                            "CDELT1": ang_scale.to(u.deg),
-                            "CDELT2": ang_scale.to(u.deg),
+                            "CDELT1": - ang_scale.to(u.deg).value,
+                            "CDELT2": ang_scale.to(u.deg).value,
+                            'CTYPE1': 'GLON-CAR',
+                            'CTYPE2': 'GLAT-CAR',
+                            'CUNIT1': 'deg',
+                            'CUNIT2': 'deg',
                             }
                 self._header = fits.Header(hdr_dict)
         else:
@@ -467,15 +471,12 @@ class FilFinder2D(BaseInfoMixin):
             vmin = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 20)
             vmax = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 90)
             p.clf()
-            p.imshow(self.flat_img, interpolation='nearest', origin="lower",
-                     cmap='binary', vmin=vmin, vmax=vmax)
+            p.imshow(self.flat_img.value, interpolation='nearest',
+                     origin="lower", cmap='binary', vmin=vmin, vmax=vmax)
             p.contour(self.mask, colors="r")
             p.title("Mask on Flattened Image.")
             if save_png:
-                ARGH
-                try_mkdir(self.save_name)
-                p.savefig(os.path.join(self.save_name,
-                                       self.save_name + "_mask.png"))
+                p.savefig(self.save_name + "_mask.png")
             if verbose:
                 p.show()
             if in_ipynb():
@@ -524,13 +525,11 @@ class FilFinder2D(BaseInfoMixin):
             vmin = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 20)
             vmax = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 90)
             p.clf()
-            p.imshow(self.flat_img, interpolation=None, origin="lower",
+            p.imshow(self.flat_img.value, interpolation=None, origin="lower",
                      cmap='binary', vmin=vmin, vmax=vmax)
             p.contour(self.skeleton, colors="r")
             if save_png:
-                try_mkdir(self.save_name)
-                p.savefig(os.path.join(self.save_name,
-                                       self.save_name + "_initial_skeletons.png"))
+                p.savefig(self.save_name + "_initial_skeletons.png")
             if verbose:
                 p.show()
             if in_ipynb():
