@@ -127,7 +127,7 @@ def test_simple_filament_compareold():
     # Covering fraction
     cov_frac = test.covering_fraction()
     act_frac = (mod.data - 0.1).sum() / np.sum(mod.data)
-    npt.assert_allclose(cov_frac.value, act_frac, atol=1e-4)
+    npt.assert_allclose(cov_frac, act_frac, atol=1e-4)
 
     # Ridge profile along skeleton. Should all equal 1.1
     ridge = fil1.ridge_profile(test.image)
@@ -340,7 +340,7 @@ def test_simple_filament_noheader():
     # Covering fraction
     cov_frac = test.covering_fraction()
     act_frac = (mod.data - 0.1).sum() / np.sum(mod.data)
-    npt.assert_allclose(cov_frac.value, act_frac, atol=1e-4)
+    npt.assert_allclose(cov_frac, act_frac, atol=1e-4)
 
     # Ridge profile along skeleton. Should all equal 1.1
     ridge = fil1.ridge_profile(test.image)
@@ -554,7 +554,7 @@ def test_simple_filament_noheader_angscale():
     # Covering fraction
     cov_frac = test.covering_fraction()
     act_frac = (mod.data - 0.1).sum() / np.sum(mod.data)
-    npt.assert_allclose(cov_frac.value, act_frac, atol=1e-4)
+    npt.assert_allclose(cov_frac, act_frac, atol=1e-4)
 
     # Ridge profile along skeleton. Should all equal 1.1
     ridge = fil1.ridge_profile(test.image)
@@ -763,7 +763,7 @@ def test_simple_filament_nodistance():
     # Covering fraction
     cov_frac = test.covering_fraction()
     act_frac = (mod.data - 0.1).sum() / np.sum(mod.data)
-    npt.assert_allclose(cov_frac.value, act_frac, atol=1e-4)
+    npt.assert_allclose(cov_frac, act_frac, atol=1e-4)
 
     # Ridge profile along skeleton. Should all equal 1.1
     ridge = fil1.ridge_profile(test.image)

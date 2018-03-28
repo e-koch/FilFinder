@@ -244,7 +244,7 @@ def test_FilFinder2D_w_rhtbranches():
     total_intensity = test1.total_intensity()
 
     cov_frac = test1.covering_fraction()
-    npt.assert_allclose(0.544, cov_frac.value, atol=0.001)
+    npt.assert_allclose(0.544, cov_frac, atol=0.001)
 
 
 def test_FilFinder2D_iterat_prune():

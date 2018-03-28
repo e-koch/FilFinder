@@ -1107,7 +1107,11 @@ class FilFinder2D(BaseInfoMixin):
                                         bkg_subtract=bkg_subtract,
                                         bkg_mod_index=bkg_mod_index)
 
-        return np.nansum(fil_model) / np.nansum(self.image)
+        frac = np.nansum(fil_model) / np.nansum(self.image)
+        if hasattr(frac, 'value'):
+            frac = frac.value
+
+        return frac
 
     def ridge_profiles(self):
         '''
