@@ -1187,8 +1187,10 @@ class FilFinder2D(BaseInfoMixin):
             tab['X_posn'] = Column(xposn)
             tab['Y_posn'] = Column(yposn)
         else:
-            dec = [centre[0] for centre in fil_centres]
-            ra = [centre[1] for centre in fil_centres]
+            ra_unit = fil_centres[0][0].unit
+            ra = [centre[0].value for centre in fil_centres] * ra_unit
+            dec_unit = fil_centres[0][1].unit
+            dec = [centre[1] for centre in fil_centres] * dec_unit
             tab['RA'] = Column(ra)
             tab['Dec'] = Column(dec)
 

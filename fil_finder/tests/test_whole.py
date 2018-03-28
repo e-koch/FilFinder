@@ -249,6 +249,9 @@ def test_FilFinder2D_w_rhtbranches():
     fil_posns = test1.filament_positions()
     fil_posns = test1.filament_positions(world_coord=True)
 
+    tab = test1.output_table()
+    tab = test1.output_table(world_coord=True)
+
 
 def test_FilFinder2D_iterat_prune():
     '''
