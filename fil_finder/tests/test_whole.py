@@ -246,6 +246,9 @@ def test_FilFinder2D_w_rhtbranches():
     cov_frac = test1.covering_fraction()
     npt.assert_allclose(0.544, cov_frac, atol=0.001)
 
+    fil_posns = test1.filament_positions()
+    fil_posns = test1.filament_positions(world_coord=True)
+
 
 def test_FilFinder2D_iterat_prune():
     '''

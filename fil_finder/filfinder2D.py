@@ -700,6 +700,24 @@ class FilFinder2D(BaseInfoMixin):
 
         return branches
 
+    def filament_positions(self, world_coord=False):
+        '''
+        Return the median pixel or world positions of the filaments.
+
+        Parameters
+        ----------
+        world_coord : bool, optional
+            Return the world coordinates, defined by the WCS information. If no
+            WCS information is given, the output stays in pixel units.
+
+        Returns
+        -------
+        filament positions : list of tuples
+            The median positions of each filament.
+        '''
+        return [fil.position(world_coord=world_coord) for fil in
+                self.filaments]
+
     def exec_rht(self, radius=10 * u.pix,
                  ntheta=180, background_percentile=25,
                  branches=False, min_branch_length=3 * u.pix,
@@ -1126,7 +1144,7 @@ class FilFinder2D(BaseInfoMixin):
 
         return [fil.ridge_profile(self.image) for fil in self.filaments]
 
-    def output_table(self, xunit=u.pix, **kwargs):
+    def output_table(self, xunit=u.pix, world_coord=False, **kwargs):
         '''
         Return the analysis results as an astropy table.
 
@@ -1139,6 +1157,8 @@ class FilFinder2D(BaseInfoMixin):
         ----------
         xunit : `~astropy.units.Unit`, optional
             Unit for spatial properties. Defaults to pixel units.
+        world_coord : bool, optional
+            Return the median filament position in world coordinates.
         kwargs : Passed to `~FilFinder2D.total_intensity`.
 
         Return
@@ -1157,6 +1177,20 @@ class FilFinder2D(BaseInfoMixin):
         if not self._rht_branches_flag:
             tab['orientation'] = Column(self.orientation)
             tab['curvature'] = Column(self.curvature)
+
+        # Return centres
+        fil_centres = self.filament_positions(world_coord=world_coord)
+
+        if fil_centres[0][0].unit == u.pix:
+            yposn = [centre[0].value for centre in fil_centres] * u.pix
+            xposn = [centre[1].value for centre in fil_centres] * u.pix
+            tab['X_posn'] = Column(xposn)
+            tab['Y_posn'] = Column(yposn)
+        else:
+            dec = [centre[0] for centre in fil_centres]
+            ra = [centre[1] for centre in fil_centres]
+            tab['RA'] = Column(ra)
+            tab['Dec'] = Column(dec)
 
         # Join with the width table
         width_table = self.width_fits(xunit=xunit)

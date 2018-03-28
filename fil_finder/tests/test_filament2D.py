@@ -5,6 +5,7 @@ import numpy as np
 import numpy.testing as npt
 import astropy.units as u
 from astropy.wcs import WCS
+import warnings
 
 from ..filament import Filament2D, FilamentNDBase
 
@@ -21,6 +22,17 @@ def test_Filament2D():
     assert all([(out == inp).all() for out, inp in
                 zip(fil.pixel_coords, pixels)])
     assert fil.pixel_extents == [(0, 0), (0, 2)]
+
+    assert fil.position() == [0 * u.pix, 1 * u.pix]
+
+    # Should return pixels again because no WCS info is given
+    with warnings.catch_warnings(record=True) as w:
+        assert fil.position(world_coord=True) == [0 * u.pix, 1 * u.pix]
+
+    assert len(w) == 1
+    assert w[0].category == UserWarning
+    assert str(w[0].message) == ("No WCS information given. Returning pixel"
+                                 " position.")
 
     mask_expect = np.zeros((1, 3), dtype=bool)
     mask_expect[pixels] = True
@@ -87,6 +99,12 @@ def test_Filament2D_with_WCS():
     mywcs.wcs.cunit = ['deg', 'deg']
 
     fil = Filament2D(pixels, wcs=mywcs)
+
+    assert fil.position() == [0 * u.pix, 1 * u.pix]
+
+    # Should return pixels again because no WCS info is given
+    assert fil.position(world_coord=True) == [1 * u.deg, 2 * u.deg]
+
     fil.skeleton_analysis(image)
 
     # Check the length

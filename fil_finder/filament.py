@@ -39,6 +39,30 @@ class FilamentNDBase(object):
         return [tuple([coord.min() for coord in self._orig_pixel_coords]),
                 tuple([coord.max() for coord in self._orig_pixel_coords])]
 
+    def position(self, world_coord=False):
+        '''
+        Return the centre position of the filament based on the pixel
+        coordinates.
+        '''
+        centres = [np.median(coord) for coord in self._orig_pixel_coords]
+
+        if world_coord:
+            if hasattr(self._converter, '_wcs'):
+                wcs = self._converter._wcs
+                # Convert to world coordinates
+                w_centres = wcs.all_pix2world(*centres, 0)
+
+                # Attach units
+                wu_centres = [val * u.Unit(wcs.wcs.cunit[i]) for i, val
+                              in enumerate(w_centres)]
+                return wu_centres
+            else:
+                warnings.warn("No WCS information given. Returning pixel"
+                              " position.")
+                return [centre * u.pix for centre in centres]
+        else:
+            return [centre * u.pix for centre in centres]
+
 
 class Filament2D(FilamentNDBase):
     """
