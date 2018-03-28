@@ -65,6 +65,7 @@ Contents:
 
    install.rst
    tutorial.ipynb
+   old_tutorial.ipynb
    filfinder.rst
 
 
