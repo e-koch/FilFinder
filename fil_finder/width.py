@@ -344,7 +344,7 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
 
 def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
                    img_scale=1.0, bins=None, bintype="linear",
-                   weighting="number", return_unbinned=True, auto_cut=True,
+                   weighting="number", return_unbinned=True, auto_cut=False,
                    pad_to_distance=0.15, max_distance=0.3, auto_cut_kwargs={},
                    debug_mode=False):
     '''

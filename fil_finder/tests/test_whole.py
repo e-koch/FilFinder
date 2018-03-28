@@ -22,7 +22,7 @@ def test_with_rht_branches():
     test1.medskel()
     test1.analyze_skeletons()
     test1.exec_rht(branches=True)
-    test1.find_widths()
+    test1.find_widths(auto_cut=True)
     test1.compute_filament_brightness()
 
     assert ((mask1 > 0) == test1.mask).all()
@@ -64,7 +64,7 @@ def test_without_rht_branches():
     test2.medskel()
     test2.analyze_skeletons()
     test2.exec_rht(branches=False)
-    test2.find_widths()
+    test2.find_widths(auto_cut=True)
     test2.compute_filament_brightness()
 
     assert ((mask2 > 0) == test2.mask).all()
