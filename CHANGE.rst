@@ -1,3 +1,7 @@
+2.0 (unreleased)
+----------------
+
+
 1.6 (2018-03-29)
 ----------------
 - #41 : Major overhaul of the code. Implements the FilFinder2D and Filament2D classes as a replacement for fil_finder_2D. fil_finder_2D is deprecated and will be removed in the next release. See the full list of changes at: https://github.com/e-koch/FilFinder/pull/41
