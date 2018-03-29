@@ -10,7 +10,6 @@ import networkx as nx
 import operator
 import string
 import copy
-import warnings
 
 # Create 4 to 8-connected elements to use with binary hit-or-miss
 struct1 = np.array([[1, 0, 0],

@@ -3,7 +3,6 @@
 import numpy as np
 import astropy.units as u
 import networkx as nx
-import networkx.algorithms.isomorphism as iso
 import warnings
 import scipy.ndimage as nd
 from astropy.nddata import extract_array
