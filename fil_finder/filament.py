@@ -1261,7 +1261,7 @@ class Filament2D(FilamentNDBase):
 
         Returns
         -------
-    `   dists : `~astropy.units.Quantity`
+        dists : `~astropy.units.Quantity`
             Distances in the radial profiles from the skeleton. Units set by
             `xunit`.
         profiles : `~astropy.units.Quantity`

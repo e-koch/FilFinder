@@ -1,6 +1,6 @@
 
 Old FilFinder Tutorial
-==================
+======================
 
 .. warning:: This tutorial is for older versions of FilFinder. Please see the updated tutorials.
 
