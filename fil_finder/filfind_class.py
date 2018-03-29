@@ -5,7 +5,6 @@ import matplotlib.pyplot as p
 import scipy.ndimage as nd
 from scipy.stats import lognorm
 from scipy.ndimage import distance_transform_edt
-from skimage.filters import threshold_adaptive
 from skimage.morphology import remove_small_objects, medial_axis
 from scipy.stats import scoreatpercentile
 from astropy.io import fits
@@ -24,8 +23,8 @@ from .pixel_ident import *
 from .utilities import *
 from .width import *
 from .rollinghough import rht
-from .analysis import Analysis
 from .io_funcs import input_data
+from .base_conversions import BaseInfoMixin
 
 # The try/except is here to deal with TypeErrors when building the docs on RTD
 # This isn't really a solution... but it is lazy and does the job until I
@@ -36,7 +35,7 @@ except TypeError:
     FWHM_FACTOR = np.NaN
 
 
-class fil_finder_2D(object):
+class fil_finder_2D(BaseInfoMixin):
 
     """
     This class acts as an overall wrapper to run the fil-finder algorithm
@@ -118,9 +117,7 @@ class fil_finder_2D(object):
         process. The algorithm will skeletonize and run the analysis portions
         only.
     freq : float, optional
-        **NOT FULLY SUPPORTED IN THIS RELEASE**
-        Frequency of the image. This is required for using the cylindrical
-        model (cyl_model) for the widths.
+        **Deprecated. Has no effect.**
     save_name : str, optional
         Sets the prefix name that is used for output files. Can be overridden
         in ``save_fits`` and ``save_table``. Default is "FilFinder_output".
@@ -143,14 +140,17 @@ class fil_finder_2D(object):
                  adapt_thresh=None, distance=None, region_slice=None,
                  mask=None, freq=None, save_name="FilFinder_output"):
 
-        # Accepts a numpy array or fits.PrimaryHDU
-        output = input_data(image)
+        # Deprecating this version soon
+        warnings.warn("Support for fil_finder_2D will be dropped in v2.0. Use "
+                      "the new version 'FilFinder2D'.", DeprecationWarning)
 
-        self.image = output["data"]
+        output = input_data(image, header)
+
+        self._image = output["data"].value
         if "header" in output:
             self._header = output["header"]
         else:
-            self._header = header
+            self._header = None
 
         if self.header is not None:
             self._wcs = WCS(self.header)
@@ -176,7 +176,7 @@ class fil_finder_2D(object):
         # Pad the image by the pad size. Avoids slicing difficulties
         # later on.
         if self.pad_size > 0:
-            self.image = np.pad(self.image, self.pad_size, padwithnans)
+            self._image = np.pad(self.image, self.pad_size, padwithnans)
 
         # Make flattened image
         if flatten_thresh is None:
@@ -222,7 +222,7 @@ class fil_finder_2D(object):
                                     " when no header is given.")
                 else:
                     Warning("Assuming given beamwidth is in pixels.")
-            self.beamwidth = beamwidth.value / FWHM_FACTOR
+            self._beamwidth = beamwidth.value / FWHM_FACTOR
             self.angular_scale = 1.0
             self.imgscale = 1.0
             self.pixel_unit_flag = True
@@ -245,10 +245,10 @@ class fil_finder_2D(object):
             if distance is None:
                 Warning("No distance given. Results will be in pixel units.")
                 if beamwidth.unit == u.pix:
-                    self.beamwidth = beamwidth.value / FWHM_FACTOR
+                    self._beamwidth = beamwidth.value / FWHM_FACTOR
                 else:
-                    self.beamwidth = ((beamwidth.to(u.deg) / FWHM_FACTOR) /
-                                      pix_scale).value
+                    self._beamwidth = ((beamwidth.to(u.deg) / FWHM_FACTOR) /
+                                       pix_scale).value
                 self.imgscale = 1.0
                 self.pixel_unit_flag = True
             else:
@@ -262,11 +262,11 @@ class fil_finder_2D(object):
 
                 width = beamwidth / FWHM_FACTOR
                 if beamwidth.unit == u.pix:
-                    self.beamwidth = width.value * self.imgscale
+                    self._beamwidth = width.value * self.imgscale
                 else:
                     # Try to convert straight to pc
                     try:
-                        self.beamwidth = width.to(u.pc).value
+                        self._beamwidth = width.to(u.pc).value
                         _try_ang_units = False
                     except u.UnitConversionError:
                         _try_ang_units = True
@@ -274,7 +274,7 @@ class fil_finder_2D(object):
                     # If that fails, try converting from an angular unit
                     if _try_ang_units:
                         try:
-                            self.beamwidth = \
+                            self._beamwidth = \
                                 (width.to(u.arcsec).value / 206265.) * \
                                 distance.value
                         except u.UnitConversionError:
@@ -404,6 +404,11 @@ class fil_finder_2D(object):
 
         if self.mask is not None and use_existing_mask:
             warnings.warn("Using inputted mask. Skipping creation of a new mask.")
+            self.glob_thresh = 'usermask'
+            self.adapt_thresh = 'usermask'
+            self.size_thresh = 'usermask'
+            self.smooth_size = 'usermask'
+
             return self  # Skip if pre-made mask given
 
         if glob_thresh is not None:
@@ -498,9 +503,9 @@ class fil_finder_2D(object):
             smooth_img[:, :pad_size + 1] = 0.0
             smooth_img[:, -pad_size - 1:] = 0.0
 
-        adapt = threshold_adaptive(smooth_img,
-                                   round_to_odd(ratio * self.adapt_thresh),
-                                   method="mean")
+        adapt = threshold_local(smooth_img,
+                                round_to_odd(ratio * self.adapt_thresh),
+                                method="mean")
 
         if regrid:
             regrid_factor = float(regrid_factor)
@@ -531,7 +536,7 @@ class fil_finder_2D(object):
                            morph_smooth=True, pad_size=self.skeleton_pad_size)
         self.mask = recombine_skeletons(mask_objs,
                                         corners, self.image.shape,
-                                        self.skeleton_pad_size, verbose=True)
+                                        self.skeleton_pad_size)
 
         # WARNING!! Setting some image values to 0 to avoid negative weights.
         # This may cause issues, however it will allow for proper skeletons
@@ -577,8 +582,6 @@ class fil_finder_2D(object):
                 p.show()
             if in_ipynb():
                 p.clf()
-
-        return self
 
     def medskel(self, verbose=False, save_png=False):
         '''
@@ -636,10 +639,8 @@ class fil_finder_2D(object):
             if in_ipynb():
                 p.clf()
 
-        return self
-
-    def analyze_skeletons(self, relintens_thresh=0.2, nbeam_lengths=5,
-                          branch_nbeam_lengths=3,
+    def analyze_skeletons(self, prune_criteria='all', relintens_thresh=0.2,
+                          nbeam_lengths=5, branch_nbeam_lengths=3,
                           skel_thresh=None, branch_thresh=None,
                           verbose=False, save_png=False):
         '''
@@ -680,6 +681,9 @@ class fil_finder_2D(object):
         ----------
         verbose : bool, optional
             Enables plotting.
+        prune_criteria : {'all', 'intensity', 'length'}, optional
+            Choose the property to base pruning on. 'all' requires that the
+            branch fails to satisfy the length and relative intensity checks.
         relintens_thresh : float, optional
             Relative intensity threshold for pruning. Sets the importance
             a branch must have in intensity relative to all other branches
@@ -727,7 +731,6 @@ class fil_finder_2D(object):
             raise ValueError(
                 "relintens_thresh must be set between (0.0, 1.0].")
 
-
         if self.pixel_unit_flag:
             if self.skel_thresh is None and skel_thresh is None:
                 raise ValueError("Distance not given. Must specify skel_thresh"
@@ -761,7 +764,7 @@ class fil_finder_2D(object):
         # Add the number of branches onto the dictionary
         self.branch_properties["number"] = filbranches
 
-        edge_list, nodes = pre_graph(
+        edge_list, nodes, loop_edges = pre_graph(
             labeled_fil_arrays, self.branch_properties, interpts, ends)
 
         max_path, extremum, G = \
@@ -773,8 +776,10 @@ class fil_finder_2D(object):
 
         updated_lists = \
             prune_graph(G, nodes, edge_list, max_path, labeled_fil_arrays,
-                        self.branch_properties, self.branch_thresh,
-                        relintens_thresh=relintens_thresh)
+                        self.branch_properties, loop_edges,
+                        length_thresh=self.branch_thresh,
+                        relintens_thresh=relintens_thresh,
+                        prune_criteria=prune_criteria)
 
         labeled_fil_arrays, edge_list, nodes, self.branch_properties = \
             updated_lists
@@ -809,14 +814,12 @@ class fil_finder_2D(object):
         self.skeleton = \
             recombine_skeletons(self.filament_arrays["final"],
                                 self.array_offsets, self.image.shape,
-                                self.skeleton_pad_size, verbose=True)
+                                self.skeleton_pad_size)
 
         self.skeleton_longpath = \
             recombine_skeletons(self.filament_arrays["long path"],
                                 self.array_offsets, self.image.shape,
-                                self.skeleton_pad_size, verbose=True)
-
-        return self
+                                self.skeleton_pad_size)
 
     def exec_rht(self, radius=10, ntheta=180, background_percentile=25,
                  branches=False, min_branch_length=3, verbose=False,
@@ -885,41 +888,40 @@ class fil_finder_2D(object):
             self.rht_curvature["Intensity"] = []
             self.rht_curvature["Length"] = []
 
-        for n in range(self.number_of_filaments):
         # Need to correct for how image is read in
         # fliplr aligns angles with image when shown in ds9
+        for n in range(self.number_of_filaments):
             if branches:
                 # We need intermediary arrays now
                 means = np.array([])
                 iqrs = np.array([])
                 intensity = np.array([])
                 lengths = np.array([])
-                # See above comment (613-614)
-                skel_arr = np.fliplr(self.filament_arrays["final"][n]).copy()
-                # Return the labeled skeleton without intersections
-                output = \
-                    pix_identify([skel_arr], 1)[-2:]
-                labeled_fil_array = output[1]
-                filbranch = output[0]
-                branch_properties = init_lengths(labeled_fil_array,
-                                                 filbranch,
-                                                 [self.array_offsets[n]],
-                                                 self.image)
-                labeled_fil_array = labeled_fil_array[0]
-                filbranch = filbranch[0]
 
-                # Return the labeled skeleton without intersections
-                labeled_fil_array = pix_identify([skel_arr], 1)[-1][0]
-                branch_labels = \
-                    np.unique(labeled_fil_array[np.nonzero(labeled_fil_array)])
+                # for val in branch_labels:
+                for val, (pix, length) in enumerate(zip(self.branch_properties['pixels'][n],
+                                                        self.branch_properties['length'][n])):
 
-                for val in branch_labels:
-                    length = branch_properties["length"][0][val-1]
-                    # Only include the branches with >10 pixels
-                    if length < min_branch_length:
+                    # Only include the branches with length > min length
+                    if length < (min_branch_length * self.imgscale):
                         continue
+
+                    ymax = pix[:, 0].max()
+                    ymin = pix[:, 0].min()
+                    xmax = pix[:, 1].max()
+                    xmin = pix[:, 1].min()
+
+                    shape = (ymax - ymin + 1 + 2 * radius,
+                             xmax - xmin + 1 + 2 * radius)
+
+                    branch_array = np.zeros(shape, dtype=bool)
+                    branch_array[pix[:, 0] - ymin + radius,
+                                 pix[:, 1] - xmin + radius] = True
+
+                    branch_array = np.fliplr(branch_array)
+
                     theta, R, quantiles = \
-                        rht(labeled_fil_array == val,
+                        rht(branch_array,
                             radius, ntheta, background_percentile)
 
                     twofive, mean, sevenfive = quantiles
@@ -935,9 +937,9 @@ class fil_finder_2D(object):
                                       np.abs(sevenfive - twofive) + np.pi)
                     intensity = \
                         np.append(intensity,
-                                  branch_properties["intensity"][0][val-1])
+                                  self.branch_properties["intensity"][0][val - 1])
                     lengths = np.append(lengths,
-                                        branch_properties["length"][0][val-1])
+                                        self.branch_properties["length"][0][val - 1])
 
                 self.rht_curvature["Orientation"].append(means)
                 self.rht_curvature["Curvature"].append(iqrs)
@@ -983,13 +985,11 @@ class fil_finder_2D(object):
                     if save_png:
                         try_mkdir(self.save_name)
                         p.savefig(os.path.join(self.save_name,
-                                               self.save_name+"_rht_"+str(n)+".png"))
+                                               self.save_name + "_rht_" + str(n) + ".png"))
                     if verbose:
                         p.show()
                     if in_ipynb():
                         p.clf()
-
-        return self
 
     def find_widths(self, fit_model=gauss_model, try_nonparam=True,
                     use_longest_paths=False, verbose=False, save_png=False,
@@ -1005,9 +1005,8 @@ class fil_finder_2D(object):
             profile is created. If the padded arrays fall outside of the
             original image, they are trimmed.
         *   A user-specified model is fit to each of the radial profiles.
-            There are three models included in this package; a gaussian,
-            lorentzian and a cylindrical filament model
-            (Arzoumanian et al., 2011). This returns the width and central
+            The default is a Gaussian with a constant background. This returns
+            the width and central
             intensity of each filament. The reported widths are the
             deconvolved FWHM of the gaussian width. For faint or crowded
             filaments, the fit can fail due to lack of data to fit to.
@@ -1040,6 +1039,10 @@ class fil_finder_2D(object):
 
         '''
 
+        warnings.warn("An array offset issue is present in the radial profiles"
+                      "! Please use the new version in FilFinder2D. "
+                      "Double-check all results from this function!")
+
         if use_longest_paths:
             skel_arrays = self.filament_arrays["long path"]
         else:
@@ -1050,45 +1053,52 @@ class fil_finder_2D(object):
                            self.skeleton)
 
         # Prepare the storage
-        self.width_fits["Parameters"] = np.empty(
-            (self.number_of_filaments, 4))
-        self.width_fits["Errors"] = np.empty(
-            (self.number_of_filaments, 4))
-        self.width_fits["Type"] = np.empty(
-            (self.number_of_filaments), dtype="S")
-        self.total_intensity = np.empty(
-            (self.number_of_filaments, ))
+        self.width_fits["Parameters"] = np.empty((self.number_of_filaments, 4))
+        self.width_fits["Errors"] = np.empty((self.number_of_filaments, 4))
+        self.width_fits["Type"] = np.empty((self.number_of_filaments),
+                                           dtype="S")
+        self.total_intensity = np.empty((self.number_of_filaments, ))
+
+        self._rad_profiles = []
+        self._unbin_rad_profiles = []
 
         for n in range(self.number_of_filaments):
 
+            # Shift bottom offset by 1. There's a +1 running around somewhere
+            # in the old code that isn't in the new code. Just make the
+            # correction here.
+            low_corner = list(self.array_offsets[n][0])
+            low_corner[0] -= 1
+            low_corner[1] -= 1
+            offsets = (tuple(low_corner), self.array_offsets[n][1])
+
             # Need the unbinned data for the non-parametric fit.
-            out = \
-                radial_profile(self.image, dist_transform_all,
-                               dist_transform_separate[n],
-                               self.array_offsets[n], self.imgscale,
-                               **kwargs)
+            out = radial_profile(self.image, dist_transform_all,
+                                 dist_transform_separate[n],
+                                 offsets, self.imgscale,
+                                 **kwargs)
 
             if out is not None:
                 dist, radprof, weights, unbin_dist, unbin_radprof = out
+                self._rad_profiles.append([dist, radprof])
+                self._unbin_rad_profiles.append([unbin_dist, unbin_radprof])
             else:
                 self.total_intensity[n] = np.NaN
-
-                self.width_fits["Parameters"][n, :] = \
-                    [np.NaN] * 4
-                self.width_fits["Errors"][n, :] = \
-                    [np.NaN] * 4
+                self.width_fits["Parameters"][n, :] = [np.NaN] * 4
+                self.width_fits["Errors"][n, :] = [np.NaN] * 4
                 self.width_fits["Type"][n] = 'g'
+                self._rad_profiles.append([np.NaN, np.NaN])
                 continue
 
-            if fit_model == cyl_model:
-                if self.freq is None:
-                    print('''Image not converted to column density.
-                             Fit parameters will not match physical meaning.
-                             lease specify frequency.''')
-                else:
-                    assert isinstance(self.freq, float)
-                    radprof = dens_func(
-                        planck(20., self.freq), 0.2, radprof) * (5.7e19)
+            # if fit_model == cyl_model:
+            #     if self.freq is None:
+            #         print('''Image not converted to column density.
+            #                  Fit parameters will not match physical meaning.
+            #                  lease specify frequency.''')
+            #     else:
+            #         assert isinstance(self.freq, float)
+            #         radprof = dens_func(
+            #             planck(20., self.freq), 0.2, radprof) * (5.7e19)
 
             fit, fit_error, model, parameter_names, fail_flag = \
                 fit_model(dist, radprof, weights, self.beamwidth)
@@ -1199,8 +1209,6 @@ class fil_finder_2D(object):
             self.width_fits["Type"][n] = fit_type
         self.width_fits["Names"] = parameter_names
 
-        return self
-
     def compute_filament_brightness(self):
         '''
         Returns the median brightness along the skeleton of the filament.
@@ -1219,8 +1227,6 @@ class fil_finder_2D(object):
         for n in range(1, self.number_of_filaments+1):
             values = self.image[np.where(labels == n)]
             self.filament_brightness.append(np.median(values))
-
-        return self
 
     def filament_model(self, max_radius=25, use_nopad=True):
         '''
@@ -1297,8 +1303,6 @@ class fil_finder_2D(object):
         fil_model = self.filament_model(max_radius=max_radius)
 
         self.covering_fraction = np.nansum(fil_model) / np.nansum(self.image)
-
-        return self
 
     def save_table(self, table_type="csv", path=None, save_name=None,
                    save_branch_props=True, branch_table_type="hdf5",
@@ -1436,8 +1440,6 @@ class fil_finder_2D(object):
                                                  hdf_filename+".hdf5"),
                                     path="branch_"+str(n),
                                     append=True)
-        return self
-
     @property
     def mask_nopad(self):
         if self.pad_size == 0:
@@ -1652,8 +1654,6 @@ class fil_finder_2D(object):
                 os.path.join(self.save_name,
                              "".join([save_name, "_filament_model.fits"])))
 
-        return self
-
     def __str__(self):
         print("%s filaments found.") % (self.number_of_filaments)
         for fil in range(self.number_of_filaments):
@@ -1701,9 +1701,3 @@ class fil_finder_2D(object):
 
         if verbose:
             self.__str__()
-
-        # if save_plots:
-            # Analysis(self.dataframe, save_name=save_name).make_hists()
-            # ImageAnalysis(self.image, self.mask, skeleton=self.skeleton, save_name=save_name)
-
-        return self

@@ -10,6 +10,8 @@ from scipy.stats import scoreatpercentile, percentileofscore
 from scipy.interpolate import interp1d
 from scipy.signal import argrelmax, argrelmin
 from warnings import warn
+from astropy.modeling import fitting, models
+import astropy.modeling as mod
 
 
 def dist_transform(labelisofil, filclean_all):
@@ -51,67 +53,107 @@ def dist_transform(labelisofil, filclean_all):
     return dist_transform_all, dist_transform_sep
 
 
-def cyl_model(distance, rad_profile, img_beam):
+def gaussian_model(dist, radprof, with_bkg=True):
     '''
-
-    Fits the radial profile of filament to a cylindrical model
-    (see Arzoumanian et al. (2011)).
+    Return a Gaussian model with initial parameter guesses. The model is for
+    radial profiles and the peak is assumed to be fixed at the centre.
 
     Parameters
     ----------
-    distance : list
-        Distances from the skeleton.
-    rad_profile : list
-        Intensity values from the image.
-    img_beam : float
-        FWHM of the beam size.
-
-    Returns
-    -------
-    fit : numpy.ndarray
-        Fit values.
-    fit_errors : numpy.ndarray
-        Fit errors.
-    model : function
-        Function used to fit the profile.
-    parameters : list
-        Names of the parameters.
-    fail_flag : bool
-        Identifies a failed fit.
+    dist : `~numpy.ndarray`
+        Distance bins of the radial profile.
+    radprof : `~numpy.ndarray`
+        The binned radial profile.
+    with_bkg : bool, optional
+        Add constant background to the fit when enabled.
     '''
 
-    p0 = (np.max(rad_profile), 0.1, 2.0)
+    amp = radprof.max()
+    wid_amp = amp / np.exp(0.5)
+    idx = np.abs(radprof - wid_amp).argmin()
+    inner_width = dist[idx]
 
-    A_p_func = lambda u, p: (1 + u ** 2.) ** (-p / 2.)
+    mod = models.Gaussian1D()
+    # Check if the version of astropy supports units in the model.
+    if mod._supports_unit_fitting:
+        mod.amplitude = amp
+        mod.mean = 0.0 * inner_width.unit
+        mod.stddev = inner_width
+    else:
+        mod.amplitude = amp.value
+        mod.mean = 0.0
+        mod.stddev = inner_width.value
 
-    def model(r, *params):
-        peak_dens, r_flat, p = params[0], params[1], params[2]
+    # Fix the mean to 0, since this is for radial profiles.
+    mod.mean.fixed = True
 
-        A_p = quad(A_p_func, -np.inf, np.inf, args=(p))[0]
+    if with_bkg:
+        bkg_mod = models.Const1D()
+        if bkg_mod._supports_unit_fitting:
+            bkg_mod.amplitude = np.min(radprof)
+        else:
+            bkg_mod.amplitude = np.min(radprof).value
+        bkg_mod = bkg_mod.rename("Bkg")
+        mod = mod + bkg_mod
 
-        return A_p * (peak_dens * r_flat) / (1 + r / r_flat) ** ((p - 1) / 2.)
+        # Check if the compound model can handle units?
+        if not mod._supports_unit_fitting:
+            # Strip the units out. Hopefully I can get rid of this in a
+            # future release...
+            mod_new = models.Gaussian1D() + models.Const1D()
 
-    try:
-        fit, cov = op.curve_fit(
-            model, distance, rad_profile, p0=p0, maxfev=100 * (len(distance) + 1))
-        fit_errors = np.sqrt(np.diag(cov))
-    except:
-        fit, cov = p0, None
-        fit_errors = cov
+            mod_new.amplitude_0 = mod.amplitude_0.value
+            mod_new.mean_0 = mod.mean_0.value
+            mod_new.mean_0.fixed = True
+            mod_new.stddev_0 = mod.stddev_0.value
+            mod_new.amplitude_1 = mod.amplitude_1.value
 
-    # Deconvolve the width with the beam size.
-    # deconv = (2.35*abs(fit[1])**2.) - img_beam**2.
-    # if deconv>0:
-    #   fit[1] = np.sqrt(deconv)
-    # else:
-    #   fit[1] = "Neg. FWHM"
-    fail_flag = False
-    if cov is None or (fit_errors > fit).any():
-        fail_flag = True
+            mod = mod_new
 
-    parameters = [r"$\pho_c$", "r_{flat}", "p"]
+    return mod
 
-    return fit, fit_errors, model, parameters, fail_flag
+
+def fit_radial_model(dist, radprof, model, fitter=None, weights=None,
+                     **fitter_kwargs):
+    '''
+    Fit a model to the radial profile.
+
+    Parameters
+    ----------
+    dist :
+
+    radprof :
+
+    model : `~astropy.modeling.models.Fittable1DModel`
+        An astropy model object to fit to.
+    fitter : `~astropy.modeling.fitting.Fitter`, optional
+        One of the fitting classes from astropy. This should probably be a
+        non-linear fitting algorithm, but it depends on the chosen model.
+        Defaults to a Levenberg-Marquardt fitter.
+    weights : `~numpy.ndarray`, optional
+        Weights to apply in the fitting.
+    '''
+
+    if not isinstance(model, mod.Model):
+        raise TypeError("The model must be a 1D astropy model.")
+
+    if fitter is None:
+        fitter = fitting.LevMarLSQFitter()
+    else:
+        if not isinstance(fitter, fitting.Fitter):
+            raise TypeError("The fitter must be one of the "
+                            "astropy.modeling.fitting classes.")
+
+    if model._supports_unit_fitting:
+        xdata = dist
+        ydata = radprof
+    else:
+        xdata = dist.value
+        ydata = radprof.value
+
+    fitted_mod = fitter(model, xdata, ydata, weights=weights, **fitter_kwargs)
+
+    return fitted_mod, fitter
 
 
 def gauss_model(distance, rad_profile, weights, img_beam):
@@ -187,85 +229,18 @@ def gauss_model(distance, rad_profile, weights, img_beam):
         fit_errors = np.append(fit_errors, 0.0)
 
     fail_flag = False
+    # The bkg level may be quite uncertain. Only look for poor amplitude or
+    # width constraints.
     fail_conditions = fit_errors is None or \
-        fit[0] < fit[2] or (fit_errors > np.abs(fit)).any()
+        fit[0] < fit[2] or (fit_errors[:2] > np.abs(fit[:2])).any()
     if fail_conditions:
         fail_flag = True
 
     return fit, fit_errors, gaussian, parameters, fail_flag
 
 
-def lorentzian_model(distance, rad_profile, img_beam):
-    '''
-    Fits a Gaussian to the Lorentzian profile to each filament.
-
-    Parameters
-    ----------
-    distance : list
-        Distances from the skeleton.
-    rad_profile : list
-        Intensity values from the image.
-    img_beam : float
-        FWHM of the beam size.
-
-    Returns
-    -------
-    fit : numpy.ndarray
-        Fit values.
-    fit_errors : numpy.ndarray
-        Fit errors.
-    lorentzian : function
-        Function used to fit the profile.
-    parameters : list
-        Names of the parameters.
-    fail_flag : bool
-        Identifies a failed fit.     '''
-
-    p0 = (np.max(rad_profile), 0.1, np.min(rad_profile))
-
-    def lorentzian(x, *p):
-        '''
-        Parameters
-        ----------
-        x : list or numpy.ndarray
-                1D array of values where the model is evaluated
-        p : tuple
-            Components are:
-            * p[0] Amplitude
-            * p[1] FWHM Width
-            * p[2] Background
-
-        '''
-        return (p[0] - p[2]) * (0.5 * p[1]) ** 2 / \
-            ((0.5 * p[1]) ** 2 + x ** 2) + p[2]
-
-    try:
-        fit, cov = op.curve_fit(
-            lorentzian, distance, rad_profile, p0=p0,
-            maxfev=100 * (len(distance) + 1))
-        fit_errors = np.sqrt(np.diag(cov))
-    except:
-        fit, fit_errors = p0, None
-
-    fit = list(fit)
-    # Deconvolve the width with the beam size.
-    deconv = fit[1] ** 2. - img_beam ** 2.
-    if deconv > 0:
-        fit[1] = np.sqrt(deconv)
-    else:  # Set to zero, can't be deconvolved
-        fit[1] = 0.0
-
-    fail_flag = False
-    if fit_errors is None or (fit_errors > fit).any():
-        fail_flag = True
-
-    parameters = ["Amplitude", "Width", "Background"]
-
-    return fit, fit_errors, lorentzian, parameters, fail_flag
-
-
 def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
-                   img_beam, bkg_percent, peak_percent):
+                   img_beam=None, bkg_percent=5, peak_percent=99):
     '''
     Estimate the width and peak brightness of a filament non-parametrically.
     The intensity at the peak and background is estimated. The profile is then
@@ -283,11 +258,11 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
         Unbinned distances.
     unbin_prof : list
         Unbinned intensity values.
-    img_beam : float
+    img_beam : float, optional
         FWHM of the beam size.
-    bkg_percent : float
+    bkg_percent : float, optional
         Percentile of the data to estimate the background.
-    peak_percent : float
+    peak_percent : float, optional
         Percentile of the data to estimate the peak of the profile.
 
     Returns
@@ -329,15 +304,20 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
 
     # Deconvolve the width with the beam size.
     factor = 2 * np.sqrt(2 * np.log(2))  # FWHM factor
+    if img_beam is not None:
 
-    deconv = (width * factor) ** 2. - img_beam ** 2.
-    if deconv > 0:
-        fwhm_width = np.sqrt(deconv)
-        fwhm_error = (factor**2 * width * width_error) / fwhm_width
-    else:  # Set to zero, can't be deconvolved
-        # If you can't devolve it, set it to minimum, which is the beam-size.
-        fwhm_width = 0.0
-        fwhm_error = 0.0
+        deconv = (width * factor) ** 2. - img_beam ** 2.
+        if deconv > 0:
+            fwhm_width = np.sqrt(deconv)
+            fwhm_error = (factor**2 * width * width_error) / fwhm_width
+        else:  # Set to zero, can't be deconvolved
+            # If you can't devolve it, set it to minimum, which is the
+            # beam-size.
+            fwhm_width = 0.0
+            fwhm_error = 0.0
+    else:
+        fwhm_width = width * factor
+        fwhm_error = width_error * factor
 
     # Check where the "background" and "peak" are. If the peak distance is
     # greater, we are simply looking at a bad radial profile.
@@ -364,8 +344,9 @@ def nonparam_width(distance, rad_profile, unbin_dist, unbin_prof,
 
 def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
                    img_scale=1.0, bins=None, bintype="linear",
-                   weighting="number", return_unbinned=True, auto_cut=True,
-                   pad_to_distance=0.15, max_distance=0.3, auto_cut_kwargs={}):
+                   weighting="number", return_unbinned=True, auto_cut=False,
+                   pad_to_distance=0.15, max_distance=0.3, auto_cut_kwargs={},
+                   debug_mode=False):
     '''
     Fits the radial profiles to all filaments in the image.
 
@@ -401,6 +382,8 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
         is done. Must be less than max_distance.
     max_distance : float, optional
         Cuts the profile at the specified physical distance (in pc).
+    debug_mode : bool, optional
+        Enables plotting of which pixels are being used in the radial profile.
 
     Returns
     -------
@@ -424,21 +407,65 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
     x, y = np.where(np.isfinite(dist_transform_sep) *
                     (dist_transform_sep <= max_distance / img_scale))
     # Transform into coordinates of master image
-    x_full = x + offsets[0][0] - 1
-    y_full = y + offsets[0][1] - 1
+    # Originally had a +1 offset, but new code doesn't need this
+    # Correction added directly into fil_finder_2D
+    x_full = x + offsets[0][0]  # - 1
+    y_full = y + offsets[0][1]  # - 1
 
     pad_pixel_distance = int(pad_to_distance * img_scale ** -1)
+
+    # Don't necessarily need dist_transform_all. If None, skip some parts
+    if dist_transform_all is None:
+        check_global = False
+    else:
+        check_global = True
+
+    # Check if the image has a unit
+    if hasattr(img, 'unit'):
+        img_vals = img.value
+    else:
+        img_vals = img
+
+    valids = np.zeros_like(dist_transform_sep, dtype=bool)
 
     for i in range(len(x)):
         # Check overall distance transform to make sure pixel belongs to proper
         # filament
-        img_val = img[x_full[i], y_full[i]]
+        img_val = img_vals[x_full[i], y_full[i]]
         sep_dist = dist_transform_sep[x[i], y[i]]
-        glob_dist = dist_transform_all[x_full[i], y_full[i]]
-        if img_val != 0.0 and np.isfinite(img_val):
-            if sep_dist <= glob_dist + pad_pixel_distance:
+        if check_global:
+            glob_dist = dist_transform_all[x_full[i], y_full[i]]
+        if np.isfinite(img_val):
+            if check_global:
+                # Include the point if it falls within the pad distance.
+                if sep_dist <= glob_dist + pad_pixel_distance:
+                    width_value.append(img_val)
+                    width_distance.append(sep_dist)
+                    # valids[x_full[i], y_full[i]] = True
+                    valids[x[i], y[i]] = True
+            else:
                 width_value.append(img_val)
                 width_distance.append(sep_dist)
+                # valids[x_full[i], y_full[i]] = True
+                valids[x[i], y[i]] = True
+
+    if debug_mode:
+        import matplotlib.pyplot as plt
+        plt.subplot(121)
+        plt.imshow(dist_transform_sep)
+        plt.contour(valids, colors='g')
+        plt.contour(dist_transform_all == 0., colors='m')
+        plt.contour(dist_transform_sep == 0., colors='c')
+        plt.subplot(122)
+        plt.imshow(dist_transform_all)
+        try:
+            plt.contour(dist_transform_sep <= max_distance / img_scale,
+                        colors='b')
+        except ValueError:
+            print("No contour")
+        plt.draw()
+        raw_input("?")
+        plt.clf()
 
     if len(width_distance) == 0:
         warn("No valid pixels for radial profile found.")

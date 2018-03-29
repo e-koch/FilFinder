@@ -1,0 +1,1 @@
+This folder contains scripts to reproduce various figures in our 2015 paper. However, the scripts have not been updated with various changes to the package (notably version 1.6) and so are unlikely to still work.

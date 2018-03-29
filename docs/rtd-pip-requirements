@@ -3,5 +3,7 @@ matplotlib
 Cython
 astropy-helpers
 astropy
-mock
 numpydoc
+scipy
+scikit-image
+networkx

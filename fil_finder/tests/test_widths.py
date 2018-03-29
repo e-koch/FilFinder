@@ -2,30 +2,11 @@
 import pytest
 
 from ..width import nonparam_width, gauss_model, radial_profile
+from .testing_utils import generate_filament_model
 
 import numpy as np
 import numpy.testing as npt
 from scipy import ndimage as nd
-
-
-def generate_filament_model(shape=100, theta=0.0, width=10.0,
-                            amplitude=1.0, background=0.0):
-
-    if theta >= np.pi / 2. or theta <= - np.pi / 2.:
-        raise ValueError("theta must be between -pi/2 and pi/2")
-
-    yy, xx = np.mgrid[-shape // 2:shape // 2,
-                      -shape // 2:shape // 2]
-
-    centers = np.zeros(yy.shape, dtype=bool)
-    centers[np.abs(yy - np.tan(theta) * xx) < 1.0] = 1
-
-    radii = nd.distance_transform_edt(~centers)
-
-    filament = amplitude * np.exp(- (radii ** 2) / (2 * width ** 2)) + \
-        background
-
-    return filament, centers
 
 
 def generate_gaussian_profile(pts, width=3.0, amplitude=2.0, background=0.5):
@@ -79,7 +60,7 @@ def test_radial_profile_output(theta):
 
     dist, radprof, weights, unbin_dist, unbin_radprof = \
         radial_profile(model, dist_transform, dist_transform,
-                       ((1, 1), (model.shape[0] // 2, model.shape[1] // 2)),
+                       ((0, 0), (model.shape[0] // 2, model.shape[1] // 2)),
                        img_scale=1.0, auto_cut=False, max_distance=20)
 
     params, errors, _, _, fail = \
@@ -98,7 +79,7 @@ def test_radial_profile_cutoff(cutoff):
 
     dist, radprof, weights, unbin_dist, unbin_radprof = \
         radial_profile(model, dist_transform, dist_transform,
-                       ((1, 1), (model.shape[0] // 2, model.shape[1] // 2)),
+                       ((0, 0), (model.shape[0] // 2, model.shape[1] // 2)),
                        img_scale=1.0, auto_cut=False, max_distance=cutoff)
 
     assert unbin_dist.max() == cutoff
@@ -115,7 +96,7 @@ def test_radial_profile_padding(padding, max_distance=20.0):
 
     dist, radprof, weights, unbin_dist, unbin_radprof = \
         radial_profile(model, dist_transform, dist_transform,
-                       ((1, 1), (model.shape[0] // 2, model.shape[1] // 2)),
+                       ((0, 0), (model.shape[0] // 2, model.shape[1] // 2)),
                        img_scale=1.0, auto_cut=False,
                        max_distance=max_distance, pad_to_distance=padding)
 
@@ -139,7 +120,7 @@ def test_radial_profile_fail_pad(padding=30.0, max_distance=20.0):
 
     dist, radprof, weights, unbin_dist, unbin_radprof = \
         radial_profile(model, dist_transform, dist_transform,
-                       ((1, 1), (model.shape[0] // 2, model.shape[1] // 2)),
+                       ((0, 0), (model.shape[0] // 2, model.shape[1] // 2)),
                        img_scale=1.0, auto_cut=False,
                        max_distance=max_distance, pad_to_distance=padding)
 
@@ -161,7 +142,7 @@ def test_radial_profile_autocut():
 
     dist, radprof, weights, unbin_dist, unbin_radprof = \
         radial_profile(model, dist_transform, dist_transform,
-                       ((1, 1), (model.shape[0] // 2, model.shape[1] // 2)),
+                       ((0, 0), (model.shape[0] // 2, model.shape[1] // 2)),
                        img_scale=1.0, auto_cut=True,
                        max_distance=50.0, auto_cut_kwargs={'smooth_size': 3.0,
                                                            'pad_cut': 0})
@@ -197,7 +178,7 @@ def test_radial_profile_autocut_plateau():
 
     dist, radprof, weights, unbin_dist, unbin_radprof = \
         radial_profile(model, dist_transform, dist_transform,
-                       ((1, 1), (model.shape[0] // 2, model.shape[1] // 2)),
+                       ((0, 0), (model.shape[0] // 2, model.shape[1] // 2)),
                        img_scale=1.0, auto_cut=True,
                        max_distance=60.0, auto_cut_kwargs={'smooth_size': 3.0,
                                                            'pad_cut': 0,

@@ -10,7 +10,6 @@ import networkx as nx
 import operator
 import string
 import copy
-import os
 
 # Create 4 to 8-connected elements to use with binary hit-or-miss
 struct1 = np.array([[1, 0, 0],
@@ -133,24 +132,19 @@ def init_lengths(labelisofil, filbranches, array_offsets, img):
 
     Parameters
     ----------
-
     labelisofil : list
         Contains individual arrays for each skeleton where the
         branches are labeled and the intersections have been removed.
-
     filbranches : list
         Contains the number of branches in each skeleton.
-
     array_offsets : List
         The indices of where each filament array fits in the
         original image.
-
     img : numpy.ndarray
         Original image.
 
     Returns
     -------
-
     branch_properties: dict
         Contains the lengths and intensities of the branches.
         Keys are *length* and *intensity*.
@@ -161,27 +155,31 @@ def init_lengths(labelisofil, filbranches, array_offsets, img):
     # Initialize Lists
     lengths = []
     av_branch_intensity = []
+    all_branch_pts = []
 
     for n in range(num):
         leng = []
         av_intensity = []
+        branch_pix = []
 
         label_copy = copy.copy(labelisofil[n])
         objects = nd.find_objects(label_copy)
-        for obj in objects:
+        for i, obj in enumerate(objects):
             # Scale the branch array to the branch size
-            branch_array = label_copy[obj]
+            branch_array = np.zeros_like(label_copy[obj])
 
             # Find the skeleton points and set those to 1
-            branch_pts = np.where(branch_array > 0)
+            branch_pts = np.where(label_copy[obj] == i + 1)
             branch_array[branch_pts] = 1
 
             # Now find the length on the branch
-            branch_length = skeleton_length(branch_array)
-            if branch_length == 0.0:
+            if branch_array.sum() == 1:
+                # Single pixel. No need to find length
                 # For use in longest path algorithm, will be set to zero for
                 # final analysis
                 branch_length = 0.5
+            else:
+                branch_length = skeleton_length(branch_array)
 
             leng.append(branch_length)
 
@@ -190,17 +188,20 @@ def init_lengths(labelisofil, filbranches, array_offsets, img):
             # add on the offset the branch array introduces.
             x_offset = obj[0].start + array_offsets[n][0][0]
             y_offset = obj[1].start + array_offsets[n][0][1]
-            av_intensity.append(
-                np.nanmean([img[x + x_offset, y + y_offset]
-                           for x, y in zip(*branch_pts)
-                           if np.isfinite(img[x + x_offset, y + y_offset]) and
-                           not img[x + x_offset, y + y_offset] < 0.0]))
+            av_intensity.append(np.nanmean([img[x + x_offset, y + y_offset]
+                                for x, y in zip(*branch_pts)
+                                if np.isfinite(img[x + x_offset, y + y_offset]) and
+                                not img[x + x_offset, y + y_offset] < 0.0]))
+            branch_pix.append(np.array([(x + x_offset, y + y_offset)
+                                        for x, y in zip(*branch_pts)]))
 
         lengths.append(leng)
         av_branch_intensity.append(av_intensity)
+        all_branch_pts.append(branch_pix)
 
-        branch_properties = {
-            "length": lengths, "intensity": av_branch_intensity}
+        branch_properties = {"length": lengths,
+                             "intensity": av_branch_intensity,
+                             "pixels": all_branch_pts}
 
     return branch_properties
 
@@ -253,6 +254,7 @@ def pre_graph(labelisofil, branch_properties, interpts, ends):
     inter_nodes = []
     nodes = []
     edge_list = []
+    loop_edges = []
 
     def path_weighting(idx, length, intensity, w=0.5):
         '''
@@ -318,6 +320,7 @@ def pre_graph(labelisofil, branch_properties, interpts, ends):
             nodes[n].append(alpha)
         # Edges are created from the information contained in the nodes.
         edge_list_temp = []
+        loops_temp = []
         for i, inters in enumerate(inter_nodes[n]):
             end_match = list(set(inters[1]) & set(end_nodes[n]))
             for k in end_match:
@@ -330,19 +333,35 @@ def pre_graph(labelisofil, branch_properties, interpts, ends):
                     if len(match) == 1:
                         new_edge = (inters[0], inters_2[0], match[0])
                     elif len(match) > 1:
+                        # Multiple connections (a loop)
                         multi = [match[l][1] for l in range(len(match))]
                         keep = multi.index(min(multi))
                         new_edge = (inters[0], inters_2[0], match[keep])
+
+                        # Keep the other edges information in another list
+                        for jj in range(len(multi)):
+                            if jj == keep:
+                                continue
+                            loop_edge = (inters[0], inters_2[0], match[jj])
+                            dup_check = loop_edge not in loops_temp and \
+                                (loop_edge[1], loop_edge[0], loop_edge[2]) \
+                                not in loops_temp
+                            if dup_check:
+                                loops_temp.append(loop_edge)
+
                     if new_edge is not None:
-                        if not (new_edge[1], new_edge[0], new_edge[2]) in edge_list_temp \
-                                and new_edge not in edge_list_temp:
+                        dup_check = (new_edge[1], new_edge[0], new_edge[2]) \
+                            not in edge_list_temp \
+                            and new_edge not in edge_list_temp
+                        if dup_check:
                             edge_list_temp.append(new_edge)
 
         # Remove duplicated edges between intersections
 
         edge_list.append(edge_list_temp)
+        loop_edges.append(loops_temp)
 
-    return edge_list, nodes
+    return edge_list, nodes, loop_edges
 
 
 def longest_path(edge_list, nodes, verbose=False,
@@ -425,8 +444,8 @@ def longest_path(edge_list, nodes, verbose=False,
                 # Check if skeleton_arrays is a list
                 assert isinstance(skeleton_arrays, list)
                 import matplotlib.pyplot as p
-                if verbose:
-                    print("Filament: %s / %s" % (n + 1, num))
+                # if verbose:
+                #     print("Filament: %s / %s" % (n + 1, num))
                 p.subplot(1, 2, 1)
                 p.imshow(skeleton_arrays[n], interpolation="nearest",
                          origin="lower")
@@ -441,18 +460,18 @@ def longest_path(edge_list, nodes, verbose=False,
                 p.axis('off')
 
                 if save_png:
-                    try_mkdir(save_name)
-                    p.savefig(os.path.join(save_name,
-                                           save_name + "_longest_path_" + str(n) + ".png"))
+                    p.savefig(save_name)
+                    p.close()
                 if verbose:
                     p.show()
-                p.clf()
+                    p.clf()
 
     return max_path, extremum, graphs
 
 
 def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
-                length_thresh, relintens_thresh=0.2):
+                loop_edges, prune_criteria='all', length_thresh=0,
+                relintens_thresh=0.2, max_iter=1):
     '''
     Function to remove unnecessary branches, while maintaining connectivity
     in the graph. Also updates edge_list, nodes, branch_lengths and
@@ -475,6 +494,12 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
         branches are labeled and the intersections have been removed.
     branch_properties : dict
         Contains the lengths and intensities of all branches.
+    loop_edges : list
+        List of edges that create loops in the graph. These are not included
+        in `edge_list` or the graph to avoid making self-loops.
+    prune_criteria : {'all', 'intensity', 'length'}, optional
+        Choose the property to base pruning on. 'all' requires that the branch
+        fails to satisfy the length and relative intensity checks.
     length_thresh : int or float
         Minimum length a branch must be to be kept. Can be overridden if the
         branch is bright relative to the entire skeleton.
@@ -496,37 +521,101 @@ def prune_graph(G, nodes, edge_list, max_path, labelisofil, branch_properties,
 
     num = len(labelisofil)
 
+    if prune_criteria not in ['all', 'length', 'intensity']:
+        raise ValueError("prune_criteria must be 'all', 'length' or "
+                         "'intensity'. Given {}".format(prune_criteria))
+
     for n in range(num):
         # Fix for networkx 2.0
-        degree = dict(G[n].degree())
-        single_connect = [key for key in degree.keys() if degree[key] == 1]
+        iterat = 0
+        while True:
+            degree = dict(G[n].degree())
 
-        delete_candidate = list(
-            (set(nodes[n]) - set(max_path[n])) & set(single_connect))
+            # Look for unconnected nodes and remove from the graph
+            unconn = [key for key in degree.keys() if degree[key] == 0]
+            if len(unconn) > 0:
+                for node in unconn:
+                    G[n].remove_node(node)
 
-        if not delete_candidate:  # Nothing to delete!
-            continue
+            single_connect = [key for key in degree.keys() if degree[key] == 1]
 
-        edge_candidates = [edge for edge in edge_list[n] if edge[
-            0] in delete_candidate or edge[1] in delete_candidate]
-        intensities = [edge[2][3] for edge in edge_list[n]]
-        for edge in edge_candidates:
-            # In the odd case where a loop meets at the same intersection,
-            # ensure that edge is kept.
-            if isinstance(edge[0], str) & isinstance(edge[1], str):
-                continue
-            # If its too short and relatively not as intense, delete it
-            length = edge[2][2]
-            av_intensity = edge[2][3]
-            if length < length_thresh \
-                    and (av_intensity / np.sum(intensities)) < relintens_thresh:
-                edge_pts = np.where(labelisofil[n] == edge[2][0])
-                labelisofil[n][edge_pts] = 0
-                edge_list[n].remove(edge)
-                nodes[n].remove(edge[1])
-                branch_properties["length"][n].remove(length)
-                branch_properties["intensity"][n].remove(av_intensity)
-                branch_properties["number"][n] -= 1
+            delete_candidate = list((set(nodes[n]) - set(max_path[n])) &
+                                    set(single_connect))
+
+            # Nothing to delete!
+            if not delete_candidate and len(loop_edges[n]) == 0:
+                break
+
+            edge_candidates = [(edge[2][0], edge) for idx, edge in
+                               enumerate(edge_list[n])
+                               if edge[0] in delete_candidate or
+                               edge[1] in delete_candidate]
+            intensities = [edge[2][3] for edge in edge_list[n]]
+
+            # Add in loop edges for candidates to delete
+            edge_candidates += [(edge[2][0], edge) for edge in loop_edges[n]]
+            intensities += [edge[2][3] for edge in loop_edges[n]]
+
+            del_idx = []
+            for idx, edge in edge_candidates:
+                # In the odd case where a loop meets at the same intersection,
+                # ensure that edge is kept.
+                # if isinstance(edge[0], str) & isinstance(edge[1], str):
+                #     continue
+
+                length = edge[2][2]
+                av_intensity = edge[2][3]
+
+                if prune_criteria == 'all':
+                    criterion1 = length < length_thresh
+                    criterion2 = (av_intensity / np.sum(intensities)) < \
+                        relintens_thresh
+                    criteria = criterion1 & criterion2
+                elif prune_criteria == 'intensity':
+                    criteria = \
+                        (av_intensity / np.sum(intensities)) < relintens_thresh
+                else:  # Length only
+                    criteria = length < length_thresh
+
+                if criteria:
+                    edge_pts = np.where(labelisofil[n] == edge[2][0])
+                    assert len(edge_pts[0]) == len(branch_properties['pixels'][n][idx-1])
+                    labelisofil[n][edge_pts] = 0
+                    try:
+                        edge_list[n].remove(edge)
+                        nodes[n].remove(edge[1])
+                        G[n].remove_edge(edge[0], edge[1])
+                    except ValueError:
+                        loop_edges[n].remove(edge)
+                    branch_properties["number"][n] -= 1
+                    del_idx.append(idx)
+
+            if len(del_idx) > 0:
+                del_idx.sort()
+                for idx in del_idx[::-1]:
+                    branch_properties['pixels'][n].pop(idx - 1)
+                    branch_properties['length'][n].pop(idx - 1)
+                    branch_properties['intensity'][n].pop(idx - 1)
+
+            # Now check to see if we need to merge any nodes in the graph
+            # after deletion. These will be intersection nodes with 2
+            # connections
+            while True:
+                degree = dict(G[n].degree())
+                doub_connect = [key for key in degree.keys()
+                                if degree[key] == 2]
+
+                if len(doub_connect) == 0:
+                    break
+
+                for node in doub_connect:
+                    G[n] = merge_nodes(node, G[n])
+
+            iterat += 1
+
+            if iterat == max_iter:
+                # warnings.warn("Graph pruning reached max iterations.")
+                break
 
     return labelisofil, edge_list, nodes, branch_properties
 
@@ -631,11 +720,11 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
 
         if verbose or save_png:
             if save_png and save_name is None:
-                Warning("Must give a save_name when save_png is enabled. No"
-                        " plots will be created.")
+                ValueError("Must give a save_name when save_png is enabled. No"
+                           " plots will be created.")
             import matplotlib.pyplot as p
-            if verbose:
-                print("Filament: %s / %s" % (num + 1, len(labelisofil)))
+            # if verbose:
+            #     print("Filament: %s / %s" % (num + 1, len(labelisofil)))
 
             p.subplot(121)
             p.imshow(skeleton, origin='lower', interpolation="nearest")
@@ -644,11 +733,10 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
                      interpolation="nearest")
 
             if save_png:
-                try_mkdir(save_name)
-                p.savefig(os.path.join(save_name,
-                                       save_name + "_main_length_" + str(num) + ".png"))
+                p.savefig(save_name)
+                p.close()
             if verbose:
                 p.show()
-            p.clf()
+                p.clf()
 
     return main_lengths, longpath_arrays

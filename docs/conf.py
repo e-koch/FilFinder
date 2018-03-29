@@ -52,19 +52,19 @@ conf.read([os.path.join(os.path.dirname(__file__), '..', 'setup.cfg')])
 setup_cfg = dict(conf.items('metadata'))
 
 # Mock out the imports
-import mock
+# import mock
 
-MOCK_MODULES = ['numpy', 'scipy', 'scipy.ndimage', 'scipy.stats',
-                'scipy.optimize', 'scipy.integrate', 'scipy.interpolate',
-                'scipy.signal',
-                'matplotlib', 'matplotlib.pyplot', 'matplotlib.ticker',
-                'aplpy', "skimage.morphology",
-                'skimage.filters', 'skimage', 'astropy',
-                'astropy.io', 'astropy.io.fits', 'astropy.table',
-                'astropy.wcs', 'astropy.units', 'astropy.wcs.utils',
-                'networkx']
-for mod_name in MOCK_MODULES:
-    sys.modules[mod_name] = mock.Mock()
+# MOCK_MODULES = ['numpy', 'scipy', 'scipy.ndimage', 'scipy.stats',
+#                 'scipy.optimize', 'scipy.integrate', 'scipy.interpolate',
+#                 'scipy.signal',
+#                 'matplotlib', 'matplotlib.pyplot', 'matplotlib.ticker',
+#                 "skimage.morphology",
+#                 'skimage.filters', 'skimage', 'astropy',
+#                 'astropy.io', 'astropy.io.fits', 'astropy.table',
+#                 'astropy.wcs', 'astropy.units', 'astropy.wcs.utils',
+#                 'networkx']
+# for mod_name in MOCK_MODULES:
+#     sys.modules[mod_name] = mock.Mock()
 
 # -- General configuration ----------------------------------------------------
 
