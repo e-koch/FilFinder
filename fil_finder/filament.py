@@ -50,7 +50,8 @@ class FilamentNDBase(object):
             if hasattr(self._converter, '_wcs'):
                 wcs = self._converter._wcs
                 # Convert to world coordinates
-                w_centres = wcs.all_pix2world(*centres, 0)
+                posn_tuple = centres + [0]
+                w_centres = wcs.all_pix2world(*posn_tuple)
 
                 # Attach units
                 wu_centres = [val * u.Unit(wcs.wcs.cunit[i]) for i, val
