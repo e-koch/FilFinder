@@ -7,16 +7,16 @@ perform the analysis on an individual filament. The general tutorial for
 FilFinder can be found
 `here <http://fil-finder.readthedocs.io/en/latest/tutorial.html>`__.
 
-.. code:: ipython3
+.. code:: python
 
     %matplotlib inline
     import matplotlib.pyplot as plt
     import astropy.units as u
-    
+
     # Optional settings for the plots. Comment out if needed.
     import seaborn as sb
     sb.set_context('poster')
-    
+
     import matplotlib as mpl
     mpl.rcParams['figure.figsize'] = (10., 8.)
 
@@ -26,17 +26,17 @@ straight Gaussian filament to demonstrate how the FilFinder analysis can
 be run on individual filaments. We can also create a simplified mask by
 simply thresholding the image.
 
-.. code:: ipython3
+.. code:: python
 
     from fil_finder import FilFinder2D, Filament2D
     from fil_finder.tests.testing_utils import generate_filament_model
-    
+
     mod = generate_filament_model(return_hdu=True, pad_size=30, shape=150,
                                       width=10., background=0.1)[0]
-    
+
     # Create a simple filament mask
     mask = mod.data > 0.5
-    
+
     plt.imshow(mod.data, origin='lower')
     plt.colorbar()
     plt.contour(mask, colors='c', linestyles='--')
@@ -60,11 +60,11 @@ the dashed contour.
 The first step is to run the first few steps on the FilFinder algorithm
 with ``FilFinder2D``:
 
-.. code:: ipython3
+.. code:: python
 
     filfind = FilFinder2D(mod, distance=250 * u.pc, mask=mask)
     filfind.preprocess_image(flatten_percent=85)
-    
+
     filfind.create_mask(border_masking=True, verbose=False,
                         use_existing_mask=True)
     filfind.medskel(verbose=False)
@@ -81,7 +81,7 @@ The ``Filament2D`` objects are created when running
 ``FilFinder2D.analyze_skeleton``. From here, we will focus on the
 filament object:
 
-.. code:: ipython3
+.. code:: python
 
     fil = filfind.filaments[0]
 
@@ -95,7 +95,7 @@ Though not shown here, the only requirement to create a ``Filament2D``
 object is a set of pixels that define the skeleton shape. These are
 contained in:
 
-.. code:: ipython3
+.. code:: python
 
     fil.pixel_coords
 
@@ -134,7 +134,7 @@ contained in:
 These pixel coordinates are the positions in the original image. When
 the skeleton array is generated, the minimal shape is returned:
 
-.. code:: ipython3
+.. code:: python
 
     plt.imshow(fil.skeleton())
 
@@ -154,7 +154,7 @@ the skeleton array is generated, the minimal shape is returned:
 For a straight skeleton in this case, this returns a 1-pixel wide array
 in 0th dimension. This array can be padded:
 
-.. code:: ipython3
+.. code:: python
 
     plt.imshow(fil.skeleton(pad_size=10))
 
@@ -174,7 +174,7 @@ in 0th dimension. This array can be padded:
 The position of the filament is defined as the median pixel location
 based on the set of skeleton pixels:
 
-.. code:: ipython3
+.. code:: python
 
     fil.position()
 
@@ -190,7 +190,7 @@ based on the set of skeleton pixels:
 If WCS information is given for the object, the centre can also be
 returned in world coordinates:
 
-.. code:: ipython3
+.. code:: python
 
     fil.position(world_coord=True)
 
@@ -209,7 +209,7 @@ arguments that must be passed since the ``Filament2D`` object does not
 contain a copy of the image. To reproduce the ``fil.analyze_skeletons``
 call from above, we can run:
 
-.. code:: ipython3
+.. code:: python
 
     fil.skeleton_analysis(filfind.image, verbose=True)
 
@@ -233,7 +233,7 @@ tutorial <http://fil-finder.readthedocs.io/en/latest/tutorial.html>`__.
 The networkx graph can be accessed from ``fil.graph`` and can be
 plotted:
 
-.. code:: ipython3
+.. code:: python
 
     fil.plot_graph()
 
@@ -246,7 +246,7 @@ Filaments with multiple branches have more interesting looking graphs.
 
 The lengths and branch properties are now defined:
 
-.. code:: ipython3
+.. code:: python
 
     fil.length()
 
@@ -259,7 +259,7 @@ The lengths and branch properties are now defined:
 
 
 
-.. code:: ipython3
+.. code:: python
 
     fil.branch_properties.keys()
 
@@ -275,7 +275,7 @@ The lengths and branch properties are now defined:
 The longest path skeleton is now defined as well. The skeleton array of
 the longest path can be returned with:
 
-.. code:: ipython3
+.. code:: python
 
     plt.imshow(fil.skeleton(out_type='longpath', pad_size=10), origin='lower')
 
@@ -297,7 +297,7 @@ Orientation and Curvature
 
 The RHT analysis on the longest path is run with:
 
-.. code:: ipython3
+.. code:: python
 
     fil.rht_analysis()
     print(fil.orientation, fil.curvature)
@@ -310,7 +310,7 @@ The RHT analysis on the longest path is run with:
 
 The RHT distribution can be plotted with:
 
-.. code:: ipython3
+.. code:: python
 
     fil.plot_rht_distrib()
 
@@ -325,7 +325,7 @@ distribution values.
 
 To run on individual branches, use:
 
-.. code:: ipython3
+.. code:: python
 
     fil.rht_branch_analysis()
     print(fil.orientation_branches, fil.curvature_branches)
@@ -338,7 +338,7 @@ To run on individual branches, use:
 
 The properties of branches can be returned with:
 
-.. code:: ipython3
+.. code:: python
 
     fil.branch_table()
 
@@ -359,7 +359,7 @@ The properties of branches can be returned with:
 
 And with the orientation and curvature branch information:
 
-.. code:: ipython3
+.. code:: python
 
     fil.branch_table(include_rht=True)
 
@@ -392,7 +392,7 @@ for ``FilFinder2D.find_widths``, with a few key differences:
 
 To reproduce the ``FilFinder2D`` analysis:
 
-.. code:: ipython3
+.. code:: python
 
     fil.width_analysis(filfind.image, all_skeleton_array=filfind.skeleton, beamwidth=filfind.beamwidth,
                        max_dist=0.3 * u.pc)
@@ -400,7 +400,7 @@ To reproduce the ``FilFinder2D`` analysis:
 The radial profile is contained in ``fil.radprofile`` and can be plotted
 with:
 
-.. code:: ipython3
+.. code:: python
 
     fil.plot_radial_profile(xunit=u.pc)
 
@@ -412,7 +412,7 @@ with:
 The parameters, uncertainty, model type, and check for fit quality are
 contained in:
 
-.. code:: ipython3
+.. code:: python
 
     print(fil.radprof_parnames)
     print(fil.radprof_params)
@@ -432,7 +432,7 @@ contained in:
 
 The (possibly) deconvolved FWHM is:
 
-.. code:: ipython3
+.. code:: python
 
     fil.radprof_fwhm(u.pc)
 
@@ -452,7 +452,7 @@ the beginning.
 
 An astropy table can be returned with the complete fit results:
 
-.. code:: ipython3
+.. code:: python
 
     fil.radprof_fit_table(unit=u.pc)
 
@@ -473,7 +473,7 @@ An astropy table can be returned with the complete fit results:
 
 And finally the fit model itself can be accessed with:
 
-.. code:: ipython3
+.. code:: python
 
     fil.radprof_model
 
@@ -494,7 +494,7 @@ Other Outputs
 
 The total intensity of the filament within the FWHM is:
 
-.. code:: ipython3
+.. code:: python
 
     fil.total_intensity()
 
@@ -509,7 +509,7 @@ The total intensity of the filament within the FWHM is:
 
 And with the fitted background removed:
 
-.. code:: ipython3
+.. code:: python
 
     fil.total_intensity(bkg_subtract=True)
 
@@ -524,7 +524,7 @@ And with the fitted background removed:
 
 The model image from the radial profile fit:
 
-.. code:: ipython3
+.. code:: python
 
     plt.imshow(fil.model_image(), origin='lower')
     plt.colorbar()
@@ -544,7 +544,7 @@ The model image from the radial profile fit:
 
 By default, the background level is subtraced. Without the subtraction:
 
-.. code:: ipython3
+.. code:: python
 
     plt.imshow(fil.model_image(bkg_subtract=False), origin='lower')
     plt.colorbar()
@@ -564,7 +564,7 @@ By default, the background level is subtraced. Without the subtraction:
 
 The median along the skeleton:
 
-.. code:: ipython3
+.. code:: python
 
     fil.median_brightness(filfind.image)
 
@@ -579,7 +579,7 @@ The median along the skeleton:
 
 This is consistent with the max of the model image:
 
-.. code:: ipython3
+.. code:: python
 
     filfind.image.max()
 
@@ -594,7 +594,7 @@ This is consistent with the max of the model image:
 
 The profile along the longest path skeleton:
 
-.. code:: ipython3
+.. code:: python
 
     plt.plot(fil.ridge_profile(filfind.image))
 
@@ -619,7 +619,7 @@ perpendicular to the longest path skeleton. This is useful for measuring
 filament properties as a function of position, rather than creating a
 single radial profile:
 
-.. code:: ipython3
+.. code:: python
 
     profs = fil.profile_analysis(filfind.image, xunit=u.pc, max_dist=30 * u.pix)
     for dist, prof in zip(profs[0], profs[1]):
@@ -652,7 +652,7 @@ Saving the Output
 A FITS file can be saved with a stamp of the image, skeleton, longest
 path skeleton, and the filament model:
 
-.. code:: ipython3
+.. code:: python
 
     fil.save_fits("filament_stamp.fits", filfind.image)
 
@@ -661,11 +661,11 @@ Saving a ``Filament2D`` object
 
 The object can be saved and loaded as a pickle file:
 
-.. code:: ipython3
+.. code:: python
 
     fil.to_pickle('filament.pkl')
 
-.. code:: ipython3
+.. code:: python
 
     loaded_fil = Filament2D.from_pickle('filament.pkl')
     loaded_fil.length()

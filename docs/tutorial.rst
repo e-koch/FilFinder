@@ -9,16 +9,16 @@ valid for versions >1.5. This tutorial was tested with python 3.6.
 The example data is included in the github repository
 `here <https://github.com/e-koch/FilFinder/blob/master/examples/filaments_updatedhdr.fits>`__.
 
-.. code:: ipython3
+.. code:: python
 
     %matplotlib inline
     import matplotlib.pyplot as plt
     import astropy.units as u
-    
+
     # Optional settings for the plots. Comment out if needed.
     import seaborn as sb
     sb.set_context('poster')
-    
+
     import matplotlib as mpl
     mpl.rcParams['figure.figsize'] = (10., 8.)
 
@@ -40,21 +40,21 @@ There are two caveats to the input data:
 ``FilFinder2D`` accepts several input types, including a FITS HDU and
 numpy arrays.
 
-.. code:: ipython3
+.. code:: python
 
     from fil_finder import FilFinder2D
     from astropy.io import fits
-    
+
     hdu = fits.open("../examples/filaments_updatedhdr.fits")[0]
-    
+
     fil = FilFinder2D(hdu)
 
-.. code:: ipython3
+.. code:: python
 
     # HDU data as an array
     arr = hdu.data
     hdr = hdu.header
-    
+
     fil = FilFinder2D(arr)
 
 
@@ -68,7 +68,7 @@ In this case, no WCS information is given and all results will be
 returned in pixel units. Angular units can be returned when the header
 is specified:
 
-.. code:: ipython3
+.. code:: python
 
     fil = FilFinder2D(arr, header=hdr)
 
@@ -76,12 +76,12 @@ If `spectral-cube <https://spectral-cube.readthedocs.io/en/latest/>`__
 is installed, the ``Projection`` or ``Slice`` classes can also be passed
 to ``FilFinder2D``:
 
-.. code:: ipython3
+.. code:: python
 
     from spectral_cube import Projection
-    
+
     proj = Projection.from_hdu(hdu)
-    
+
     fil = FilFinder2D(proj)
 
 
@@ -99,14 +99,14 @@ object with the appropriate unit.
 **Distance** -- To facilitate conversions to physical units, a distance
 can be given to ``FilFinder2D``:
 
-.. code:: ipython3
+.. code:: python
 
     fil = FilFinder2D(hdu, distance=250 * u.pc)
 
 **Angular Scale** -- If no header information is given, the
 pixel-to-angular conversion can be given:
 
-.. code:: ipython3
+.. code:: python
 
     fil = FilFinder2D(arr, ang_scale=0.1 * u.deg)
 
@@ -127,32 +127,32 @@ pixel-to-angular conversion can be given:
 header, it will be automatically read in. If that information is not in
 the header, the beam size can be passed separately:
 
-.. code:: ipython3
+.. code:: python
 
     fil = FilFinder2D(hdu, beamwidth=10 * u.arcsec)
 
 **Custom Filament Masks** -- If you have a pre-computed filament mask,
 the mask array can be passed:
 
-.. code:: ipython3
+.. code:: python
 
     # Example custom mask
     mask = hdu.data > 1.
-    
+
     fil = FilFinder2D(hdu, mask=mask)
 
 The custom mask must have the same shape as the inputed image.
 
 **Save Name** -- A prefix for saved plots and table can be given:
 
-.. code:: ipython3
+.. code:: python
 
     fil = FilFinder2D(hdu, save_name="FilFinder_Output")
 
 For the purposes of this tutorial, we will assume that the data has WCS
 information and a well-defined distance:
 
-.. code:: ipython3
+.. code:: python
 
     fil = FilFinder2D(hdu, distance=260 * u.pc)
 
@@ -166,11 +166,11 @@ image of bright compact sources. ``FilFinder2D`` uses an arctan
 transform, where the data are first normalized by some percentile value
 of the data:
 
-.. code:: ipython3
+.. code:: python
 
     fil.preprocess_image(flatten_percent=95)
 
-.. code:: ipython3
+.. code:: python
 
     plt.subplot(121)
     plt.imshow(fil.image.value, origin='lower')
@@ -196,7 +196,7 @@ close to a log-normal.**
 If you wish to run the masking procedure without flattening the image,
 use the command:
 
-.. code:: ipython3
+.. code:: python
 
     fil.preprocess_image(skip_flatten=True)
 
@@ -205,7 +205,7 @@ masking step.
 
 For this example, we will use the prior flattened image.
 
-.. code:: ipython3
+.. code:: python
 
     fil.preprocess_image(flatten_percent=95)
 
@@ -231,7 +231,7 @@ given.
 This simulated data set is an example where the default ``FilFinder2D``
 settings do not provide an ideal filament mask:
 
-.. code:: ipython3
+.. code:: python
 
     fil.create_mask(verbose=True)
 
@@ -283,7 +283,7 @@ Varying a few of these parameters will produce a much improved mask.
 First, since the data go right to the edges of the image, we can disable
 ``border_masking``:
 
-.. code:: ipython3
+.. code:: python
 
     fil.create_mask(verbose=True, border_masking=False)
 
@@ -297,7 +297,7 @@ structure was retained. This occurs because ``size_thresh`` is too
 large. We can manually set the value in pixel units. The size must have
 units of area:
 
-.. code:: ipython3
+.. code:: python
 
     fil.create_mask(verbose=True, border_masking=False, size_thresh=400 * u.pix**2)
 
@@ -313,12 +313,12 @@ This simulated image does not have noise added in, however, most data
 sets will. The cell below demonstrates how to set ``glob_thresh`` to
 avoid noisy regions:
 
-.. code:: ipython3
+.. code:: python
 
     # Define the noise value. As a demonstration, say values below the 20th percentile here are dominated by noise
     noise_level = np.percentile(fil.image, 20)
     noise_level
-    
+
     plt.imshow(fil.image.value > noise_level, origin='lower')
 
 
@@ -337,7 +337,7 @@ avoid noisy regions:
 The dark regions will be excluded from the final mask. The filament mask
 with the threshold is then:
 
-.. code:: ipython3
+.. code:: python
 
     fil.create_mask(verbose=True, border_masking=False, size_thresh=400 * u.pix**2, glob_thresh=0.0267)
 
@@ -357,7 +357,7 @@ Try varying each parameter to assess its affect on your data.
 
 If you gave a user-defined mask at the beginning, run:
 
-.. code:: ipython3
+.. code:: python
 
     fil.create_mask(use_existing_mask=True)
 
@@ -379,7 +379,7 @@ In ``FilFinder2D``, the `medial
 axis <http://scikit-image.org/docs/0.10.x/auto_examples/plot_medial_transform.html>`__
 is defined to be the skeleton:
 
-.. code:: ipython3
+.. code:: python
 
     fil.medskel(verbose=True)
 
@@ -410,10 +410,10 @@ filament below.
 
 With just the default settings:
 
-.. code:: ipython3
+.. code:: python
 
     fil.analyze_skeletons()
-    
+
     plt.imshow(fil.skeleton, origin='lower')
 
 
@@ -468,10 +468,10 @@ branches. Note that re-running ``FilFinder2D.analyze_skeletons`` will
 start on the *output* from the previous call, not that original skeleton
 from ``FilFinder2D.medskel``.
 
-.. code:: ipython3
+.. code:: python
 
     fil.analyze_skeletons(branch_thresh=40 * u.pix, prune_criteria='length')
-    
+
     plt.imshow(fil.skeleton, origin='lower')
     plt.contour(fil.skeleton_longpath, colors='r')
 
@@ -494,10 +494,10 @@ highlight the longest paths through each skeleton.
 If we continue to increase the branch threshold, the skeletons will
 converge to the longest path structures:
 
-.. code:: ipython3
+.. code:: python
 
     fil.analyze_skeletons(branch_thresh=400 * u.pix, prune_criteria='length')
-    
+
     plt.imshow(fil.skeleton, origin='lower')
     plt.contour(fil.skeleton_longpath, colors='r')
 
@@ -518,11 +518,11 @@ This is an extreme case of pruning and a significant amount of real
 structure was removed. We will return to a less pruned version to use
 for the rest of the tutorial:
 
-.. code:: ipython3
+.. code:: python
 
     fil.medskel(verbose=False)
     fil.analyze_skeletons(branch_thresh=5 * u.pix, prune_criteria='length')
-    
+
     plt.imshow(fil.skeleton, origin='lower')
     plt.contour(fil.skeleton_longpath, colors='r')
 
@@ -542,7 +542,7 @@ for the rest of the tutorial:
 Another new feature of ``FilFinder2D`` is that each filament has its own
 analysis class defined in ``fil.filaments``:
 
-.. code:: ipython3
+.. code:: python
 
     fil.filaments
 
@@ -579,7 +579,7 @@ The first filament is quite large with a lot of structure. We can plot
 the output from ``FilFinder2D.analyze_skeletons`` for just one filament
 with:
 
-.. code:: ipython3
+.. code:: python
 
     fil1 = fil.filaments[0]
     fil1.skeleton_analysis(fil.image, verbose=True, branch_thresh=5 * u.pix, prune_criteria='length')
@@ -610,7 +610,7 @@ finished.
 
 The lengths of the filament's longest paths are now calculated:
 
-.. code:: ipython3
+.. code:: python
 
     fil.lengths()
 
@@ -626,7 +626,7 @@ The lengths of the filament's longest paths are now calculated:
 The default output is in pixel units, but if the angular and physical
 scales are defined, they can be converted into other units:
 
-.. code:: ipython3
+.. code:: python
 
     fil.lengths(u.deg)
 
@@ -639,7 +639,7 @@ scales are defined, they can be converted into other units:
 
 
 
-.. code:: ipython3
+.. code:: python
 
     fil.lengths(u.pc)
 
@@ -657,7 +657,7 @@ The properties of the branches are also saved in the
 of each branch, the average intensity, the skeleton pixels of the
 branch, and the number of branches in each skeleton:
 
-.. code:: ipython3
+.. code:: python
 
     fil.branch_properties.keys()
 
@@ -670,7 +670,7 @@ branch, and the number of branches in each skeleton:
 
 
 
-.. code:: ipython3
+.. code:: python
 
     fil.branch_properties['number']
 
@@ -683,7 +683,7 @@ branch, and the number of branches in each skeleton:
 
 
 
-.. code:: ipython3
+.. code:: python
 
     fil.branch_properties['length'][0]
 
@@ -703,7 +703,7 @@ more information.
 
 The branch lengths can also be returned with:
 
-.. code:: ipython3
+.. code:: python
 
     fil.branch_lengths(u.pix)[0]
 
@@ -716,7 +716,7 @@ The branch lengths can also be returned with:
 
 
 
-.. code:: ipython3
+.. code:: python
 
     fil.branch_lengths(u.pc)[0]
 
@@ -739,7 +739,7 @@ be run either on the longest path skeletons or on individual branches.
 
 The default setting is to run on the longest path skeletons:
 
-.. code:: ipython3
+.. code:: python
 
     fil.exec_rht()
     fil1.plot_rht_distrib()
@@ -782,7 +782,7 @@ interquartile region about the mean. See the
 `documentation <http://fil-finder.readthedocs.io/en/latest/api/fil_finder.FilFinder2D.html#fil_finder.FilFinder2D.exec_rht>`__
 for the definitions.
 
-.. code:: ipython3
+.. code:: python
 
     fil.orientation
 
@@ -795,7 +795,7 @@ for the definitions.
 
 
 
-.. code:: ipython3
+.. code:: python
 
     fil.curvature
 
@@ -812,7 +812,7 @@ It can be more useful to run this analysis on individual branches to
 understand the distribution of orientation and curvature across the
 whole map. This can be performed by enabling ``branches=True``:
 
-.. code:: ipython3
+.. code:: python
 
     fil.exec_rht(branches=True, min_branch_length=5 * u.pix)
 
@@ -826,7 +826,7 @@ The outputs are contained in ``FilFinder2D.orientation_branches`` and
 ``FilFinder2D.curvature_branches``, which return a list of lists for
 each filament. These can be visualized as distributions:
 
-.. code:: ipython3
+.. code:: python
 
     _ = plt.hist(fil.orientation_branches[0].value, bins=10)
     plt.xlabel("Orientation (rad)")
@@ -844,12 +844,12 @@ each filament. These can be visualized as distributions:
 .. image:: tutorial_files/tutorial_77_1.png
 
 
-.. code:: ipython3
+.. code:: python
 
     all_orient = np.array([orient.value for fil_orient in fil.orientation_branches for orient in fil_orient])
     # Short, excluded branches have NaNs
     all_orient = all_orient[np.isfinite(all_orient)]
-    
+
     _ = plt.hist(all_orient, bins=10)
     plt.xlabel("Orientation (rad)")
 
@@ -935,7 +935,7 @@ The parameters that control the fitting are:
 With the default settings, a Gaussian with a constant background is fit
 to the profiles:
 
-.. code:: ipython3
+.. code:: python
 
     fil.find_widths(max_dist=0.2 * u.pc)
     fil1.plot_radial_profile(xunit=u.pc)
@@ -957,7 +957,7 @@ red solid line.
 
 The profile can be plotted with different ``xunit``\ s:
 
-.. code:: ipython3
+.. code:: python
 
     fil1.plot_radial_profile(xunit=u.pix)
 
@@ -970,7 +970,7 @@ Based on the warning above, at least one of the filament profile fits
 failed. We can look at the list of widths. ``FilFinder2D.widths()``
 returns the FWHMs and their uncertainties:
 
-.. code:: ipython3
+.. code:: python
 
     fil.widths()
 
@@ -990,7 +990,7 @@ returns the FWHMs and their uncertainties:
 
 These widths can be returned in other units as well:
 
-.. code:: ipython3
+.. code:: python
 
     fil.widths(u.pc)
 
@@ -1011,7 +1011,7 @@ These widths can be returned in other units as well:
 The 6th filament has a much larger width, and its uncertainty is very
 large. We can look at this radial profile more closely:
 
-.. code:: ipython3
+.. code:: python
 
     fil.filaments[6].plot_radial_profile(xunit=u.pc)
 
@@ -1027,7 +1027,7 @@ certain filaments. See the ``Filament2D`` tutorial.
 The fit results can be returned as an `astropy
 table <http://docs.astropy.org/en/stable/table/>`__:
 
-.. code:: ipython3
+.. code:: python
 
     fil.width_fits(xunit=u.pc)
 
@@ -1082,7 +1082,7 @@ Other Filament Properties
 With the width models, we can define other filament properties, such as
 the total intensity within the FWHM of the filament:
 
-.. code:: ipython3
+.. code:: python
 
     fil.total_intensity()
 
@@ -1100,7 +1100,7 @@ subtracted off. The index of the background parameter needs to be given.
 For the ''gaussian\_bkg'', this is ``bkg_mod_index=2`` and set as the
 default:
 
-.. code:: ipython3
+.. code:: python
 
     fil.total_intensity(bkg_subtract=True)
 
@@ -1115,7 +1115,7 @@ default:
 
 The median brightness along the skeleton is calculated with:
 
-.. code:: ipython3
+.. code:: python
 
     fil.median_brightness()
 
@@ -1133,7 +1133,7 @@ The median brightness along the skeleton is calculated with:
 Based on the radial profile models, we can create an image based on the
 models:
 
-.. code:: ipython3
+.. code:: python
 
     fil_mod = fil.filament_model()
     plt.imshow(fil_mod)
@@ -1160,7 +1160,7 @@ evaluate the model can also be given with ``max_radius``. The default is
 This model can be used to estimate the fraction of the total flux
 contained in the filamentary structure:
 
-.. code:: ipython3
+.. code:: python
 
     fil.covering_fraction()
 
@@ -1178,7 +1178,7 @@ here.
 
 The values aligned along the longest path are returned with:
 
-.. code:: ipython3
+.. code:: python
 
     profs = fil.ridge_profiles()
     plt.subplot(211)
@@ -1204,7 +1204,7 @@ tables <http://docs.astropy.org/en/stable/table/>`__.
 
 The width results and additional properties are returned with:
 
-.. code:: ipython3
+.. code:: python
 
     fil.output_table(xunit=u.pc)
 
@@ -1256,7 +1256,7 @@ models.
 The median positions can also be returned in world coordinates if WCS
 information was given:
 
-.. code:: ipython3
+.. code:: python
 
     fil.output_table(xunit=u.pc, world_coord=True)
 
@@ -1305,7 +1305,7 @@ information was given:
 A table for each of the branch properties of the filaments is returned
 with:
 
-.. code:: ipython3
+.. code:: python
 
     branch_tables = fil.branch_tables()
     branch_tables[0]
@@ -1347,7 +1347,7 @@ with:
 If the RHT was run on branches, these data can also be added to the
 branch tables:
 
-.. code:: ipython3
+.. code:: python
 
     branch_tables = fil.branch_tables(include_rht=True)
     branch_tables[0]
@@ -1392,7 +1392,7 @@ tables <http://docs.astropy.org/en/stable/table/io.html>`__.
 Finally, the mask, skeletons, longest path skeletons, and the filament
 model can be saved as a FITS file:
 
-.. code:: ipython3
+.. code:: python
 
     fil.save_fits()
 
@@ -1402,7 +1402,7 @@ changed by specifying ``save_name`` here. The keywords for
 
 The regions and stamps around each filament can also be saved with:
 
-.. code:: ipython3
+.. code:: python
 
     fil.save_stamp_fits()
 
