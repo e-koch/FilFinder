@@ -2,7 +2,7 @@
 Old FilFinder Tutorial
 ======================
 
-.. warning:: This tutorial is for older versions of FilFinder. Please see the updated tutorials.
+.. warning:: This tutorial is for older versions of FilFinder. `fil_finder_2d` is deprecated and will be removed in the next release. Please see the updated tutorials.
 
 The main FilFinder algorithm is implemented in the ``fil_finder_2D``
 class. This tutorial goes through the steps to run the entire algorithm.

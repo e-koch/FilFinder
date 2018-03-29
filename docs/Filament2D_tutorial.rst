@@ -18,7 +18,7 @@ FilFinder can be found
     sb.set_context('poster')
 
     import matplotlib as mpl
-    mpl.rcParams['figure.figsize'] = (10., 8.)
+    mpl.rcParams['figure.figsize'] = (12., 9.6)
 
 The general tutorial demonstrates how the ``Filament2D`` objects
 interact with ``FilFinder2D``. To generate an example, we will use a

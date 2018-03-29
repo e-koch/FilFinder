@@ -20,7 +20,7 @@ The example data is included in the github repository
     sb.set_context('poster')
 
     import matplotlib as mpl
-    mpl.rcParams['figure.figsize'] = (10., 8.)
+    mpl.rcParams['figure.figsize'] = (12., 9.6)
 
 Input Data
 ----------
@@ -174,11 +174,9 @@ of the data:
 
     plt.subplot(121)
     plt.imshow(fil.image.value, origin='lower')
-    plt.colorbar()
     plt.title("Image")
     plt.subplot(122)
     plt.imshow(fil.flat_img.value, origin='lower')
-    plt.colorbar()
     plt.title("Flattened Image")
     plt.tight_layout()
 
