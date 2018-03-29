@@ -64,8 +64,9 @@ Contents:
    :maxdepth: 3
 
    install.rst
-   tutorial.ipynb
-   old_tutorial.ipynb
+   tutorial
+   Filament2D_tutorial
+   old_tutorial
    filfinder.rst
 
 

@@ -173,6 +173,3 @@ if eval(setup_cfg.get('edit_on_github')):
 
     edit_on_github_source_root = ""
     edit_on_github_doc_root = "docs"
-
-# Include nbsphinx to extensions
-extensions += ['nbsphinx']
