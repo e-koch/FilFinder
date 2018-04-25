@@ -1,5 +1,6 @@
 2.0 (unreleased)
 ----------------
+- #42 : Fix edge slicing issue raise in Issue 42 (https://github.com/e-koch/FilFinder/issues/42). Switched all slicing to use astropy.nddata.utils.extract_array, which correctly handles edges cases.
 
 
 1.6 (2018-03-29)
