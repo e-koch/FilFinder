@@ -121,6 +121,10 @@ class Filament2D(FilamentNDBase):
                     self.pixel_extents[0][1]]
 
         out_arr = extract_array(image, out_shape, arr_cent)
+
+        if hasattr(image, "unit"):
+            out_arr = out_arr * image.unit
+
         return out_arr
 
     def skeleton(self, pad_size=0, corner_pix=None, out_type='all'):
