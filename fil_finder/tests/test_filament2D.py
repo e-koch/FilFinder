@@ -274,7 +274,8 @@ def test_Filament2D_onebranch_wpadding():
 
     pad = 1
     mask = fil.skeleton(out_type='longpath', pad_size=pad)
-    assert (mask == mask_expect[fil.image_slice(pad_size=pad)]).all()
+    mask_expect_slice = fil.image_slicer(mask_expect, mask.shape, pad_size=pad)
+    assert (mask == mask_expect_slice).all()
 
     # Check the length
     assert fil.length().value == 8.0
