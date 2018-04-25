@@ -94,13 +94,38 @@ class Filament2D(FilamentNDBase):
         else:
             self._converter = UnitConverter(wcs=wcs, distance=distance)
 
-    def image_slice(self, pad_size=0, offset=(0, 0)):
+    def image_slicer(self, image, out_shape, pad_size=0):
         '''
-        Returns a slice for the original image to cut out the filament region.
+        Create a cut-out of a given image to some output shape with optional
+        padding on the edges. The given image must be on the same pixel grid
+        as the image used to create the skeleton.
+
+        Parameters
+        ----------
+        image : `~numpy.ndarray` or `~astropy.units.Quantity`
+            Image to slice out around the skeleton.
+        out_shape : tuple
+            2D output shape.
+        pad_size : int, optional
+            Number of pixels to pad.
+
+        Returns
+        -------
+        out_arr : `~numpy.ndarray` or `~astropy.units.Quantity`
+            Output array with given shape.
         '''
-        return tuple([slice(extent[0] - pad_size + offset[0],
-                            extent[1] + pad_size + offset[1] + 1)
-                      for extent in zip(*self.pixel_extents)])
+
+        arr_cent = [(out_shape[0] - pad_size * 2 - 1) / 2. +
+                    self.pixel_extents[0][0],
+                    (out_shape[1] - pad_size * 2 - 1) / 2. +
+                    self.pixel_extents[0][1]]
+
+        out_arr = extract_array(image, out_shape, arr_cent)
+
+        if hasattr(image, "unit"):
+            out_arr = out_arr * image.unit
+
+        return out_arr
 
     def skeleton(self, pad_size=0, corner_pix=None, out_type='all'):
         '''
@@ -213,7 +238,8 @@ class Filament2D(FilamentNDBase):
         # If the padded image matches the mask size, don't need additional
         # slicing
         if input_image.shape != skel_mask.shape:
-            input_image = input_image[self.image_slice(pad_size=pad_size)]
+            input_image = self.image_slicer(input_image, skel_mask.shape,
+                                            pad_size=pad_size)
 
         # The mask and sliced image better have the same shape!
         if input_image.shape != skel_mask.shape:
@@ -711,19 +737,13 @@ class Filament2D(FilamentNDBase):
         else:
             skel_array = self.skeleton(pad_size=pad_size, out_type='all')
 
-        # We need the centre of the skeleton array in terms of the original
-        # image position
-        arr_cent = [(skel_array.shape[0] - pad_size * 2 - 1) / 2. +
-                    self.pixel_extents[0][0],
-                    (skel_array.shape[1] - pad_size * 2 - 1) / 2. +
-                    self.pixel_extents[0][1]]
-
-        input_image = extract_array(image, skel_array.shape, arr_cent)
+        out_shape = skel_array.shape
+        input_image = self.image_slicer(image, out_shape, pad_size=pad_size)
 
         if all_skeleton_array is not None:
-            input_all_skeleton_array = extract_array(all_skeleton_array,
-                                                     skel_array.shape,
-                                                     arr_cent)
+            input_all_skeleton_array = \
+                self.image_slicer(all_skeleton_array, out_shape,
+                                  pad_size=pad_size)
         else:
             input_all_skeleton_array = None
 
@@ -1183,7 +1203,8 @@ class Filament2D(FilamentNDBase):
         # If the padded image matches the mask size, don't need additional
         # slicing
         if input_image.shape != skels.shape:
-            input_image = input_image[self.image_slice(pad_size=pad_size)]
+            input_image = self.image_slicer(input_image, skels.shape,
+                                            pad_size=pad_size)
 
         assert input_image.shape == skels.shape
 
@@ -1211,7 +1232,8 @@ class Filament2D(FilamentNDBase):
         # If the padded image matches the mask size, don't need additional
         # slicing
         if input_image.shape != skels.shape:
-            input_image = input_image[self.image_slice(pad_size=pad_size)]
+            input_image = self.image_slicer(input_image, skels.shape,
+                                            pad_size=pad_size)
 
         # These should have the same shape now.
         assert input_image.shape == skels.shape
@@ -1285,7 +1307,8 @@ class Filament2D(FilamentNDBase):
         # If the padded image matches the mask size, don't need additional
         # slicing
         if input_image.shape != skels.shape:
-            input_image = input_image[self.image_slice(pad_size=pad_size)]
+            input_image = self.image_slicer(input_image, skels.shape,
+                                            pad_size=pad_size)
 
         # Check if angular conversions are defined. If not, stay in pixel units
         if hasattr(self._converter, '_ang_size'):
@@ -1398,7 +1421,8 @@ class Filament2D(FilamentNDBase):
         # If the padded image matches the mask size, don't need additional
         # slicing
         if input_image.shape != skels.shape:
-            input_image = input_image[self.image_slice(pad_size=pad_size)]
+            input_image = self.image_slicer(input_image, skels.shape,
+                                            pad_size=pad_size)
 
         model = self.model_image(max_radius=pad_size * u.pix,
                                  **model_kwargs)
