@@ -353,8 +353,8 @@ class Filament2D(FilamentNDBase):
         interpts, hubs, ends =  \
             pix_identify([final_fil_arrays[0].copy()], 1)[:3]
 
-        self._interpts = interpts
-        self._endpts = ends
+        self._interpts = interpts[0]
+        self._endpts = ends[0]
 
         # Update the skeleton pixels
         good_pix = np.where(final_fil_arrays[0])
