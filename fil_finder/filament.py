@@ -360,7 +360,7 @@ class Filament2D(FilamentNDBase):
             per_inter = []
 
             for ints in inter:
-                per_inter.extend((ints[0] + self.pixel_extents[0][0] - pad_size,
+                per_inter.append((ints[0] + self.pixel_extents[0][0] - pad_size,
                                   ints[1] + self.pixel_extents[0][1] - pad_size))
 
             corr_inters.append(per_inter)
