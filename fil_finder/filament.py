@@ -349,6 +349,13 @@ class Filament2D(FilamentNDBase):
                                  verbose=verbose, save_png=save_png,
                                  save_name="{0}_finalskeleton.png".format(save_name))
 
+        # Track the final intersection and end points
+        interpts, hubs, ends =  \
+            pix_identify([final_fil_arrays[0].copy()], 1)[:3]
+
+        self._interpts = interpts
+        self._endpts = ends
+
         # Update the skeleton pixels
         good_pix = np.where(final_fil_arrays[0])
         self._pixel_coords = \
@@ -375,19 +382,19 @@ class Filament2D(FilamentNDBase):
         '''
         return self.branch_properties['pixels']
 
-    # @property
-    # def intersec_pts(self):
-    #     '''
-    #     Skeleton pixels associated intersections.
-    #     '''
-    #     return self.pixel_coords[self._intersec_idx]
+    @property
+    def intersec_pts(self):
+        '''
+        Skeleton pixels associated intersections.
+        '''
+        return self._interpts
 
-    # @property
-    # def end_pts(self):
-    #     '''
-    #     Skeleton pixels associated branch end.
-    #     '''
-    #     return self.pixel_coords[self._ends_idx]
+    @property
+    def end_pts(self):
+        '''
+        Skeleton pixels associated branch end.
+        '''
+        return self._endpts
 
     def length(self, unit=u.pixel):
         '''
@@ -1482,3 +1489,11 @@ class Filament2D(FilamentNDBase):
                 self = pickle.load(input)
 
         return self
+
+
+class Filament3D(FilamentNDBase):
+    """docstring for Filament3D"""
+    def __init__(self, arg):
+        super(Filament3D, self).__init__()
+        self.arg = arg
+
