@@ -719,11 +719,11 @@ class FilFinder2D(BaseInfoMixin):
                 self.filaments]
 
     @property
-    def inter_pts(self):
+    def intersec_pts(self):
         '''
         Intersection pixels for each filament.
         '''
-        return [fil.inter_pts for fil in self.filaments]
+        return [fil.intersec_pts for fil in self.filaments]
 
     @property
     def end_pts(self):
