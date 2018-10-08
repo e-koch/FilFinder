@@ -68,8 +68,8 @@ def test_Filament2D():
     assert len(fil.intersec_pts) == 0
     assert fil.intersec_pts == []
     assert len(fil.end_pts) == 2
-    assert fil.end_pts[0] == (0 + pad, 0 + pad)
-    assert fil.end_pts[1] == (0 + pad, 2 + pad)
+    assert fil.end_pts[0] == (0, 0)
+    assert fil.end_pts[1] == (0, 2)
 
     # Angular and physical conversion should fail b/c no WCS or distance is
     # given
