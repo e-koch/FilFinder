@@ -718,6 +718,20 @@ class FilFinder2D(BaseInfoMixin):
         return [fil.position(world_coord=world_coord) for fil in
                 self.filaments]
 
+    @property
+    def intersec_pts(self):
+        '''
+        Intersection pixels for each filament.
+        '''
+        return [fil.intersec_pts for fil in self.filaments]
+
+    @property
+    def end_pts(self):
+        '''
+        End pixels for each filament.
+        '''
+        return [fil.end_pts for fil in self.filaments]
+
     def exec_rht(self, radius=10 * u.pix,
                  ntheta=180, background_percentile=25,
                  branches=False, min_branch_length=3 * u.pix,

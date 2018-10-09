@@ -64,6 +64,13 @@ def test_Filament2D():
     assert fil.length().value == 2.0
     assert fil.length().unit == u.pix
 
+    # Check the intersection and end points
+    assert len(fil.intersec_pts) == 0
+    assert fil.intersec_pts == []
+    assert len(fil.end_pts) == 2
+    assert fil.end_pts[0] == (0, 0)
+    assert fil.end_pts[1] == (0, 2)
+
     # Angular and physical conversion should fail b/c no WCS or distance is
     # given
     with pytest.raises(AttributeError):
