@@ -424,12 +424,22 @@ def longest_path(edge_list, nodes, verbose=False,
             j = max(paths[i].items(), key=operator.itemgetter(1))
             node_extrema.append((j[0], i))
             values.append(j[1])
-        start, finish = node_extrema[values.index(max(values))]
+        max_path_length = max(values)
+        start, finish = node_extrema[values.index(max_path_length)]
         extremum.append([start, finish])
-        # Find all paths between the beginning and end, and take the longest
-        # one (last in the list)
+
+        # def get_weight(pat):
+        #     return sum([G.edge[x][y]['weight'] for x, y in
+        #                 zip(pat[:-1], pat[1:])])
+
+        # for pat in nx.shortest_simple_paths(G, start, finish):
+        #     if np.isclose(get_weight(pat), max_path_length) or get_weight(pat) > max_path_length:
+        #         long_path = pat
+        #         break
+
         long_path = \
             list(nx.shortest_simple_paths(G, start, finish, 'weight'))[-1]
+
         max_path.append(long_path)
         graphs.append(G)
 
