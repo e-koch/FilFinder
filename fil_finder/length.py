@@ -201,7 +201,8 @@ def init_lengths(labelisofil, filbranches, array_offsets, img):
 
         branch_properties = {"length": lengths,
                              "intensity": av_branch_intensity,
-                             "pixels": all_branch_pts}
+                             "pixels": all_branch_pts,
+                             "number": [len(length) for length in lengths]}
 
     return branch_properties
 

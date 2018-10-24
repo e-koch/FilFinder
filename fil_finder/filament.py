@@ -260,9 +260,6 @@ class Filament2D(FilamentNDBase):
                                              [[(0, 0), (0, 0)]],
                                              input_image)
 
-            # Add the number of branches onto the dictionary
-            branch_properties["number"] = filbranches
-
             edge_list, nodes, loop_edges = \
                 pre_graph(labeled_mask, branch_properties, interpts, ends)
 
