@@ -34,12 +34,13 @@ env:
         - SETUP_CMD='test'
         - PIP_DEPENDENCIES=''
         - EVENT_TYPE='pull_request push'
+        - MPLBACKEND="Agg"
 
 
         # For this package-template, we include examples of Cython modules,
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
-        - CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image'
+        - CONDA_DEPENDENCIES='sip<4.19 pytest=3.9.3 Cython scipy matplotlib h5py networkx scikit-image'
 
         # List other runtime dependencies for the package that are available as
         # pip packages here.

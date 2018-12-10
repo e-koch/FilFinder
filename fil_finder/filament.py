@@ -1465,9 +1465,9 @@ class Filament2D(FilamentNDBase):
         skel_hdr['COMMENT'] = "Skeleton created by fil_finder on " + \
             time.strftime("%c")
 
-        skel_hdu = fits.ImageHDU(skels.astype(int, skel_hdr))
+        skel_hdu = fits.ImageHDU(skels.astype(int), skel_hdr)
 
-        skel_lp_hdu = fits.ImageHDU(skels_lp.astype(int, skel_hdr))
+        skel_lp_hdu = fits.ImageHDU(skels_lp.astype(int), skel_hdr)
 
         model_hdu = fits.ImageHDU(model, header)
 
