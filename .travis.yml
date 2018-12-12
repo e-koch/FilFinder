@@ -40,7 +40,7 @@ env:
         # For this package-template, we include examples of Cython modules,
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
-        - CONDA_DEPENDENCIES='sip<4.19 pytest=3.9.3 Cython scipy matplotlib h5py networkx scikit-image'
+        - CONDA_DEPENDENCIES='sip<4.19 pytest<3.9.3 Cython scipy matplotlib h5py networkx scikit-image'
 
         # List other runtime dependencies for the package that are available as
         # pip packages here.
@@ -81,7 +81,7 @@ matrix:
         # Check for sphinx doc build warnings - we do this first because it
         # may run for a long time
         - os: linux
-          env: SETUP_CMD='build_docs -w' CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image mock'
+          env: SETUP_CMD='build_docs -w' CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image mock sphinx_astropy'
 
         # Now try Astropy dev with the latest Python and LTS with Python 2.7 and 3.x.
         - os: linux
