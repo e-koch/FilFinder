@@ -276,6 +276,21 @@ def test_simple_filament_noheader():
 
     fil1 = test.filaments[0]
 
+    # Compare the branch pts with and without image coordinates
+    branch_pts = fil1.branch_pts(img_coords=False)
+    branch_pts_img = fil1.branch_pts(img_coords=True)
+
+    # Should be sliced down to a single pixel skeleton
+    assert len(branch_pts) == 1
+    # Padded by 1 for morphological operations
+    assert (branch_pts[0][:, 0] == 1).all()
+    assert (branch_pts[0][:, 1] == np.arange(1, 151)).all()
+
+    # Image coordinate branch pts should match the skeleton
+    skel_pts = np.where(test.skeleton)
+    assert (branch_pts_img[0][:, 0] == skel_pts[0]).all()
+    assert (branch_pts_img[0][:, 1] == skel_pts[1]).all()
+
     # Compare lengths
     # Straight skeleton, so length is sum minus 1. Then add the FWHM width on
     # Beam is set to 3 pixels FWHM, so deconvolve before adding
