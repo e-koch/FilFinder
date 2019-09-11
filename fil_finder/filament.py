@@ -1482,3 +1482,11 @@ class Filament2D(FilamentNDBase):
                 self = pickle.load(input)
 
         return self
+
+
+class Filament3D(FilamentNDBase):
+    """docstring for Filament3D"""
+    def __init__(self, arg):
+        super(Filament3D, self).__init__()
+        self.arg = arg
+
