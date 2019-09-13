@@ -227,6 +227,7 @@ class Filament2D(FilamentNDBase):
 
         # Must have a pad size of 1 for the morphological operations.
         pad_size = 1
+        self._pad_size = pad_size
 
         branch_thresh = self._converter.to_pixel(branch_thresh)
 
@@ -388,12 +389,31 @@ class Filament2D(FilamentNDBase):
         '''
         return self._branch_properties
 
-    @property
-    def branch_pts(self):
+    def branch_pts(self, img_coords=False):
         '''
         Pixels within each skeleton branch.
+
+        Parameters
+        ----------
+        img_coords : bool
+            Return the branch pts in coordinates of the original image.
         '''
-        return self.branch_properties['pixels']
+        if not img_coords:
+            return self.branch_properties['pixels']
+
+        # Transform from per-filament to image coords
+        img_branch_pts = []
+        for bpts in self.branch_properties['pixels']:
+
+            bpts_copy = bpts.copy()
+
+            bpts_copy[:, 0] = bpts[:, 0] + self.pixel_extents[0][0] - self._pad_size
+            bpts_copy[:, 1] = bpts[:, 1] + self.pixel_extents[0][1] - self._pad_size
+
+            img_branch_pts.append(bpts_copy)
+
+        return img_branch_pts
+
 
     @property
     def intersec_pts(self):
@@ -614,7 +634,7 @@ class Filament2D(FilamentNDBase):
         iqrs = []
 
         # Make padded arrays from individual branches
-        for i, (pix, length) in enumerate(zip(self.branch_pts,
+        for i, (pix, length) in enumerate(zip(self.branch_pts(img_coords=False),
                                               self.branch_properties['length'])):
 
             if length.value < min_branch_length:
