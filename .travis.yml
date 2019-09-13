@@ -27,7 +27,7 @@ env:
         # The following versions are the 'default' for tests, unless
         # overridden underneath. They are defined here in order to save having
         # to repeat them for all configurations.
-        - PYTHON_VERSION=3.6
+        - PYTHON_VERSION=3.7
         - NUMPY_VERSION=stable
         - ASTROPY_VERSION=stable
         - MAIN_CMD='python setup.py'
@@ -60,9 +60,9 @@ env:
     matrix:
         # Make sure that egg_info works without dependencies
         - PYTHON_VERSION=2.7 SETUP_CMD='egg_info'
-        - PYTHON_VERSION=3.4 SETUP_CMD='egg_info'
         - PYTHON_VERSION=3.5 SETUP_CMD='egg_info'
         - PYTHON_VERSION=3.6 SETUP_CMD='egg_info'
+        - PYTHON_VERSION=3.7 SETUP_CMD='egg_info'
 
 matrix:
 
@@ -96,11 +96,11 @@ matrix:
         # time.
 
         - os: linux
-          env: PYTHON_VERSION=3.5 ASTROPY_VERSION=lts NUMPY_VERSION=1.14
-        - os: linux
           env: PYTHON_VERSION=3.5 ASTROPY_VERSION=lts NUMPY_VERSION=1.15
         - os: linux
-          env: ASTROPY_VERSION=lts NUMPY_VERSION=1.15
+          env: PYTHON_VERSION=3.5 ASTROPY_VERSION=lts NUMPY_VERSION=1.16
+        - os: linux
+          env: ASTROPY_VERSION=lts NUMPY_VERSION=1.16
 
         # Try numpy pre-release
         - os: linux
@@ -109,23 +109,15 @@ matrix:
 
         # Test w/ different skimage versions
         - os: linux
-          env: PYTHON_VERSION=2.7 ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.12'
-        - os: linux
-          env: PYTHON_VERSION=2.7 ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.13'
+          env: PYTHON_VERSION=2.7 ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.14'
 
         - os: linux
-          env: ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.12'
-        - os: linux
-          env: ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.13'
+          env: ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.14'
 
         # Test w/ different networkx < 2.0
         - os: linux
           env: PYTHON_VERSION=2.7 ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'
-        - os: linux
-          env: PYTHON_VERSION=2.7 ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'
 
-        - os: linux
-          env: ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'
         - os: linux
           env: ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'
 
