@@ -185,6 +185,9 @@ def test_simple_filament_compareold():
     # Compare saving filament stamps.
     from astropy.io import fits
 
+    if os.path.exists("test_image_output.fits"):
+        os.remove("test_image_output.fits")
+
     fil1.save_fits("test_image_output.fits", test.image)
 
     hdu = fits.open("test_image_output.fits")
@@ -221,6 +224,8 @@ def test_simple_filament_compareold():
     del hdu
 
     # Compare saving whole skeleton/mask/model
+    if os.path.exists("test_image_output.fits"):
+        os.remove("test_image_output.fits")
 
     test.save_fits()
     hdu = fits.open("test1_image_output.fits")
@@ -411,6 +416,9 @@ def test_simple_filament_noheader():
     # Compare saving filament stamps.
     from astropy.io import fits
 
+    if os.path.exists("test_image_output.fits"):
+        os.remove("test_image_output.fits")
+
     fil1.save_fits("test_image_output.fits", test.image)
 
     hdu = fits.open("test_image_output.fits")
@@ -447,6 +455,8 @@ def test_simple_filament_noheader():
     del hdu
 
     # Compare saving whole skeleton/mask/model
+    if os.path.exists("test_image_output.fits"):
+        os.remove("test_image_output.fits")
 
     test.save_fits()
     hdu = fits.open("test1_image_output.fits")
@@ -624,6 +634,8 @@ def test_simple_filament_noheader_angscale():
 
     # Compare saving filament stamps.
     from astropy.io import fits
+    if os.path.exists("test_image_output.fits"):
+        os.remove("test_image_output.fits")
 
     fil1.save_fits("test_image_output.fits", test.image)
 
@@ -661,6 +673,8 @@ def test_simple_filament_noheader_angscale():
     del hdu
 
     # Compare saving whole skeleton/mask/model
+    if os.path.exists("test_image_output.fits"):
+        os.remove("test_image_output.fits")
 
     test.save_fits()
     hdu = fits.open("test1_image_output.fits")
@@ -833,6 +847,9 @@ def test_simple_filament_nodistance():
 
     # Compare saving filament stamps.
     from astropy.io import fits
+
+    if os.path.exists("test_image_output.fits"):
+        os.remove("test_image_output.fits")
 
     fil1.save_fits("test_image_output.fits", test.image)
 

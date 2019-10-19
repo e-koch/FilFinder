@@ -1048,12 +1048,21 @@ class FilFinder2D(BaseInfoMixin):
             for each filament.
         '''
 
-        median_bright = []
+        if len(self.filaments) == 0:
+            return np.array([])
 
-        for fil in self.filaments:
-            median_bright.append(fil.median_brightness(self.image))
+        med_bright0 = self.filaments[0].median_brightness(self.image)
 
-        return np.array(median_bright)
+        median_bright = np.zeros(len(self.filaments))
+
+        if hasattr(med_bright0, 'unit'):
+            median_bright = median_bright * med_bright0.unit
+            median_bright[0] = med_bright0
+
+        for i, fil in enumerate(self.filaments):
+            median_bright[i] = fil.median_brightness(self.image)
+
+        return median_bright
 
     def filament_model(self, max_radius=None, bkg_subtract=True,
                        bkg_mod_index=2):

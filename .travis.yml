@@ -106,15 +106,15 @@ matrix:
                EVENT_TYPE='pull_request push cron'
 
         # Test w/ different skimage versions
-        - os: linux
-          env: PYTHON_VERSION=2.7 ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.14'
+        # - os: linux
+        #   env: PYTHON_VERSION=2.7 ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.14'
 
         - os: linux
           env: ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.14'
 
         # Test w/ different networkx < 2.0
-        - os: linux
-          env: PYTHON_VERSION=2.7 ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'
+        # - os: linux
+        #   env: PYTHON_VERSION=2.7 ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'
 
         - os: linux
           env: ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'

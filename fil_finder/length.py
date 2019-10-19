@@ -188,10 +188,21 @@ def init_lengths(labelisofil, filbranches, array_offsets, img):
             # add on the offset the branch array introduces.
             x_offset = obj[0].start + array_offsets[n][0][0]
             y_offset = obj[1].start + array_offsets[n][0][1]
-            av_intensity.append(np.nanmean([img[x + x_offset, y + y_offset]
-                                for x, y in zip(*branch_pts)
-                                if np.isfinite(img[x + x_offset, y + y_offset]) and
-                                not img[x + x_offset, y + y_offset] < 0.0]))
+
+            # Starting w/ astropy v4.0 and numpy 1.17, the unit is retained
+            # on the array. We're going to strip the unit off when needed.
+            if hasattr(img, 'unit'):
+                img = img.value.copy()
+
+            intensities = []
+            for x, y in zip(*branch_pts):
+                is_finite = np.isfinite(img[x + x_offset, y + y_offset])
+                is_not_negative = img[x + x_offset, y + y_offset] >= 0.0
+
+                if is_finite and is_not_negative:
+                    intensities.append(img[x + x_offset, y + y_offset])
+            av_intensity.append(np.nanmean(intensities))
+
             branch_pix.append(np.array([(x + x_offset, y + y_offset)
                                         for x, y in zip(*branch_pts)]))
 
