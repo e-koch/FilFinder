@@ -122,7 +122,9 @@ class Filament2D(FilamentNDBase):
 
         out_arr = extract_array(image, out_shape, arr_cent)
 
-        if hasattr(image, "unit"):
+        # astropy v4.0 now retains the unit. So only add a unit
+        # when out_arr isn't a Quantity
+        if hasattr(image, "unit") and not hasattr(out_arr, 'unit'):
             out_arr = out_arr * image.unit
 
         return out_arr
@@ -1477,6 +1479,10 @@ class Filament2D(FilamentNDBase):
                 header = self._converter._wcs.to_header()
             else:
                 header = fits.Header()
+
+        # Strip off units if the image is a Quantity
+        if hasattr(input_image, 'unit'):
+            input_image = input_image.value.copy()
 
         hdu = fits.PrimaryHDU(input_image, header)
 
