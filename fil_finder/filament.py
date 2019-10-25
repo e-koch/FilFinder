@@ -309,8 +309,15 @@ class Filament2D(FilamentNDBase):
             # edge_match = iso.numerical_edge_match('weight', 1)
             # if nx.is_isomorphic(prev_G, G[0],
             #                     edge_match=edge_match):
-            if prev_G.node == G[0].node:
-                break
+
+            # the node attribute was removed in 2.4.
+            if hasattr(G, 'node'):
+                if prev_G.node == G[0].node:
+                    break
+
+            if hasattr(G, 'nodes'):
+                if prev_G.nodes == G[0].nodes:
+                    break
 
             prev_G = G[0]
             iter += 1
