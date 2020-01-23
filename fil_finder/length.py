@@ -449,8 +449,13 @@ def longest_path(edge_list, nodes, verbose=False,
         #         long_path = pat
         #         break
 
+        if len(nx.cycle_basis(G)) > 0:
+            G_min = nx.minimum_spanning_tree(G)
+        else:
+            G_min = G
+
         long_path = \
-            list(nx.shortest_simple_paths(G, start, finish, 'weight'))[-1]
+            list(nx.shortest_simple_paths(G_min, start, finish, 'weight'))[-1]
 
         max_path.append(long_path)
         graphs.append(G)
