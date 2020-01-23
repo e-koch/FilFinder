@@ -1255,20 +1255,34 @@ class FilFinder2D(BaseInfoMixin):
 
         return tables
 
-    def save_fits(self, save_name=None, **kwargs):
+    def save_fits(self, save_name=None,
+                  save_longpath_skeletons=True,
+                  save_model=True,
+                  overwrite=False,
+                  **kwargs):
         '''
         Save the mask and the skeleton array as FITS files. The header includes
         the settings used to create them.
 
-        The mask, skeleton, longest skeletons, and model are included in the
-        outputted file. The skeletons are labeled to match their order in
-        `~FilFinder2D.filaments`.
+        The mask, skeleton, (optional) longest skeletons, and (optional)
+        model are included in the outputted file. The skeletons are labeled to
+        match their order in `~FilFinder2D.filaments`.
 
         Parameters
         ----------
         save_name : str, optional
             The prefix for the saved file. If None, the save name specified
             when `~FilFinder2D` was first called.
+        save_longpath_skeletons : bool, optional
+            Save a FITS extension with the longest path skeleton array.
+            Default is `True`. Requires `~FilFinder2D.analyze_skeletons`
+            to be run.
+        save_model : bool, optional
+            Save a FITS extension with the longest path skeleton array.
+            Default is `True`. Requires `~FilFinder2D.find_widths`
+            to be run.
+        overwrite : bool, optional
+            Overwrite if `save_name` exists. Default is `False`.
         kwargs : Passed to `~FilFinder2D.filament_model`.
         '''
 
@@ -1331,31 +1345,34 @@ class FilFinder2D(BaseInfoMixin):
         out_hdu.append(fits.ImageHDU(labels, header=new_hdr_skel))
 
         # Longest Paths
-        labels_lp = nd.label(self.skeleton_longpath, eight_con())[0]
-        out_hdu.append(fits.ImageHDU(labels_lp,
-                                     header=new_hdr_skel))
+        if save_longpath_skeletons:
+            labels_lp = nd.label(self.skeleton_longpath, eight_con())[0]
+            out_hdu.append(fits.ImageHDU(labels_lp,
+                                         header=new_hdr_skel))
 
-        model = self.filament_model(**kwargs)
-        if hasattr(model, 'unit'):
-            model = model.value
+        if save_model:
+            model = self.filament_model(**kwargs)
+            if hasattr(model, 'unit'):
+                model = model.value
 
-        model_hdr = new_hdr.copy()
-        model_hdr['COMMENT'] = "Image generated from fitted filament models."
-        if self.header is not None:
-            bunit = self.header.get('BUNIT', None)
-            if bunit is not None:
-                model_hdr['BUNIT'] = bunit
+            model_hdr = new_hdr.copy()
+            model_hdr['COMMENT'] = "Image generated from fitted filament models."
+            if self.header is not None:
+                bunit = self.header.get('BUNIT', None)
+                if bunit is not None:
+                    model_hdr['BUNIT'] = bunit
+                else:
+                    model_hdr['BUNIT'] = ""
             else:
                 model_hdr['BUNIT'] = ""
-        else:
-            model_hdr['BUNIT'] = ""
 
-        model_hdr['BITPIX'] = fits.DTYPE2BITPIX[str(model.dtype)]
-        model_hdu = fits.ImageHDU(model, header=model_hdr)
+            model_hdr['BITPIX'] = fits.DTYPE2BITPIX[str(model.dtype)]
+            model_hdu = fits.ImageHDU(model, header=model_hdr)
 
-        out_hdu.append(model_hdu)
+            out_hdu.append(model_hdu)
 
-        out_hdu.writeto("{0}_image_output.fits".format(save_name))
+        out_hdu.writeto("{0}_image_output.fits".format(save_name),
+                        overwrite=overwrite)
 
     def save_stamp_fits(self, save_name=None, pad_size=20 * u.pix,
                         **kwargs):
