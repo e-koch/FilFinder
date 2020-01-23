@@ -990,8 +990,8 @@ class Filament2D(FilamentNDBase):
                 fwhm_deconv = np.sqrt(fwhm_deconv_sq)
                 fwhm_deconv_err = fwhm * fwhm_err / fwhm_deconv
             else:
-                fwhm_deconv = np.NaN
-                fwhm_deconv_err = np.NaN
+                fwhm_deconv = np.NaN * fwhm.unit
+                fwhm_deconv_err = np.NaN * fwhm.unit
                 warnings.warn("Width could not be deconvolved from the beam "
                               "width.")
         else:
