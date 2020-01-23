@@ -425,8 +425,19 @@ def longest_path(edge_list, nodes, verbose=False,
     for n in range(num):
         G = nx.Graph()
         G.add_nodes_from(nodes[n])
+
+        max_weight = 0.
         for i in edge_list[n]:
-            G.add_edge(i[0], i[1], weight=i[2][1], inv_weight=1. / i[2][1])
+            if i[2][1] >= max_weight:
+                max_weight = i[2][1]
+
+        max_weight *= 1.01
+
+        for i in edge_list[n]:
+            if i[2][1] >= max_weight:
+                raise ValueError("This should never happen...")
+            # G.add_edge(i[0], i[1], weight=i[2][1], inv_weight=max_weight - i[2][1])
+            G.add_edge(i[0], i[1], weight=i[2][1], inv_weight=1 / i[2][1])
         # networkx 2.0 returns a two-element tuple. Convert to a dict first
         paths = dict(nx.shortest_path_length(G, weight='weight'))
         values = []
@@ -449,13 +460,36 @@ def longest_path(edge_list, nodes, verbose=False,
         #         long_path = pat
         #         break
 
-        if len(nx.cycle_basis(G)) > 0:
-            G_min = nx.minimum_spanning_tree(G, weight='inv_weight')
-        else:
-            G_min = G
+        # if len(nx.cycle_basis(G)) > 0:
+        #     G_min = nx.minimum_spanning_tree(G, weight='inv_weight')
+        # else:
+        #     G_min = G
+
+        # list(nx.shortest_simple_paths(G_min, start, finish, 'weight'))[-1]
+
+        long_path1 = \
+            list(nx.shortest_simple_paths(G, start, finish, 'weight'))
+
+        print(long_path1[-1])
+        print(long_path1)
+
+        # long_path1 = long_path[-1]
+
+        long_path2 = \
+            list(nx.shortest_simple_paths(G, start, finish, 'inv_weight'))
+
+        print(long_path2)
+
+        print([i == j for i, j in zip(long_path1, long_path2)])
+
+        from itertools import islice
+        def k_shortest_paths(G, source, target, k, weight=None):
+            return list(islice(nx.shortest_simple_paths(G, source, target, weight=weight), k))
 
         long_path = \
-            list(nx.shortest_simple_paths(G_min, start, finish, 'weight'))[-1]
+            k_shortest_paths(G, start, finish, 1, weight='inv_weight')[0]
+
+        print(long_path)
 
         max_path.append(long_path)
         graphs.append(G)
