@@ -426,7 +426,7 @@ def longest_path(edge_list, nodes, verbose=False,
         G = nx.Graph()
         G.add_nodes_from(nodes[n])
         for i in edge_list[n]:
-            G.add_edge(i[0], i[1], weight=i[2][1])
+            G.add_edge(i[0], i[1], weight=i[2][1], inv_weight=1. / i[2][1])
         # networkx 2.0 returns a two-element tuple. Convert to a dict first
         paths = dict(nx.shortest_path_length(G, weight='weight'))
         values = []
@@ -450,7 +450,7 @@ def longest_path(edge_list, nodes, verbose=False,
         #         break
 
         if len(nx.cycle_basis(G)) > 0:
-            G_min = nx.minimum_spanning_tree(G)
+            G_min = nx.minimum_spanning_tree(G, weight='inv_weight')
         else:
             G_min = G
 
