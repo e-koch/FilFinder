@@ -796,7 +796,7 @@ def _fix_small_holes(mask_array, rel_size=0.1):
         delete_holes = np.where(sums / reg_area < rel_size)[0]
 
     # Return if there is nothing to delete.
-    if delete_holes == []:
+    if len(delete_holes) == 0:
         return mask_array
 
     # Add one to take into account 0 in list if object label 1.

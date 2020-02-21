@@ -27,19 +27,20 @@ env:
         # The following versions are the 'default' for tests, unless
         # overridden underneath. They are defined here in order to save having
         # to repeat them for all configurations.
-        - PYTHON_VERSION=3.6
+        - PYTHON_VERSION=3.7
         - NUMPY_VERSION=stable
         - ASTROPY_VERSION=stable
         - MAIN_CMD='python setup.py'
         - SETUP_CMD='test'
         - PIP_DEPENDENCIES=''
         - EVENT_TYPE='pull_request push'
+        - MPLBACKEND="Agg"
 
 
         # For this package-template, we include examples of Cython modules,
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
-        - CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image'
+        - CONDA_DEPENDENCIES='sip<4.19 pytest<3.9.3 Cython scipy matplotlib h5py networkx scikit-image'
 
         # List other runtime dependencies for the package that are available as
         # pip packages here.
@@ -59,9 +60,9 @@ env:
     matrix:
         # Make sure that egg_info works without dependencies
         - PYTHON_VERSION=2.7 SETUP_CMD='egg_info'
-        - PYTHON_VERSION=3.4 SETUP_CMD='egg_info'
         - PYTHON_VERSION=3.5 SETUP_CMD='egg_info'
         - PYTHON_VERSION=3.6 SETUP_CMD='egg_info'
+        - PYTHON_VERSION=3.7 SETUP_CMD='egg_info'
 
 matrix:
 
@@ -80,14 +81,12 @@ matrix:
         # Check for sphinx doc build warnings - we do this first because it
         # may run for a long time
         - os: linux
-          env: SETUP_CMD='build_docs -w' CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image mock'
+          env: SETUP_CMD='build_docs -w' CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image mock sphinx_astropy'
 
-        # Now try Astropy dev with the latest Python and LTS with Python 2.7 and 3.x.
+        # Now try Astropy dev with the latest Python and LTS with Python 3.x.
         - os: linux
           env: ASTROPY_VERSION=development
                EVENT_TYPE='pull_request push cron'
-        - os: linux
-          env: PYTHON_VERSION=2.7 ASTROPY_VERSION=lts
         - os: linux
           env: ASTROPY_VERSION=lts
 
@@ -97,11 +96,9 @@ matrix:
         # time.
 
         - os: linux
-          env: PYTHON_VERSION=3.4 NUMPY_VERSION=1.10
+          env: PYTHON_VERSION=3.5 ASTROPY_VERSION=lts NUMPY_VERSION=1.15
         - os: linux
-          env: PYTHON_VERSION=3.5 NUMPY_VERSION=1.11
-        - os: linux
-          env: NUMPY_VERSION=1.12
+          env: ASTROPY_VERSION=lts NUMPY_VERSION=1.16
 
         # Try numpy pre-release
         - os: linux
@@ -109,36 +106,28 @@ matrix:
                EVENT_TYPE='pull_request push cron'
 
         # Test w/ different skimage versions
-        - os: linux
-          env: PYTHON_VERSION=2.7 CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.11'
-        - os: linux
-          env: PYTHON_VERSION=2.7 CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.12'
+        # - os: linux
+        #   env: PYTHON_VERSION=2.7 ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.14'
 
         - os: linux
-          env: CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.11'
-        - os: linux
-          env: CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.12'
+          env: ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx scikit-image=0.14'
 
         # Test w/ different networkx < 2.0
-        - os: linux
-          env: PYTHON_VERSION=2.7 CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'
-        - os: linux
-          env: PYTHON_VERSION=2.7 CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'
+        # - os: linux
+        #   env: PYTHON_VERSION=2.7 ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'
 
         - os: linux
-          env: CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'
-        - os: linux
-          env: CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'
+          env: ASTROPY_VERSION=lts CONDA_DEPENDENCIES='Cython scipy matplotlib h5py networkx=1.11 scikit-image'
 
         # Do a PEP8 test with pycodestyle
-        - os: linux
-          env: MAIN_CMD='pycodestyle packagename --count' SETUP_CMD=''
+    #     - os: linux
+    #       env: MAIN_CMD='pycodestyle packagename --count' SETUP_CMD=''
 
-    allow_failures:
-        # Do a PEP8 test with pycodestyle
-        # (allow to fail unless your code completely compliant)
-        - os: linux
-          env: MAIN_CMD='pycodestyle packagename --count' SETUP_CMD=''
+    # allow_failures:
+    #     # Do a PEP8 test with pycodestyle
+    #     # (allow to fail unless your code completely compliant)
+    #     - os: linux
+    #       env: MAIN_CMD='pycodestyle packagename --count' SETUP_CMD=''
 
 install:
 

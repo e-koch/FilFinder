@@ -177,7 +177,7 @@ def fourier_shifter(x, shift, axis):
     # m_shape[axis] = m.shape[0]
     # m = m.reshape(m_shape)
     slices = [slice(None) if ii == axis else None for ii in range(x.ndim)]
-    m = m[slices]
+    m = m[tuple(slices)]
     phase = np.exp(-2 * np.pi * m * 1j * shift)
     x2 = np.real(np.fft.ifft(ftx * phase, axis=axis))
     return x2

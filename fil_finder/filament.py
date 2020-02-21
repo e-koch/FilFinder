@@ -122,7 +122,9 @@ class Filament2D(FilamentNDBase):
 
         out_arr = extract_array(image, out_shape, arr_cent)
 
-        if hasattr(image, "unit"):
+        # astropy v4.0 now retains the unit. So only add a unit
+        # when out_arr isn't a Quantity
+        if hasattr(image, "unit") and not hasattr(out_arr, 'unit'):
             out_arr = out_arr * image.unit
 
         return out_arr
@@ -227,6 +229,7 @@ class Filament2D(FilamentNDBase):
 
         # Must have a pad size of 1 for the morphological operations.
         pad_size = 1
+        self._pad_size = pad_size
 
         branch_thresh = self._converter.to_pixel(branch_thresh)
 
@@ -259,9 +262,6 @@ class Filament2D(FilamentNDBase):
             branch_properties = init_lengths(labeled_mask, filbranches,
                                              [[(0, 0), (0, 0)]],
                                              input_image)
-
-            # Add the number of branches onto the dictionary
-            branch_properties["number"] = filbranches
 
             edge_list, nodes, loop_edges = \
                 pre_graph(labeled_mask, branch_properties, interpts, ends)
@@ -309,8 +309,15 @@ class Filament2D(FilamentNDBase):
             # edge_match = iso.numerical_edge_match('weight', 1)
             # if nx.is_isomorphic(prev_G, G[0],
             #                     edge_match=edge_match):
-            if prev_G.node == G[0].node:
-                break
+
+            # the node attribute was removed in 2.4.
+            if hasattr(G, 'node'):
+                if prev_G.node == G[0].node:
+                    break
+
+            if hasattr(G, 'nodes'):
+                if prev_G.nodes == G[0].nodes:
+                    break
 
             prev_G = G[0]
             iter += 1
@@ -349,6 +356,29 @@ class Filament2D(FilamentNDBase):
                                  verbose=verbose, save_png=save_png,
                                  save_name="{0}_finalskeleton.png".format(save_name))
 
+        # Track the final intersection and end points
+        interpts, hubs, ends =  \
+            pix_identify([final_fil_arrays[0].copy()], 1)[:3]
+
+        # Adjust intersection and end points to be in the original array
+        # positions
+        corr_inters = []
+        for inter in interpts[0]:
+            per_inter = []
+
+            for ints in inter:
+                per_inter.append((ints[0] + self.pixel_extents[0][0] - pad_size,
+                                  ints[1] + self.pixel_extents[0][1] - pad_size))
+
+            corr_inters.append(per_inter)
+        self._interpts = corr_inters
+
+        corr_ends = []
+        for end in ends[0]:
+            corr_ends.append((end[0] + self.pixel_extents[0][0] - pad_size,
+                              end[1] + self.pixel_extents[0][1] - pad_size))
+        self._endpts = corr_ends
+
         # Update the skeleton pixels
         good_pix = np.where(final_fil_arrays[0])
         self._pixel_coords = \
@@ -368,26 +398,45 @@ class Filament2D(FilamentNDBase):
         '''
         return self._branch_properties
 
-    @property
-    def branch_pts(self):
+    def branch_pts(self, img_coords=False):
         '''
         Pixels within each skeleton branch.
+
+        Parameters
+        ----------
+        img_coords : bool
+            Return the branch pts in coordinates of the original image.
         '''
-        return self.branch_properties['pixels']
+        if not img_coords:
+            return self.branch_properties['pixels']
 
-    # @property
-    # def intersec_pts(self):
-    #     '''
-    #     Skeleton pixels associated intersections.
-    #     '''
-    #     return self.pixel_coords[self._intersec_idx]
+        # Transform from per-filament to image coords
+        img_branch_pts = []
+        for bpts in self.branch_properties['pixels']:
 
-    # @property
-    # def end_pts(self):
-    #     '''
-    #     Skeleton pixels associated branch end.
-    #     '''
-    #     return self.pixel_coords[self._ends_idx]
+            bpts_copy = bpts.copy()
+
+            bpts_copy[:, 0] = bpts[:, 0] + self.pixel_extents[0][0] - self._pad_size
+            bpts_copy[:, 1] = bpts[:, 1] + self.pixel_extents[0][1] - self._pad_size
+
+            img_branch_pts.append(bpts_copy)
+
+        return img_branch_pts
+
+
+    @property
+    def intersec_pts(self):
+        '''
+        Skeleton pixels associated intersections.
+        '''
+        return self._interpts
+
+    @property
+    def end_pts(self):
+        '''
+        Skeleton pixels associated branch end.
+        '''
+        return self._endpts
 
     def length(self, unit=u.pixel):
         '''
@@ -594,7 +643,7 @@ class Filament2D(FilamentNDBase):
         iqrs = []
 
         # Make padded arrays from individual branches
-        for i, (pix, length) in enumerate(zip(self.branch_pts,
+        for i, (pix, length) in enumerate(zip(self.branch_pts(img_coords=False),
                                               self.branch_properties['length'])):
 
             if length.value < min_branch_length:
@@ -1438,6 +1487,10 @@ class Filament2D(FilamentNDBase):
             else:
                 header = fits.Header()
 
+        # Strip off units if the image is a Quantity
+        if hasattr(input_image, 'unit'):
+            input_image = input_image.value.copy()
+
         hdu = fits.PrimaryHDU(input_image, header)
 
         skel_hdr = header.copy()
@@ -1445,9 +1498,9 @@ class Filament2D(FilamentNDBase):
         skel_hdr['COMMENT'] = "Skeleton created by fil_finder on " + \
             time.strftime("%c")
 
-        skel_hdu = fits.ImageHDU(skels.astype(int, skel_hdr))
+        skel_hdu = fits.ImageHDU(skels.astype(int), skel_hdr)
 
-        skel_lp_hdu = fits.ImageHDU(skels_lp.astype(int, skel_hdr))
+        skel_lp_hdu = fits.ImageHDU(skels_lp.astype(int), skel_hdr)
 
         model_hdu = fits.ImageHDU(model, header)
 

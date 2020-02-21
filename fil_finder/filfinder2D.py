@@ -718,6 +718,20 @@ class FilFinder2D(BaseInfoMixin):
         return [fil.position(world_coord=world_coord) for fil in
                 self.filaments]
 
+    @property
+    def intersec_pts(self):
+        '''
+        Intersection pixels for each filament.
+        '''
+        return [fil.intersec_pts for fil in self.filaments]
+
+    @property
+    def end_pts(self):
+        '''
+        End pixels for each filament.
+        '''
+        return [fil.end_pts for fil in self.filaments]
+
     def exec_rht(self, radius=10 * u.pix,
                  ntheta=180, background_percentile=25,
                  branches=False, min_branch_length=3 * u.pix,
@@ -1034,12 +1048,21 @@ class FilFinder2D(BaseInfoMixin):
             for each filament.
         '''
 
-        median_bright = []
+        if len(self.filaments) == 0:
+            return np.array([])
 
-        for fil in self.filaments:
-            median_bright.append(fil.median_brightness(self.image))
+        med_bright0 = self.filaments[0].median_brightness(self.image)
 
-        return np.array(median_bright)
+        median_bright = np.zeros(len(self.filaments))
+
+        if hasattr(med_bright0, 'unit'):
+            median_bright = median_bright * med_bright0.unit
+            median_bright[0] = med_bright0
+
+        for i, fil in enumerate(self.filaments):
+            median_bright[i] = fil.median_brightness(self.image)
+
+        return median_bright
 
     def filament_model(self, max_radius=None, bkg_subtract=True,
                        bkg_mod_index=2):

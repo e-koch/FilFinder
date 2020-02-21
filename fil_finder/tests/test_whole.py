@@ -234,7 +234,10 @@ def test_FilFinder2D_w_rhtbranches():
     test1_old.compute_filament_brightness()
     med_bright_old = test1_old.filament_brightness
 
-    assert (med_bright == np.array(med_bright_old)).all()
+    if hasattr(med_bright, 'unit'):
+        assert (med_bright.value == np.array(med_bright_old)).all()
+    else:
+        assert (med_bright == np.array(med_bright_old)).all()
 
     # Compute model image
     fil_model = test1.filament_model(bkg_subtract=True)

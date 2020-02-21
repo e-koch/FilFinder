@@ -188,10 +188,21 @@ def init_lengths(labelisofil, filbranches, array_offsets, img):
             # add on the offset the branch array introduces.
             x_offset = obj[0].start + array_offsets[n][0][0]
             y_offset = obj[1].start + array_offsets[n][0][1]
-            av_intensity.append(np.nanmean([img[x + x_offset, y + y_offset]
-                                for x, y in zip(*branch_pts)
-                                if np.isfinite(img[x + x_offset, y + y_offset]) and
-                                not img[x + x_offset, y + y_offset] < 0.0]))
+
+            # Starting w/ astropy v4.0 and numpy 1.17, the unit is retained
+            # on the array. We're going to strip the unit off when needed.
+            if hasattr(img, 'unit'):
+                img = img.value.copy()
+
+            intensities = []
+            for x, y in zip(*branch_pts):
+                is_finite = np.isfinite(img[x + x_offset, y + y_offset])
+                is_not_negative = img[x + x_offset, y + y_offset] >= 0.0
+
+                if is_finite and is_not_negative:
+                    intensities.append(img[x + x_offset, y + y_offset])
+            av_intensity.append(np.nanmean(intensities))
+
             branch_pix.append(np.array([(x + x_offset, y + y_offset)
                                         for x, y in zip(*branch_pts)]))
 
@@ -201,7 +212,8 @@ def init_lengths(labelisofil, filbranches, array_offsets, img):
 
         branch_properties = {"length": lengths,
                              "intensity": av_branch_intensity,
-                             "pixels": all_branch_pts}
+                             "pixels": all_branch_pts,
+                             "number": [len(length) for length in lengths]}
 
     return branch_properties
 
@@ -424,12 +436,22 @@ def longest_path(edge_list, nodes, verbose=False,
             j = max(paths[i].items(), key=operator.itemgetter(1))
             node_extrema.append((j[0], i))
             values.append(j[1])
-        start, finish = node_extrema[values.index(max(values))]
+        max_path_length = max(values)
+        start, finish = node_extrema[values.index(max_path_length)]
         extremum.append([start, finish])
-        # Find all paths between the beginning and end, and take the longest
-        # one (last in the list)
+
+        # def get_weight(pat):
+        #     return sum([G.edge[x][y]['weight'] for x, y in
+        #                 zip(pat[:-1], pat[1:])])
+
+        # for pat in nx.shortest_simple_paths(G, start, finish):
+        #     if np.isclose(get_weight(pat), max_path_length) or get_weight(pat) > max_path_length:
+        #         long_path = pat
+        #         break
+
         long_path = \
             list(nx.shortest_simple_paths(G, start, finish, 'weight'))[-1]
+
         max_path.append(long_path)
         graphs.append(G)
 
@@ -696,7 +718,7 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
                                    [1] * k))[-1][0] != label:
                         k += 1
                     intersec_pts.extend(inters[k - 1])
-                    skeleton[list(zip(*inters[k - 1]))] = 2
+                    skeleton[tuple(zip(*inters[k - 1]))] = 2
             # Remove unnecessary pixels
             count = 0
             while True:

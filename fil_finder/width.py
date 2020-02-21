@@ -476,7 +476,7 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
 
     # Binning
     if bins is None:
-        nbins = np.sqrt(len(width_value))
+        nbins = int(np.sqrt(len(width_value)))
         maxbin = np.max(width_distance)
         if bintype is "log":
             # bins must start at 1 if logspaced
