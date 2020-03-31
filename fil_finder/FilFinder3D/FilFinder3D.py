@@ -201,6 +201,190 @@ class FilFinder3D():
         return [self.network.subgraph(c) for c in \
                 nx.connected_components(self.network)]
     
+
+    def longest_path(graph):
+        """
+        Finds the longest path from endnode to endnode in the input
+        graph given.
+        
+        Parameters
+        -------
+        graph : Networkx.graph()
+
+        Returns
+        -------
+        paths : list
+            List of trimmed possible paths found.
+        longest_path : list
+            Longest path of paths found.
+
+        """
+        
+        # Checking for Single Isolated Node with 0 degree
+        for node in graph:
+            if graph.degree(node) == 0:
+                #TODO May need to change this output for later
+                return None, None
+            
+        paths = []
+        endpoints = []
+        # Finding endpoints in subgraph
+        for node in graph:
+            if graph.degree(node) == 1:
+                endpoints.append(node)
+        
+        # Looping all endpoint to endpoint possible paths
+        for k in endpoints:
+            for i in endpoints:
+                if i != k:
+                    
+                    # Grabbing paths from k to i
+                    path = list(nx.all_simple_paths(graph, k, i))
+                    
+                    #TODO Simpler way to do this?
+                    # If there is more than one path found
+                    if len(path) > 1:
+                        for i in path:
+                            paths.append(i)
+                    else:
+                        paths.append(path[0]) # Only one path found
+                else:
+                    # If k and i are the same, no path, continue.
+                    continue
+        
+        # Trimming duplicate paths out of the list
+        for i in paths:
+            for ind, j in enumerate(paths):
+                if i != j:
+                    if i == j[::-1]: # Checking if the opposite is same
+                        del paths[ind] # Delete if true
+        
+        #TODO Is this the right way to do this? Discussion.
+        longest_path = max(paths, key=len)
+        
+        return paths, longest_path
+
+    def edge_builder(node_list):
+        """
+        Builds tuple edges for nodes in given list.
+        i.e. Input: [1,2,3] -> Output: [(1,2), (2,3)]
+
+        Parameters
+        ----------
+        node_list : list
+            List of single node numbers.
+
+        Returns
+        -------
+        edges : list
+             Returns a list of tuples that are the edges linking
+             input node_list together.
+
+        """
+        edges = []
+        for ind, val in enumerate(node_list):
+            #Looping to the second last entry of node_list
+            if ind < len(node_list) -1:
+                edge = (node_list[ind], node_list[ind+1])
+                edges.append(edge)
+            
+        return edges
+    
+    
+    def edge_pruner(graph, edges):
+        """
+        Takes the inpuyt graph object and prunes any edges that
+        are not in the edges input list.
+
+        Parameters
+        ----------
+        graph : Networkx.Graph()
+        edges : list
+
+        Returns
+        -------
+        graph : Networkx.Graph()
+
+        """
+        for edge in graph.edges:
+            # Checking both forward and backward edge.
+            if (edge in edges) or (tuple(reversed(edge)) in edges):
+                continue
+            else:
+                # If not found, remove.
+                graph.remove_edge(edge[0], edge[1])
+        
+        return graph
+    
+    def node_pruner(graph, path):
+        """
+        Takes the input graph object and prunes any nodes not found 
+        in path input list.
+    
+        Parameters
+        ----------
+        graph : Networkx.Graph()
+        path : list
+    
+        Returns
+        -------
+        graph : Networkx.Graph()
+        
+        """
+        
+        # TODO
+        # Switch to cleaner list comprehension
+        #[exp(i) for i in list if filter(i)]
+        
+        cutnodes = []
+        for node in graph.nodes:
+            if node in path:
+                continue
+            else:
+                cutnodes.append(node)
+        
+        graph.remove_nodes_from(cutnodes)
+        
+        return graph
+    
+    def pruning_wrapper(self):
+        """
+        Takes the attribute subgraph_list, and returns a new subset
+        of graph objects that only contain the longets path found
+        for each individual graph in subgraph_list.
+
+        Returns
+        -------
+        graphs_list : list
+            List of Networkx.Graph() objects.
+
+        """
+        graphs_list = []
+        for i in self.subgraph_list:
+            
+            # Creating New graph to modify
+            G = nx.Graph(i)
+            
+            # Gathering longest path and edges to keep
+            paths, long_path = self.longest_path(G)
+            
+            # Check if NoneType was returned, continue if so.
+            if paths == None and long_path == None:
+                continue
+            
+            edges = self.edge_builder(long_path)
+            
+            # Pruning off edges and nodes
+            G = self.edge_pruner(G, edges)
+            G = self.node_pruner(G, long_path)
+            
+            # Appending modified graph to main list
+            graphs_list.append(G)
+        
+        #TODO Add attribute to class, find a name for it.
+        
+        return graphs_list
+    
     
     def plot_3D(self):
         """
