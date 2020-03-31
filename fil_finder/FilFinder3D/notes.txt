@@ -1,23 +1,17 @@
 FilFinder3D.py
 
-This contains initial work done to create a class object which houses all 
-functions and control. Quickly abandoned.
+This file contains the main FilFinder3D class object.
 
 test_graph.py
 
 Contains a test Networkx.Graph() object to import and test with
 
-project_test.py
 
-This contains all the main work done. Includes definitions for the functions
-we would need to proceed with 3D work.
-Also if run, runs some test data at the end of the script.
 
 
 
 To Do:
 
-- Smooth the way cutting nodes work
 - Cut subgraphs under certain node length
 - Equivalent longest paths? How to deal with this
 - Combining subgraphs into main Network.Graph() object
