@@ -1,4 +1,4 @@
-2.0 (unreleased)
+1.7 (2020-04-01)
 ----------------
 - #53 : Fix for netwroksx v2.4. Changed `Graph.node` to `Graph.nodes`. The former was removed.
 - #52 : Fixes for astropy v4.0. Start dropping py27 tests from travis.
