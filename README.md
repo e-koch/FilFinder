@@ -1,7 +1,7 @@
 FilFinder
 =========
 
-**NOTE: FilFinder v1.6 introduces API changes and several critical bug fixes. Please use this update version!**
+**NOTE: FilFinder v1.6 introduces API changes and several critical bug fixes, and v1.7 fixes an error when using networkx >v2. Please update to use v1.7!**
 
 [![DOI](https://zenodo.org/badge/9172/e-koch/FilFinder.svg)](http://dx.doi.org/10.5281/zenodo.18463)
 
