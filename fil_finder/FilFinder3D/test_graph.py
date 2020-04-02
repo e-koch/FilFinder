@@ -7,6 +7,8 @@ Created on Fri Mar 20 11:37:32 2020
 """
 
 import networkx as nx
+from astropy.io import fits
+from FilFinder3D import FilFinder3D
 
 
 def test_graph():
@@ -29,3 +31,23 @@ def test_graph():
         ])
     
     return tg
+
+if __name__ == "__main__":
+    
+    DATA_DIR = '/home/samuelfielder/Documents/Astro/ngc4321_subset.fits'
+    
+    with fits.open(DATA_DIR) as hdul:
+        data = hdul[0].data
+        
+    Data = FilFinder3D(data)
+    
+    #Preprocess -> Masking -> Skeleton -> Network
+    Data.preprocess_image(skip_flatten=True)
+    Data.create_mask(glob_thresh=0.4)
+    Data.create_skeleton()
+    Data.create_network()
+    
+    # Returning subgraphs with longest filament found
+    # Also includes coordinate information on each node
+    graphs = Data.pruning_wrapper()
+    
