@@ -65,7 +65,7 @@ class FilFinder3D():
         """
         if skip_flatten:
             self._flatten_threshold = None
-            self.flat_img = self.image
+            self.flat_img = self._image
             
         else:
             #TODO Add in here
@@ -190,11 +190,11 @@ class FilFinder3D():
             self.network.nodes[node]['pos'] = self.coordinates[node]
         
         # Creating Subgraphlist
-        self.subgraph_list = self.subgraph_list(self)
+        self.subgraph_list = self.subgraph_list_maker()
         
         return
     
-    def subgraph_list(self):
+    def subgraph_list_maker(self):
         """
         Generates list of connected component subgraphs of network.
         """
@@ -202,7 +202,7 @@ class FilFinder3D():
                 nx.connected_components(self.network)]
     
 
-    def longest_path(graph):
+    def longest_path(self, graph):
         """
         Finds the longest path from endnode to endnode in the input
         graph given.
@@ -264,7 +264,7 @@ class FilFinder3D():
         
         return paths, longest_path
 
-    def edge_builder(node_list):
+    def edge_builder(self, node_list):
         """
         Builds tuple edges for nodes in given list.
         i.e. Input: [1,2,3] -> Output: [(1,2), (2,3)]
@@ -291,7 +291,7 @@ class FilFinder3D():
         return edges
     
     
-    def edge_pruner(graph, edges):
+    def edge_pruner(self, graph, edges):
         """
         Takes the inpuyt graph object and prunes any edges that
         are not in the edges input list.
@@ -316,7 +316,7 @@ class FilFinder3D():
         
         return graph
     
-    def node_pruner(graph, path):
+    def node_pruner(self, graph, path):
         """
         Takes the input graph object and prunes any nodes not found 
         in path input list.
@@ -364,7 +364,7 @@ class FilFinder3D():
             
             # Creating New graph to modify
             G = nx.Graph(i)
-            
+
             # Gathering longest path and edges to keep
             paths, long_path = self.longest_path(G)
             
@@ -411,3 +411,5 @@ class FilFinder3D():
         
         axs[0].imshow(self.image[slice_number])
         axs[1].imshow(self.mask[slice_number])
+
+
