@@ -47,7 +47,20 @@ if __name__ == "__main__":
     Data.create_skeleton()
     Data.create_network()
     
-    # Returning subgraphs with longest filament found
-    # Also includes coordinate information on each node
-    graphs = Data.pruning_wrapper()
+    G = Data.subgraph_list[1]
     
+    filament, branches = Data.subgraph_analyzer(G)
+    
+    Data.network_plot_3D(G)
+    Data.network_plot_3D(filament)
+    
+    # network_plot_3D(G,
+    #                 50,
+    #                 longest_path_edges,
+    #                 '/home/samuelfielder/Desktop/Figure_Test.pdf',
+    #                 save=True)
+
+
+    # # Returning subgraphs with longest filament found
+    # # Also includes coordinate information on each node
+    # graphs = Data.pruning_wrapper()
