@@ -626,6 +626,8 @@ class FilFinder2D(BaseInfoMixin):
                                      converter=self.converter) for lab in
                           range(1, num + 1)]
 
+        self.number_of_filaments = num
+
         # Now loop over the skeleton analysis for each filament object
         for n, fil in enumerate(self.filaments):
             savename = "{0}_{1}".format(save_name, n)
@@ -640,7 +642,6 @@ class FilFinder2D(BaseInfoMixin):
                                   branch_thresh=self.branch_thresh,
                                   max_prune_iter=max_prune_iter)
 
-        self.number_of_filaments = num
         self.array_offsets = [fil.pixel_extents for fil in self.filaments]
 
         branch_properties = {}
