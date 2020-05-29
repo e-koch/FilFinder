@@ -53,6 +53,7 @@ if __name__ == "__main__":
     
     Data.network_plot_3D(G)
     Data.network_plot_3D(filament)
+
     
     # network_plot_3D(G,
     #                 50,

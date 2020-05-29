@@ -14,8 +14,8 @@ import skimage.morphology as mo
 import networkx as nx
 import warnings
 
-class FilFinder3D():
-    
+
+class FilFinder3D:
     """
     Extract and analyze filamentary structure from a 3D dataset.
     
@@ -34,7 +34,7 @@ class FilFinder3D():
     
     def __init__(self, image, mask=None, save_name='FilFinder3D_output'):
         
-        #TODO add image checking here
+        # TODO add image checking here
         self._image = image
         
         self.save_name = save_name
@@ -45,9 +45,9 @@ class FilFinder3D():
             if self.image.shape != mask.shape:
                 raise ValueError("The given pre-existing mask must"
                                  " have the same shape as input image." )
-                # Clearing NaN entries
-                mask[np.isnan(mask)] = 0.0
-                self.mask = mask
+            # Clearing NaN entries
+            mask[np.isnan(mask)] = 0.0
+            self.mask = mask
     
     def preprocess_image(self, skip_flatten=False, flatten_percent=None):
         """
@@ -68,7 +68,7 @@ class FilFinder3D():
             self.flat_img = self._image
             
         else:
-            #TODO Add in here
+            # TODO Add in here
             return
     
     def create_mask(self, glob_thresh=None, verbose=False,
@@ -94,6 +94,7 @@ class FilFinder3D():
             The mask of the filaments.
 
         """
+        
         if self.mask is not None and use_existing_mask:
             warnings.warn("Using inputted mask. Skipping creation "
                           " of a new mask.")
@@ -101,7 +102,7 @@ class FilFinder3D():
         if glob_thresh is None:
             self.glob_thresh = None
         else:
-            #TODO Check if glob_thresh is proper
+            # TODO Check if glob_thresh is proper
             self.glob_thresh = glob_thresh
 
         # Here starts the masking process
@@ -113,26 +114,14 @@ class FilFinder3D():
         # Just using global threshold for now
         self.mask = flat_copy > glob_thresh
         
-        if verbose or save_png:
-            plt.clf()
-            plt.imshow(self.flat_img.value)
-            plt.contour(self.mask)
-            plt.title("Mask on Flattened Image.")
-            
-            if save_png:
-                plt.savefig(self.save_name + '_mask.png')
-            if verbose:
-                plt.show()
-            
-            #TODO What is this?
-            #if in_ipynb():
-                #plt.clf()
-        
         return
     
     def create_skeleton(self, ball_radius=3):
         """
-        
+        Creates the sparse.csr_matrix skeleton representation of the input data.
+        Uses a ball object to dilate the image, includes a morphological closing
+        step, and finally creates the skeleton via the skeletonize_3d function.
+
         Parameters
         ----------
         ball_radius : int, optional
@@ -148,9 +137,10 @@ class FilFinder3D():
             i and j.
         coodinates : numpy.ndarray
             Mapping indices in pixel_graph to pixel coordinates
-            
+        degrees : numpy.ndarray
+            Degree of node at specific position in data
         """
-        #TODO should we use other shape here?
+        # TODO should we use other shape here?
         # Create slider object
         selem = mo.ball(ball_radius)
         
@@ -170,6 +160,7 @@ class FilFinder3D():
         
         # Re-casting Coordinates into int
         self.coordinates = self.coordinates.astype(int)
+        
         return
     
     def create_network(self):
@@ -188,22 +179,19 @@ class FilFinder3D():
         self.network = nx.from_scipy_sparse_matrix(self.pixel_graph)
         
         # Appending 3D pixel positions as node attributes
-        # Appending 3D Pixel intensity value as node attribute
+        # Appending 3D Pixel data value as node attribute
         for node in self.network.nodes:
             self.network.nodes[node]['pos'] = self.coordinates[node]
             self.network.nodes[node]['data'] = self._image[self.coordinates[node][0],
                                                            self.coordinates[node][1],
                                                            self.coordinates[node][2]]
-            
-        
-        
         
         # Creating Subgraphlist
         self.subgraph_list = [self.network.subgraph(c) for c in \
                               nx.connected_components(self.network)]
             
-        #TODO Check for skeleton_threshold for subgraphs -> pre-prune
-            
+        # TODO Check for skeleton_threshold for subgraphs -> pre-prune     
+
 
     def longest_path(self, graph):
         """
@@ -227,11 +215,11 @@ class FilFinder3D():
         """
         
         # Checking for Single Isolated Node with 0 degree
-        #TODO Won't be needed after pre-pruning is dealt with
+        # TODO Won't be needed after pre-pruning is dealt with
         if len(graph) < 2:
             return None, None
         
-        #Initialize lists
+        # Initialize lists
         paths = []
         endnodes = []
         internodes = []
@@ -266,13 +254,13 @@ class FilFinder3D():
                     if i == j[::-1]: # Checking if the opposite is same
                         del paths[ind] # Delete if true
         
-        #TODO What happens when the longest paths are tied -> tie-breaker
+        # TODO What happens when the longest paths are tied -> tie-breaker
         longest_path = max(paths, key=len)
         
         return paths, longest_path, internodes
     
     def subgraph_analyzer(self, graph):
-        '''
+        """
         Takes graph object, finds longest shortest path between two endnodes,
         isolates this path as a graph by removing edges on intersections that
         are not part of the longest shortest path. Then creates a list of
@@ -289,23 +277,25 @@ class FilFinder3D():
             list of networkx.Graph objects which represent branches off
             the longest shortest path
 
-        '''
+        """
         
-        # Grabbing Longest path alongs with nodes and internodes
+        # Grabbing Longest path along with nodes and internodes
         paths, longest_path, internodes = self.longest_path(graph)
         
         # Building a list of edges to check against the main filament
         longest_path_edges = self.edge_builder(longest_path)
+        
         # Building list of nodes in main filament that are internodes
         intersections = [i for i in longest_path if i in internodes]
         
-        #Creating new graph to edit
+        # Creating new graph to edit
         H = nx.Graph(graph)
+        
         # Looping through each intersection along main filament branch
         # and removing edges that are not part of the main filament branch
         for i in intersections:
             for j in graph.neighbors(i):
-                if (i,j) in longest_path_edges or (j,i) in longest_path_edges:
+                if (i, j) in longest_path_edges or (j, i) in longest_path_edges:
                     pass
                 else:
                     H.remove_edge(i, j)
@@ -315,7 +305,7 @@ class FilFinder3D():
         filaments = [H.subgraph(c) for c in nx.connected_components(H)]
         filaments_lengths = [len(i.nodes) for i in filaments]
         
-        #Compute the main filament, and branches
+        # Compute the main filament, and branches
         filament = filaments[filaments_lengths.index(max(filaments_lengths))]
         branches = [i for i in filaments if i is not filament]
         
@@ -341,11 +331,48 @@ class FilFinder3D():
         edges = []
         for ind, val in enumerate(node_list):
             # Looping to the second last entry of node_list
-            if ind < len(node_list) -1:
+            if ind < len(node_list) - 1:
                 edge = (node_list[ind], node_list[ind+1])
                 edges.append(edge)
             
         return edges
+    
+    def filament_trimmer(self, filament, branches):
+        """
+        Runs through the branches of the filament and trims based on
+        certain inputted criteria.
+
+        Parameters
+        ----------
+        filament : networkx.Graph
+            Associated with the longest path filament found.
+        branches : list (of networkx.Graph objects)
+            Associated with the branches off the longest path filament.
+
+        Attributes
+        -------
+        filaments : list
+            Will include all the filaments that make it through the trimming
+            process of this function. Each index in the list is a Filament3D
+            instance.
+
+        """
+
+        # Creating filaments attribute which will hold a list of Filament3D
+        # objects that are not trimmed from the criteria
+        self.filaments = []
+        
+        main_filament = Filament3D(filament)
+        inspect_branches = [Filament3D(x) for x in branches]
+        
+        # TODO Code here for testing branches
+        # use del in this code to delete the branches from the list as the code runs
+        
+        # Add leftover branches and main_filament to the self.filaments attribute
+        self.filaments.append(main_filament)
+        # Loop through leftover branches here
+        for i in inspect_branches:
+            self.filaments.append(i)
     
     @staticmethod
     def network_plot_3D(G, angle=40, filename='plot.pdf', save=False):
@@ -429,3 +456,55 @@ class FilFinder3D():
         axs[1].imshow(self.mask[slice_number])
 
 
+class Filament3D:
+    def __init__(self, network):
+        # Sets the network object associated with filament
+        self.network = network
+        
+        # Number of nodes
+        self.number_of_nodes = network.number_of_nodes()
+        
+        # Compute the spatial/spectral length of the filament
+        self.spatial_length = 0
+        self.spectral_length = 0
+        self.intensity = 0
+        
+        # Loop through and compute both spatial and spectral lengths
+        # Also track total intensity
+        
+        for ind, node in enumerate(network):
+            # This first iteration should only set the x1,y1,z1, and intensity
+            if ind == 0:
+                x1 = network.nodes[node]['pos'][0]
+                y1 = network.nodes[node]['pos'][1]
+                z1 = network.nodes[node]['pos'][2]
+                
+                self.intensity += network.nodes[node]['data']
+                continue
+            
+            # Setting current node as '2'
+            x2 = network.nodes[node]['pos'][0]
+            y2 = network.nodes[node]['pos'][1]
+            z2 = network.nodes[node]['pos'][2]
+            
+            # Compute spatial length here
+            self.spatial_length += (((x1+x2)**2) + ((y1+y2)**2))
+            
+            # Compute spectral length here
+            self.spectral_length += (((x1+x2)**2) + ((y1+y2)**2) + ((z1+z2)**2))
+            
+            # Add intensity to the attribute
+            self.intensity += network.nodes[node]['data']
+            
+            # Set x1 and y2 as current x2 and y2 for next iteration
+            x2 = x1
+            y2 = y1
+            
+            # If current index is second from the end, then exit the loop
+            # as all lengths will be calculated
+            if ind == self.number_of_nodes - 2:
+                break
+            
+        
+        # Compute the average intensity of data
+        self.average_intensity = self.intensity / self.number_of_nodes
