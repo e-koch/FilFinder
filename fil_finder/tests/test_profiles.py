@@ -27,7 +27,7 @@ def test_walk_through_skeleton():
     skel, crds = make_test_skeleton()
     out_crds = walk_through_skeleton(skel)
 
-    assert out_crds == zip(crds[:, 0], crds[:, 1])
+    assert out_crds == list(zip(crds[:, 0], crds[:, 1]))
 
 
 def test_return_ends():
