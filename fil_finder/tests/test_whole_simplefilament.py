@@ -10,6 +10,7 @@ from .. import fil_finder_2D, FilFinder2D
 from .testing_utils import generate_filament_model
 
 
+@pytest.mark.openfiles_ignore
 def test_simple_filament_compareold():
     '''
     Check the outputs using a simple straight filament with a Gaussian profile.
@@ -244,6 +245,7 @@ def test_simple_filament_compareold():
     del hdu
 
 
+@pytest.mark.openfiles_ignore
 def test_simple_filament_noheader():
     '''
     Check the outputs using a simple straight filament with a Gaussian profile.
