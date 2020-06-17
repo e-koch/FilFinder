@@ -470,9 +470,6 @@ def longest_path(edge_list, nodes, verbose=False,
 
         long_path = all_paths[all_weights.index(max(all_weights))]
 
-        long_path1 = \
-            list(nx.shortest_simple_paths(G, start, finish, 'weight'))
-
         max_path.append(long_path)
         graphs.append(G)
 
