@@ -1441,7 +1441,8 @@ class Filament2D(FilamentNDBase):
         return tab
 
     def save_fits(self, savename, image, pad_size=20 * u.pix, header=None,
-                  **model_kwargs):
+                  model_kwargs={},
+                  **kwargs):
         '''
         Save a stamp of the image centered on the filament, the skeleton,
         the longest path skeleton, and the model.
@@ -1455,7 +1456,9 @@ class Filament2D(FilamentNDBase):
         header : `~astropy.io.fits.Header`, optional
             Provide a FITS header to save to. If `~Filament2D` was
             given WCS information, this will be used if no header is given.
-        model_kwargs : Passed to `~Filament2D.model_image`.
+        model_kwargs : dict, optional
+            Passed to `~Filament2D.model_image`.
+        kwargs : Passed to `~astropy.io.fits.PrimaryHDU.writeto`.
 
         '''
 
@@ -1506,7 +1509,7 @@ class Filament2D(FilamentNDBase):
 
         hdulist = fits.HDUList([hdu, skel_hdu, skel_lp_hdu, model_hdu])
 
-        hdulist.writeto(savename)
+        hdulist.writeto(savename, **kwargs)
 
     def to_pickle(self, savename):
         '''
