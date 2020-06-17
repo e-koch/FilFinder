@@ -45,10 +45,10 @@ matrix:
           env: PYTHON_VERSION=3.7 TOXENV='py37-test-all'
           name: "Python 3.7 with all dependencies on MacOS X"
 
-        - language: c
-          os: windows
-          env: PYTHON_VERSION=3.7 TOXENV='py37-test-all-dev'
-          name: "Python 3.7, all dependencies, and dev versions of key dependencies on Windows"
+        # - language: c
+        #   os: windows
+        #   env: PYTHON_VERSION=3.7 TOXENV='py37-test-all-dev'
+        #   name: "Python 3.7, all dependencies, and dev versions of key dependencies on Windows"
 
         - python: 3.8
           env: TOXENV='build_docs'
