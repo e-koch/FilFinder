@@ -1483,7 +1483,7 @@ class fil_finder_2D(BaseInfoMixin):
                                          self.pad_size:-self.pad_size]
 
     def save_fits(self, save_name=None, stamps=False, filename=None,
-                  model_save=True):
+                  model_save=True, **kwargs):
         '''
 
         This function saves the mask and the skeleton array as FITS files.
@@ -1546,7 +1546,8 @@ class fil_finder_2D(BaseInfoMixin):
         # Save mask
         fits.writeto(os.path.join(self.save_name,
                                   "".join([save_name, "_mask.fits"])),
-                     self.mask_nopad.astype(">i2"), new_hdr)
+                     self.mask_nopad.astype(">i2"), new_hdr,
+                     **kwargs)
 
         # Save skeletons. Includes final skeletons and the longest paths.
         new_hdr["BUNIT"] = ("int", "")
@@ -1571,7 +1572,8 @@ class fil_finder_2D(BaseInfoMixin):
         try_mkdir(self.save_name)
 
         hdu_skel.writeto(os.path.join(self.save_name,
-                                      "".join([save_name, "_skeletons.fits"])))
+                                      "".join([save_name, "_skeletons.fits"])),
+                         **kwargs)
 
         if stamps:
             # Save stamps of all images. Include portion of image and the
@@ -1635,7 +1637,8 @@ class fil_finder_2D(BaseInfoMixin):
                            header=prim_hdr))
 
                 hdu.writeto(os.path.join(out_dir,
-                                         save_name+"_object_"+str(n+1)+".fits"))
+                                         save_name+"_object_"+str(n+1)+".fits"),
+                            **kwargs)
 
         if model_save:
             model = self.filament_model(use_nopad=True)
@@ -1652,7 +1655,8 @@ class fil_finder_2D(BaseInfoMixin):
             try_mkdir(self.save_name)
             model_hdu.writeto(
                 os.path.join(self.save_name,
-                             "".join([save_name, "_filament_model.fits"])))
+                             "".join([save_name, "_filament_model.fits"])),
+                             **kwargs)
 
     def __str__(self):
         print("%s filaments found.") % (self.number_of_filaments)
