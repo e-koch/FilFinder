@@ -9,10 +9,10 @@ from astropy.table import Table
 
 dir_path = os.path.dirname(__file__)
 
-path1 = os.path.join(dir_path, "testing_data/test1")
-path2 = os.path.join(dir_path, "testing_data/test2")
+path1 = os.path.join(dir_path, "data/")
+path2 = os.path.join(dir_path, "data/")
 
-img_path = os.path.join(dir_path, "testing_data")
+img_path = os.path.join(dir_path, "data")
 
 # Load in the fits file
 img, hdr = \
@@ -21,6 +21,7 @@ img, hdr = \
 
 # Load in each dataset
 
+print(os.path.join(path1, "test1_filament_model.fits"))
 model1 = fits.getdata(os.path.join(path1, "test1_filament_model.fits"))
 mask1 = fits.getdata(os.path.join(path1, "test1_mask.fits"))
 skeletons1 = \
