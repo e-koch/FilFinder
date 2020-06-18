@@ -1558,9 +1558,67 @@ class Filament2D(FilamentNDBase):
         return self
 
 
-class Filament3D(FilamentNDBase):
-    """docstring for Filament3D"""
+class FilamentPPP(FilamentNDBase):
+    """
+    docstring for FilamentPPP
+    """
     def __init__(self, arg):
-        super(Filament3D, self).__init__()
         self.arg = arg
 
+
+class FilamentPPV(FilamentNDBase):
+
+    def __init__(self, network):
+
+        super(Filament3D, self).__init__()
+
+        # Sets the network object associated with filament
+        self.network = network
+
+        # Number of nodes
+        self.number_of_nodes = network.number_of_nodes()
+
+        # Compute the spatial/spectral length of the filament
+        self.spatial_length = 0
+        self.spectral_length = 0
+        self.intensity = 0
+
+        # Loop through and compute both spatial and spectral lengths
+        # Also track total intensity
+
+        for ind, node in enumerate(network):
+            # This first iteration should only set the x1,y1,z1, and intensity
+            if ind == 0:
+                x1 = network.nodes[node]['pos'][0]
+                y1 = network.nodes[node]['pos'][1]
+                z1 = network.nodes[node]['pos'][2]
+
+                self.intensity += network.nodes[node]['data']
+                continue
+
+            # Setting current node as '2'
+            x2 = network.nodes[node]['pos'][0]
+            y2 = network.nodes[node]['pos'][1]
+            z2 = network.nodes[node]['pos'][2]
+
+            # Compute spatial length here
+            self.spatial_length += (((x1+x2)**2) + ((y1+y2)**2))
+
+            # Compute spectral length here
+            self.spectral_length += (((x1+x2)**2) + ((y1+y2)**2) + ((z1+z2)**2))
+
+            # Add intensity to the attribute
+            self.intensity += network.nodes[node]['data']
+
+            # Set x1 and y2 as current x2 and y2 for next iteration
+            x2 = x1
+            y2 = y1
+
+            # If current index is second from the end, then exit the loop
+            # as all lengths will be calculated
+            if ind == self.number_of_nodes - 2:
+                break
+
+
+        # Compute the average intensity of data
+        self.average_intensity = self.intensity / self.number_of_nodes
