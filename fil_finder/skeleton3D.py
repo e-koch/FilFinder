@@ -5,7 +5,6 @@ Skeleton routines common to 3D data.
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from skan import csr
 import numpy as np
 import scipy.ndimage as nd
 import skimage.morphology as mo
@@ -17,6 +16,12 @@ class Skeleton3D(object):
     """
     docstring for Skeleton3D
     """
+
+    def _has_skan(self):
+        try:
+            import skan
+        except ImportError:
+            raise ImportError("3D filaments requires the skan package to be installed.")
 
     def create_skeleton(self, min_pixel=0):
         """
@@ -65,6 +70,8 @@ class Skeleton3D(object):
         self.skeleton = skeleton_init
 
         # Converting skeleton to graph
+        from skan import csr
+
         out = csr.skeleton_to_csgraph(self.skeleton,
                                       unique_junctions=False)
 
