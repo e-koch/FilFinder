@@ -17,7 +17,7 @@ import warnings
 from .filament import FilamentPPV
 
 
-class FilFinder3D:
+class FilFinderPPV(object):
     """
     Extract and analyze filamentary structure from a 3D dataset.
 
