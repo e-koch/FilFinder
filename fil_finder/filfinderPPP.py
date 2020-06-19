@@ -30,6 +30,8 @@ class FilFinderPPP(Skeleton3D):
 
     def __init__(self, image, mask=None, save_name='FilFinder3D_output'):
 
+        self._has_skan()
+
         # TODO add image checking here
         self._image = image
 
@@ -163,6 +165,7 @@ class FilFinderPPP(Skeleton3D):
 
 
     # TODO: move to Filament3D class or equivalent.
+    # TODO: also add a plotly version. Preferably GPU based to make it snappy.
     @staticmethod
     def network_plot_3D(G, angle=40, filename='plot.pdf', save=False):
         '''

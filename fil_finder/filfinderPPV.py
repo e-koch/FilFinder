@@ -15,9 +15,10 @@ import networkx as nx
 import warnings
 
 from .filament import FilamentPPV
+from .skeleton3D import Skeleton3D
 
 
-class FilFinderPPV(object):
+class FilFinderPPV(Skeleton3D):
     """
     Extract and analyze filamentary structure from a 3D dataset.
 
@@ -35,6 +36,8 @@ class FilFinderPPV(object):
     """
 
     def __init__(self, image, mask=None, save_name='FilFinder3D_output'):
+
+        self._has_skan()
 
         # TODO add image checking here
         self._image = image
