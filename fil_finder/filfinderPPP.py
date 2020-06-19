@@ -1,7 +1,6 @@
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from skan import csr
 import numpy as np
 import skimage.morphology as mo
 import networkx as nx
