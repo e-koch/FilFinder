@@ -46,6 +46,10 @@ class FilFinderPPP(Skeleton3D):
             mask[np.isnan(mask)] = 0.0
             self.mask = mask
 
+        # self.converter = UnitConverter(self.wcs, distance)
+        self.converter = None
+
+
     def preprocess_image(self, skip_flatten=False, flatten_percent=None):
         """
         Preprocess and flatten the dataset before running the masking process.
@@ -124,43 +128,31 @@ class FilFinderPPP(Skeleton3D):
 
         self.mask = close
 
-    def filament_trimmer(self, filament, branches):
-        """
-        Runs through the branches of the filament and trims based on
-        certain inputted criteria.
+    def analyze_skeletons(self,):
+        '''
+        '''
 
-        Parameters
-        ----------
-        filament : networkx.Graph
-            Associated with the longest path filament found.
-        branches : list (of networkx.Graph objects)
-            Associated with the branches off the longest path filament.
+        # Define the skeletons
 
-        Attributes
-        -------
-        filaments : list
-            Will include all the filaments that make it through the trimming
-            process of this function. Each index in the list is a Filament3D
-            instance.
+        num = self._skel_labels.max()
 
-        """
-
-        # Creating filaments attribute which will hold a list of Filament3D
-        # objects that are not trimmed from the criteria
         self.filaments = []
 
-        main_filament = FilamentPPP(filament)
-        inspect_branches = [FilamentPPP(x) for x in branches]
+        for i in range(1, num + 1):
 
-        # TODO Code here for testing branches
-        # use del in this code to delete the branches from the list as the code runs
+            coords = np.where(self._skel_labels == i)
 
-        # Add leftover branches and main_filament to the self.filaments attribute
-        self.filaments.append(main_filament)
-        # Loop through leftover branches here
-        for i in inspect_branches:
-            self.filaments.append(i)
+            self.filaments.append(FilamentPPP(coords,
+                                              converter=self.converter))
 
+        # Calculate lengths and find the longest path.
+        # Followed by pruning.
+        for fil in self.filaments:
+            fil._make_skan_skeleton()
+
+            fil.find_longest_path()
+
+            fil.prune_skeleton(self._image)
 
 
     # TODO: move to Filament3D class or equivalent.

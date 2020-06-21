@@ -55,9 +55,10 @@ class Skeleton3D(object):
 
         skel_labels, num = nd.label(skeleton_init, np.ones((3, 3, 3)))
 
-        skel_pix_nums = nd.sum(skeleton_init, skel_labels, range(1, num + 1))
+        self._skel_pix_nums = nd.sum(skeleton_init, skel_labels, range(1, num + 1))
 
         # If fewer pixels than min_pixel, remove from the skeleton array.
+        # Also create Filament objects
         for i in range(1, num + 1):
 
             coords = np.where(skel_labels == i)
@@ -67,18 +68,9 @@ class Skeleton3D(object):
 
             skeleton_init[coords] = False
 
+        self._skel_labels = nd.label(skeleton_init, np.ones((3, 3, 3)))[0]
+
         self.skeleton = skeleton_init
-
-        # Converting skeleton to graph
-        from skan import csr
-
-        out = csr.skeleton_to_csgraph(self.skeleton,
-                                      unique_junctions=False)
-
-        self.pixel_graph, self.coordinates, self.degrees = out
-
-        # Re-casting Coordinates into int
-        self.coordinates = self.coordinates.astype(int)
 
     def create_network(self):
         """
@@ -92,24 +84,36 @@ class Skeleton3D(object):
             Contains graph objects of found connected component graphs
 
         """
+        pass
 
-        self.network = nx.from_scipy_sparse_matrix(self.pixel_graph)
+        # # Converting skeleton to graph
+        # from skan import csr
 
-        # Appending 3D pixel positions as node attributes
-        # Appending 3D Pixel data value as node attribute
-        for node in self.network.nodes:
-            self.network.nodes[node]['pos'] = self.coordinates[node]
-            self.network.nodes[node]['data'] = self._image[self.coordinates[node][0],
-                                                           self.coordinates[node][1],
-                                                           self.coordinates[node][2]]
+        # out = csr.skeleton_to_csgraph(self.skeleton,
+        #                               unique_junctions=False)
 
-        self.subgraph_list = []
+        # self.pixel_graph, self.coordinates, self.degrees = out
 
-        for sub_id in nx.connected_components(self.network):
+        # # Re-casting Coordinates into int
+        # self.coordinates = self.coordinates.astype(int)
 
-            subgraph = self.network.subgraph(sub_id)
+        # self.network = nx.from_scipy_sparse_matrix(self.pixel_graph)
 
-            self.subgraph_list.append(subgraph)
+        # # Appending 3D pixel positions as node attributes
+        # # Appending 3D Pixel data value as node attribute
+        # for node in self.network.nodes:
+        #     self.network.nodes[node]['pos'] = self.coordinates[node]
+        #     self.network.nodes[node]['data'] = self._image[self.coordinates[node][0],
+        #                                                    self.coordinates[node][1],
+        #                                                    self.coordinates[node][2]]
+
+        # self.subgraph_list = []
+
+        # for sub_id in nx.connected_components(self.network):
+
+        #     subgraph = self.network.subgraph(sub_id)
+
+        #     self.subgraph_list.append(subgraph)
 
             # Example of the min_pixel cut applied to graphs.
             # This might be a lot more efficient, so I'm keeping

@@ -9,6 +9,7 @@ from astropy.nddata import extract_array
 import astropy.modeling as mod
 from astropy.modeling.models import Gaussian1D, Const1D
 import sys
+import operator
 
 if sys.version_info[0] >= 3:
     import _pickle as pickle
@@ -1540,7 +1541,7 @@ class Filament2D(FilamentNDBase):
         '''
 
         with open(savename, 'wb') as output:
-                pickle.dump(self, output, -1)
+            pickle.dump(self, output, -1)
 
     @staticmethod
     def from_pickle(filename):
@@ -1553,7 +1554,7 @@ class Filament2D(FilamentNDBase):
             Name of the pickle file.
         '''
         with open(filename, 'rb') as input:
-                self = pickle.load(input)
+            self = pickle.load(input)
 
         return self
 
@@ -1562,8 +1563,163 @@ class FilamentPPP(FilamentNDBase):
     """
     docstring for FilamentPPP
     """
-    def __init__(self, arg):
-        self.arg = arg
+
+    def __init__(self, pixel_coords, converter=None, wcs=None, distance=None):
+
+        self._pixel_coords = pixel_coords
+
+        # Create a separate account of the initial skeleton pixels
+        self._orig_pixel_coords = pixel_coords
+
+        if converter is not None:
+            self._converter = converter
+        else:
+            self._converter = UnitConverter(wcs=wcs, distance=distance)
+
+    def skeleton(self, pad_size=0, corner_pix=None, out_type='all'):
+        '''
+        Create a mask from the pixel coordinates.
+
+        Parameters
+        ----------
+        pad_size : int, optional
+            Number of pixels to pad along each edge.
+        corner_pix : tuple of ints, optional
+            The position of the left-bottom corner of the pixels in the
+            skeleton. Used for offsetting the location of the pixels.
+        out_type : {"all", "longpath"}, optional
+            Return the entire skeleton or just the longest path. Default is to
+            return the whole skeleton.
+
+        Returns
+        -------
+        mask : `~numpy.ndarray`
+            Boolean mask containing the skeleton pixels.
+        '''
+
+        pad_size = int(pad_size)
+        if pad_size < 0:
+            raise ValueError("pad_size must be a positive integer.")
+
+        if corner_pix is None:
+            # Place the smallest pixel in the set at the pad size
+            corner_pix = [pad_size, pad_size, pad_size]
+
+        out_types = ['all', 'longpath']
+        if out_type not in out_types:
+            raise ValueError("out_type must be 'all' or 'longpath'.")
+
+        z_shape = self.pixel_extents[1][0] - self.pixel_extents[0][0] + \
+            2 * pad_size + 1
+        y_shape = self.pixel_extents[1][1] - self.pixel_extents[0][1] + \
+            2 * pad_size + 1
+        x_shape = self.pixel_extents[1][2] - self.pixel_extents[0][2] + \
+            2 * pad_size + 1
+
+        mask = np.zeros((z_shape, y_shape, x_shape), dtype=bool)
+
+        if out_type == 'all':
+            pixels = self.pixel_coords
+        else:
+            if not hasattr(self, '_longpath_pixel_coords'):
+                raise AttributeError("longest path is not defined. Run "
+                                     "`Filament2D.skeleton_analysis` first.")
+            pixels = self.longpath_pixel_coords
+
+        mask[pixels[0] - self.pixel_extents[0][0] + corner_pix[0],
+             pixels[1] - self.pixel_extents[0][1] + corner_pix[1],
+             pixels[2] - self.pixel_extents[0][2] + corner_pix[2]] = True
+
+        return mask
+
+    def _make_skan_skeleton(self):
+        '''
+        Use skan.Skeleton to create a graph and get branch statistics.
+        '''
+
+        # Import skan here to create the graph.
+        from skan import Skeleton
+
+        self._skan_skeleton = Skeleton(self.skeleton(out_type='all',
+                                                     pad_size=1))
+
+        self._graph = nx.from_scipy_sparse_matrix(self._skan_skeleton.graph)
+
+    def skeleton_analysis(self, image, verbose=False, save_png=False,
+                          save_name=None, prune_criteria='all',
+                          relintens_thresh=0.2, max_prune_iter=10,
+                          branch_thresh=0 * u.pix):
+
+        '''
+        Combines finding the longest path and pruning the filament.
+
+        '''
+
+        self.find_longest_path(verbose=verbose)
+
+        self.prune_skeleton(image,
+                            verbose=verbose,
+                            save_png=save_png,
+                            save_name=save_name,
+                            prune_criteria=prune_criteria,
+                            relintens_thresh=relintens_thresh,
+                            max_prune_iter=max_prune_iter,
+                            branch_thresh=branch_thresh)
+
+    def find_longest_path(self, verbose=False):
+        '''
+        Identify the longest path through the skeleton.
+        '''
+
+        paths = dict(nx.shortest_path_length(self._graph, weight='weight'))
+
+        values = []
+        node_extrema = []
+
+        for i in paths.keys():
+            j = max(paths[i].items(), key=operator.itemgetter(1))
+            node_extrema.append((j[0], i))
+            values.append(j[1])
+
+        max_path_length = max(values)
+        start, finish = node_extrema[values.index(max_path_length)]
+        self._beginning_end_nodes = [start, finish]
+
+        def get_weight(pat):
+            return sum([self._graph[x][y]['weight'] for x, y in
+                        zip(pat[:-1], pat[1:])])
+
+        all_paths = []
+        all_weights = []
+
+        # Catch the weird edges cases where
+        # for pat in nx.shortest_simple_paths(self._graph, start, finish):
+        for pat in nx.all_shortest_paths(self._graph, start, finish):
+            if verbose:
+                print(f"path weight: {get_weight(pat)} and max_path_length: {max_path_length}")
+
+            if pat in all_paths:
+                break
+
+            all_paths.append(pat)
+            all_weights.append(get_weight(pat))
+
+        long_path = all_paths[all_weights.index(max(all_weights))]
+
+        self._long_path = long_path
+
+        self._length = max(all_weights)
+
+
+    def prune_skeleton(self, image, verbose=False, save_png=False,
+                       save_name=None, prune_criteria='all',
+                       relintens_thresh=0.2, max_prune_iter=10,
+                       branch_thresh=0 * u.pix):
+        '''
+        Remove short branches not on the longest path.
+        '''
+
+        pass
 
 
 class FilamentPPV(FilamentNDBase):
