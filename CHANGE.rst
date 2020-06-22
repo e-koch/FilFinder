@@ -1,5 +1,6 @@
 2.0 (unreleased)
 ----------------
+- #60 : Change longest path algorithm to catch unending loops from `networkx.shortest_simple_paths`. Note that this is not yet a general solution.
 
 1.7 (2020-04-01)
 ----------------
