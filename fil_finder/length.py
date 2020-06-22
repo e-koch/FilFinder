@@ -377,7 +377,8 @@ def pre_graph(labelisofil, branch_properties, interpts, ends):
 
 
 def longest_path(edge_list, nodes, verbose=False,
-                 skeleton_arrays=None, save_png=False, save_name=None):
+                 skeleton_arrays=None, save_png=False, save_name=None,
+                 test_print=False):
     '''
     Takes the output of pre_graph and runs the shortest path algorithm.
 
@@ -404,6 +405,10 @@ def longest_path(edge_list, nodes, verbose=False,
         For use when ``save_png`` is enabled.
         **MUST be specified when ``save_png`` is enabled.**
 
+    test_print : bool, optional
+        Enable extra printing to screen when finding the longest path. Defaults
+        is `False`.
+
     Returns
     -------
 
@@ -425,10 +430,13 @@ def longest_path(edge_list, nodes, verbose=False,
     for n in range(num):
         G = nx.Graph()
         G.add_nodes_from(nodes[n])
+
         for i in edge_list[n]:
             G.add_edge(i[0], i[1], weight=i[2][1])
+
         # networkx 2.0 returns a two-element tuple. Convert to a dict first
         paths = dict(nx.shortest_path_length(G, weight='weight'))
+
         values = []
         node_extrema = []
 
@@ -436,21 +444,41 @@ def longest_path(edge_list, nodes, verbose=False,
             j = max(paths[i].items(), key=operator.itemgetter(1))
             node_extrema.append((j[0], i))
             values.append(j[1])
+
         max_path_length = max(values)
         start, finish = node_extrema[values.index(max_path_length)]
         extremum.append([start, finish])
 
-        # def get_weight(pat):
-        #     return sum([G.edge[x][y]['weight'] for x, y in
-        #                 zip(pat[:-1], pat[1:])])
+        def get_weight(pat):
+            return sum([G[x][y]['weight'] for x, y in
+                        zip(pat[:-1], pat[1:])])
 
-        # for pat in nx.shortest_simple_paths(G, start, finish):
-        #     if np.isclose(get_weight(pat), max_path_length) or get_weight(pat) > max_path_length:
-        #         long_path = pat
-        #         break
+        # Keep the paths to make sure we're not getting into a loop from a loop
+        all_paths = []
+        all_weights = []
 
-        long_path = \
-            list(nx.shortest_simple_paths(G, start, finish, 'weight'))[-1]
+        # Catch the weird edges cases where
+        max_npath = 500
+        for it, pat in enumerate(nx.shortest_simple_paths(G, start, finish)):
+            if test_print:
+                print(f"path weight: {get_weight(pat)} and max_path_length: {max_path_length}")
+
+            if pat in all_paths:
+                break
+
+            if it > 0:
+                if all_weights[-1] > get_weight(pat):
+                    break
+
+            if it > max_npath:
+                raise ValueError("Unable to find maximum path. This is likely a bug. Please"
+                                 " report to https://github.com/e-koch/FilFinder.")
+                break
+
+            all_paths.append(pat)
+            all_weights.append(get_weight(pat))
+
+        long_path = all_paths[all_weights.index(max(all_weights))]
 
         max_path.append(long_path)
         graphs.append(G)

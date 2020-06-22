@@ -929,14 +929,32 @@ class Filament2D(FilamentNDBase):
             # Make the equivalent Gaussian model w/ a background
             self._radprof_model = Gaussian1D() + Const1D()
             if self._radprof_model._supports_unit_fitting:
-                self._radprof_model.amplitude_0 = fit[0] * yunit
+                add_unit_if_none = lambda x, unit: x * unit if not hasattr(x, 'unit') else x
+
+                self._radprof_model.amplitude_0 = add_unit_if_none(fit[0], yunit)
                 self._radprof_model.mean_0 = 0.0 * xunit
-                self._radprof_model.sigma_0 = fit[1] * xunit
-                self._radprof_model.amplitude_1 = fit[2] * yunit
+                # At some point this parameter name changed? Or something?
+                # Anyways, you can set whatever attribute name you want and it
+                # doesn't complain. So catch those cases manually.
+                if hasattr(self._radprof_model, 'sigma_0'):
+                    self._radprof_model.sigma_0 = add_unit_if_none(fit[1], xunit)
+                if hasattr(self._radprof_model, 'stddev_0'):
+                    self._radprof_model.stddev_0 = add_unit_if_none(fit[1], xunit)
+                else:
+                    raise AttributeError("Cannot find stddev parameter.")
+
+                self._radprof_model.amplitude_1 = add_unit_if_none(fit[0], yunit)
+
             else:
                 self._radprof_model.amplitude_0 = fit[0]
                 self._radprof_model.mean_0 = 0.0
                 self._radprof_model.sigma_0 = fit[1]
+                if hasattr(self._radprof_model, 'sigma_0'):
+                    self._radprof_model.sigma_0 = fit[1]
+                if hasattr(self._radprof_model, 'stddev_0'):
+                    self._radprof_model.stddev_0 = fit[1]
+                else:
+                    raise AttributeError("Cannot find stddev parameter.")
                 self._radprof_model.amplitude_1 = fit[2]
 
             # Slice out the FWHM and add units
@@ -972,8 +990,8 @@ class Filament2D(FilamentNDBase):
                 fwhm_deconv = np.sqrt(fwhm_deconv_sq)
                 fwhm_deconv_err = fwhm * fwhm_err / fwhm_deconv
             else:
-                fwhm_deconv = np.NaN
-                fwhm_deconv_err = np.NaN
+                fwhm_deconv = np.NaN * fwhm.unit
+                fwhm_deconv_err = np.NaN * fwhm.unit
                 warnings.warn("Width could not be deconvolved from the beam "
                               "width.")
         else:

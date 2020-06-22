@@ -464,7 +464,7 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
         except ValueError:
             print("No contour")
         plt.draw()
-        raw_input("?")
+        input("?")
         plt.clf()
 
     if len(width_distance) == 0:
