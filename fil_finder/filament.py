@@ -1656,7 +1656,13 @@ class FilamentPPP(FilamentNDBase):
             elif self._graph.degree(node) > 2:
                 self._internodes.append(node)
 
-    def skeleton_analysis(self, image, verbose=False, save_png=False,
+        # Append the position of each node into the networkx graph
+        for node in self._graph:
+            self._graph.nodes[node]['pos'] = self._skan_skeleton.coordinates[node]
+
+    def skeleton_analysis(self, image,
+                          do_prune=True,
+                          verbose=False, save_png=False,
                           save_name=None, prune_criteria='all',
                           relintens_thresh=0.2, max_prune_iter=10,
                           branch_thresh=0 * u.pix,
@@ -1669,15 +1675,17 @@ class FilamentPPP(FilamentNDBase):
 
         self.find_longest_path(verbose=verbose, test_print=test_print)
 
-        self.prune_skeleton(image,
-                            verbose=verbose,
-                            save_png=save_png,
-                            save_name=save_name,
-                            prune_criteria=prune_criteria,
-                            relintens_thresh=relintens_thresh,
-                            max_prune_iter=max_prune_iter,
-                            branch_thresh=branch_thresh,
-                            test_print=test_print)
+        if do_prune:
+
+            self.prune_skeleton(image,
+                                verbose=verbose,
+                                save_png=save_png,
+                                save_name=save_name,
+                                prune_criteria=prune_criteria,
+                                relintens_thresh=relintens_thresh,
+                                max_prune_iter=max_prune_iter,
+                                branch_thresh=branch_thresh,
+                                test_print=test_print)
 
     def find_longest_path(self, verbose=False, test_print=0):
         '''
@@ -1851,6 +1859,79 @@ class FilamentPPP(FilamentNDBase):
                 if test_print:
                     print("Reached maximum number of iterations in pruning.")
                 break
+
+    # TODO: also add a plotly version. Preferably GPU based to make it snappy.
+    def network_plot_3D(self, angle=40, filename='plot.pdf', save=False):
+        '''
+        Credit: Dewanshu
+        Gives a 3D plot for networkX using coordinates information of the nodes
+
+        Parameters
+        ----------
+        G : networkx.Graph
+        angle : int
+            Angle to view the graph plot
+        filename : str
+            Filename to save the plot
+        save : bool
+            boolean value when true saves the plot
+
+        '''
+
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+
+        G = self._graph
+
+        # Get node positions
+        pos = nx.get_node_attributes(G, 'pos')
+        # pos = self._skan_skeleton.coordinates
+
+        # Get the maximum number of edges adjacent to a single node
+        edge_max = max([G.degree(i) for i in G.nodes])
+
+        # Define color range proportional to number of edges adjacent to a single node
+        colors = [plt.cm.plasma(G.degree(i) / edge_max) for i in G.nodes]
+
+        # 3D network plot
+        with plt.style.context(('ggplot')):
+
+            fig = plt.figure(figsize=(10, 7))
+            ax = Axes3D(fig)
+
+            # Loop on the pos dictionary to extract the x,y,z coordinates of each node
+            for i, (key, value) in enumerate(pos.items()):
+                xi = value[0]
+                yi = value[1]
+                zi = value[2]
+
+                # Scatter plot
+                ax.scatter(xi, yi, zi, c=colors[i],
+                           s=20 + 20 * G.degree(key),
+                           edgecolors='k', alpha=0.7)
+
+            # Loop on the list of edges to get the x,y,z, coordinates of the connected nodes
+            # Those two points are the extrema of the line to be plotted
+            for i, j in enumerate(G.edges()):
+
+                x = np.array((pos[j[0]][0], pos[j[1]][0]))
+                y = np.array((pos[j[0]][1], pos[j[1]][1]))
+                z = np.array((pos[j[0]][2], pos[j[1]][2]))
+
+            # Plot the connecting lines
+                ax.plot(x, y, z, c='black', alpha=0.5)
+
+        # Set the initial view
+        ax.view_init(30, angle)
+
+        # Hide the axes
+        # ax.set_axis_off()
+
+        if save is not False:
+            plt.savefig(filename)
+            plt.close('all')
+        else:
+            plt.show()
 
 
 class FilamentPPV(FilamentNDBase):
