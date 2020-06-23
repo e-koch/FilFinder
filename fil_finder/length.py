@@ -792,7 +792,7 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
     return main_lengths, longpath_arrays
 
 
-def all_shortest_paths(G, start, finish, test_print=False, max_npath=20):
+def all_shortest_paths(G, start, finish, test_print=False, max_npath=200):
     '''
     Wrap `networkx.all_shortest_paths` to catch unending loops.
     '''
