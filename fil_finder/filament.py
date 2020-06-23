@@ -1738,6 +1738,10 @@ class FilamentPPP(FilamentNDBase):
 
                 branch_path = self._skan_skeleton.path(branch)
 
+                if test_print:
+                    print(f"Branch {branch} with length: {length}. "
+                          f"Minimum length: {branch_thresh.to(u.pix).value}")
+
                 # Remove intersections from the path to avoid deleting
                 # branch_path_nointers = list(set(branch_path) - set(self._internodes))
 
@@ -1753,11 +1757,17 @@ class FilamentPPP(FilamentNDBase):
 
                     continue
 
-                # This branch is eligible to be removed. Next check removal criteria.
+                # Next check if the branch has an endpoint. If it doesn't, it will
+                # split the skeleton into separate skeletons.
+                endpt_match = list(set(branch_path) & set(self._endnodes))
 
-                if test_print:
-                    print(f"Branch {branch} with length: {length}. "
-                          f"Minimum length: {branch_thresh.to(u.pix).value}")
+                if len(endpt_match) == 0:
+                    if test_print:
+                        print(f"Branch {branch} does not have an end point. Skipping.")
+
+                    continue
+
+                # This branch is eligible to be removed. Next check removal criteria.
 
                 if length >= branch_thresh.to(u.pix).value:
                     continue
