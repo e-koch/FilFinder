@@ -17,7 +17,7 @@ else:
     import cPickle as pickle
 
 from .length import (init_lengths, main_length, make_final_skeletons,
-                     pre_graph, longest_path, prune_graph)
+                     pre_graph, longest_path, prune_graph, all_shortest_paths)
 from .pixel_ident import pix_identify
 from .utilities import pad_image, in_ipynb, red_chisq
 from .base_conversions import UnitConverter
@@ -1655,18 +1655,18 @@ class FilamentPPP(FilamentNDBase):
             elif self._graph.degree(node) > 2:
                 self._internodes.append(node)
 
-
     def skeleton_analysis(self, image, verbose=False, save_png=False,
                           save_name=None, prune_criteria='all',
                           relintens_thresh=0.2, max_prune_iter=10,
-                          branch_thresh=0 * u.pix):
+                          branch_thresh=0 * u.pix,
+                          test_print=False):
 
         '''
         Combines finding the longest path and pruning the filament.
 
         '''
 
-        self.find_longest_path(verbose=verbose)
+        self.find_longest_path(verbose=verbose, test_print=test_print)
 
         self.prune_skeleton(image,
                             verbose=verbose,
@@ -1675,16 +1675,13 @@ class FilamentPPP(FilamentNDBase):
                             prune_criteria=prune_criteria,
                             relintens_thresh=relintens_thresh,
                             max_prune_iter=max_prune_iter,
-                            branch_thresh=branch_thresh)
+                            branch_thresh=branch_thresh,
+                            test_print=test_print)
 
-    def find_longest_path(self, verbose=False):
+    def find_longest_path(self, verbose=False, test_print=False):
         '''
         Identify the longest path through the skeleton.
         '''
-
-        def get_weight(pat):
-            return sum([self._graph[x][y]['weight'] for x, y in
-                        zip(pat[:-1], pat[1:])])
 
         # Loop through pairs of end nodes to avoid unnecessary length calcs.
         all_paths = []
@@ -1695,14 +1692,13 @@ class FilamentPPP(FilamentNDBase):
                     continue
 
                 # Grabbing the shortest(s) path(s) from k to i
-                path = list(nx.all_shortest_paths(self._graph, self._endnodes[k],
+                path, length = all_shortest_paths(self._graph,
+                                                  self._endnodes[k],
                                                   self._endnodes[i],
-                                                  weight='weight'))
+                                                  test_print=test_print)
 
-                path_lengths = [get_weight(pat) for pat in path]
-
-                all_paths.append(path[np.argmax(path_lengths)])
-                all_weights.append(max(path_lengths))
+                all_paths.append(path)
+                all_weights.append(length)
 
         long_path = all_paths[all_weights.index(max(all_weights))]
 
@@ -1712,13 +1708,94 @@ class FilamentPPP(FilamentNDBase):
 
     def prune_skeleton(self, image, verbose=False, save_png=False,
                        save_name=None, prune_criteria='all',
-                       relintens_thresh=0.2, max_prune_iter=10,
-                       branch_thresh=0 * u.pix):
+                       relintens_thresh=0.2,
+                       max_prune_iter=10,
+                       branch_thresh=0 * u.pix,
+                       test_print=False):
         '''
         Remove short branches not on the longest path.
         '''
 
-        pass
+        n_prune_iter = 0
+
+        while True:
+
+            # Record to break when no branches are deleted in an iteration.
+            del_branches = []
+
+            for branch, length in enumerate(self._skan_skeleton.path_lengths()):
+
+                branch_path = self._skan_skeleton.path(branch)
+
+                # Remove intersections from the path to avoid deleting
+                branch_path = list(set(branch_path) - set(self._internodes))
+
+                # 1) Check if on longest path. If it is, it is not eligible to be removed.
+                longpath_matchs = list(set(branch_path) & set(self._long_path))
+
+                if len(longpath_matchs) > 0:
+                    continue
+
+                # This branch is eligible to be removed. Next check removal criteria.
+
+                if length >= branch_thresh.to(u.pix).value:
+                    continue
+
+                # TODO: Add in other criteria, intensity, etc. Maybe curvature?
+
+                # This branch will be deleted.
+                del_branches.append(branch)
+
+            # Stop pruning if no branches need to be deleted
+            if len(del_branches) == 0:
+                if test_print:
+                    print(f"No further branches to prune on iteration {n_prune_iter}")
+                break
+
+            if test_print:
+                print(f"Pruning branches {del_branches} on iteration {n_prune_iter}")
+
+            # Branch removal
+            # We'll do this by removing these pixels from the skeleton coordinates,
+            # remaking the skan skeleton, and updating the longest path node names
+            # (the longest path won't change, but the node labels will)
+            for node in del_branches:
+
+                pix = self._skan_skeleton.coordinates[41]
+
+                match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] + 1 == pix[0])
+                match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] + 1 == pix[1])
+                match_x = (self.pixel_coords[2] - self.pixel_extents[0][2] + 1 == pix[2])
+
+                idx = np.where((match_z & match_y & match_x))[0]
+
+                if len(idx) == 0:
+                    raise ValueError("Cannot find matching pixel coordinate to remove.")
+
+                self._pixel_coords[0] = np.delete(self.pixel_coords[0], idx)
+                self._pixel_coords[1] = np.delete(self.pixel_coords[1], idx)
+                self._pixel_coords[2] = np.delete(self.pixel_coords[2], idx)
+
+            # Trigger remaking the graphs
+            self._make_skan_skeleton()
+
+            # Loop through the first long path and re-assign the new node labels.
+            new_longpath = []
+            for node in self._long_path:
+
+                new_idx = (self._skan_skeleton.coordinates == pix).all(axis=1).nonzero()[0]
+
+                if not new_idx.size == 1:
+                    raise ValueError("Unable to map pixel to new skeleton after pruning.")
+
+                new_longpath.append(new_idx[0])
+
+            n_prune_iter += 1
+
+            if n_prune_iter >= max_prune_iter:
+                if test_print:
+                    print("Reached maximum number of iterations in pruning.")
+                break
 
 
 class FilamentPPV(FilamentNDBase):

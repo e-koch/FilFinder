@@ -5,6 +5,7 @@ import numpy as np
 import skimage.morphology as mo
 import networkx as nx
 import warnings
+import astropy.units as u
 
 from .filament import FilamentPPP
 from .skeleton3D import Skeleton3D
@@ -128,7 +129,10 @@ class FilFinderPPP(Skeleton3D):
 
         self.mask = close
 
-    def analyze_skeletons(self,):
+    def analyze_skeletons(self, verbose=False, save_png=False,
+                          save_name=None, prune_criteria='all',
+                          relintens_thresh=0.2, max_prune_iter=10,
+                          branch_thresh=0 * u.pix, test_print=False):
         '''
         '''
 
@@ -147,13 +151,16 @@ class FilFinderPPP(Skeleton3D):
 
         # Calculate lengths and find the longest path.
         # Followed by pruning.
-        for fil in self.filaments:
+        for num, fil in enumerate(self.filaments):
+            if test_print:
+                print(f"Skeleton analysis for {num} of {len(self.filaments)}")
+
             fil._make_skan_skeleton()
 
-            fil.find_longest_path()
-
-            fil.prune_skeleton(self._image)
-
+            fil.skeleton_analysis(self._image, verbose=False, save_png=False,
+                                  save_name=None, prune_criteria='all',
+                                  relintens_thresh=0.2, max_prune_iter=10,
+                                  branch_thresh=0 * u.pix, test_print=test_print)
 
     # TODO: move to Filament3D class or equivalent.
     # TODO: also add a plotly version. Preferably GPU based to make it snappy.
