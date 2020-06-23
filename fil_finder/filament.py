@@ -1645,6 +1645,17 @@ class FilamentPPP(FilamentNDBase):
 
         self._graph = nx.from_scipy_sparse_matrix(self._skan_skeleton.graph)
 
+        self._endnodes = []
+        self._internodes = []
+
+        # Filing self._Endnodes and internode lists
+        for node in self._graph:
+            if self._graph.degree(node) == 1:
+                self._endnodes.append(node)
+            elif self._graph.degree(node) > 2:
+                self._internodes.append(node)
+
+
     def skeleton_analysis(self, image, verbose=False, save_png=False,
                           save_name=None, prune_criteria='all',
                           relintens_thresh=0.2, max_prune_iter=10,
@@ -1671,45 +1682,33 @@ class FilamentPPP(FilamentNDBase):
         Identify the longest path through the skeleton.
         '''
 
-        paths = dict(nx.shortest_path_length(self._graph, weight='weight'))
-
-        values = []
-        node_extrema = []
-
-        for i in paths.keys():
-            j = max(paths[i].items(), key=operator.itemgetter(1))
-            node_extrema.append((j[0], i))
-            values.append(j[1])
-
-        max_path_length = max(values)
-        start, finish = node_extrema[values.index(max_path_length)]
-        self._beginning_end_nodes = [start, finish]
-
         def get_weight(pat):
             return sum([self._graph[x][y]['weight'] for x, y in
                         zip(pat[:-1], pat[1:])])
 
+        # Loop through pairs of end nodes to avoid unnecessary length calcs.
         all_paths = []
         all_weights = []
+        for k in range(len(self._endnodes)):
+            for i in range(k + 1, len(self._endnodes)):
+                if i == k:
+                    continue
 
-        # Catch the weird edges cases where
-        # for pat in nx.shortest_simple_paths(self._graph, start, finish):
-        for pat in nx.all_shortest_paths(self._graph, start, finish):
-            if verbose:
-                print(f"path weight: {get_weight(pat)} and max_path_length: {max_path_length}")
+                # Grabbing the shortest(s) path(s) from k to i
+                path = list(nx.all_shortest_paths(self._graph, self._endnodes[k],
+                                                  self._endnodes[i],
+                                                  weight='weight'))
 
-            if pat in all_paths:
-                break
+                path_lengths = [get_weight(pat) for pat in path]
 
-            all_paths.append(pat)
-            all_weights.append(get_weight(pat))
+                all_paths.append(path[np.argmax(path_lengths)])
+                all_weights.append(max(path_lengths))
 
         long_path = all_paths[all_weights.index(max(all_weights))]
 
         self._long_path = long_path
 
         self._length = max(all_weights)
-
 
     def prune_skeleton(self, image, verbose=False, save_png=False,
                        save_name=None, prune_criteria='all',
