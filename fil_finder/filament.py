@@ -1642,7 +1642,8 @@ class FilamentPPP(FilamentNDBase):
         from skan import Skeleton
 
         self._skan_skeleton = Skeleton(self.skeleton(out_type='all',
-                                                     pad_size=1))
+                                                     pad_size=1),
+                                       unique_junctions=False)
 
         self._graph = nx.from_scipy_sparse_matrix(self._skan_skeleton.graph)
 
@@ -1679,7 +1680,7 @@ class FilamentPPP(FilamentNDBase):
                             branch_thresh=branch_thresh,
                             test_print=test_print)
 
-    def find_longest_path(self, verbose=False, test_print=False):
+    def find_longest_path(self, verbose=False, test_print=0):
         '''
         Identify the longest path through the skeleton.
         '''
@@ -1696,7 +1697,7 @@ class FilamentPPP(FilamentNDBase):
                 path, length = all_shortest_paths(self._graph,
                                                   self._endnodes[k],
                                                   self._endnodes[i],
-                                                  test_print=test_print)
+                                                  test_print=test_print > 1)
 
                 all_paths.append(path)
                 all_weights.append(length)
@@ -1712,10 +1713,12 @@ class FilamentPPP(FilamentNDBase):
                        relintens_thresh=0.2,
                        max_prune_iter=10,
                        branch_thresh=0 * u.pix,
-                       test_print=False):
+                       test_print=0):
         '''
         Remove short branches not on the longest path.
         '''
+
+        test_print = test_print > 0
 
         n_prune_iter = 0
 
@@ -1729,15 +1732,25 @@ class FilamentPPP(FilamentNDBase):
                 branch_path = self._skan_skeleton.path(branch)
 
                 # Remove intersections from the path to avoid deleting
-                branch_path = list(set(branch_path) - set(self._internodes))
+                # branch_path_nointers = list(set(branch_path) - set(self._internodes))
+
+                # Cases where the path is only intersections points.
+                # if len(branch_path_nointers) == 0:
 
                 # 1) Check if on longest path. If it is, it is not eligible to be removed.
-                longpath_matchs = list(set(branch_path) & set(self._long_path))
+                longpath_diffs = list(set(branch_path) - set(self._long_path))
 
-                if len(longpath_matchs) > 0:
+                if len(longpath_diffs) == 0:
+                    if test_print:
+                        print(f"Branch {branch} is on the long path.")
+
                     continue
 
                 # This branch is eligible to be removed. Next check removal criteria.
+
+                if test_print:
+                    print(f"Branch {branch} with length: {length}. "
+                          f"Minimum length: {branch_thresh.to(u.pix).value}")
 
                 if length >= branch_thresh.to(u.pix).value:
                     continue
@@ -1760,9 +1773,40 @@ class FilamentPPP(FilamentNDBase):
             # We'll do this by removing these pixels from the skeleton coordinates,
             # remaking the skan skeleton, and updating the longest path node names
             # (the longest path won't change, but the node labels will)
-            for node in del_branches:
+            del_pix = []
+            for branch in del_branches:
 
-                pix = self._skan_skeleton.coordinates[41]
+                branch_path = list(set(self._skan_skeleton.path(branch)) - set(self._long_path))
+
+                for node in branch_path:
+
+                    pix = self._skan_skeleton.coordinates[node]
+
+                    if (pix == np.array([7, 18, 15])).all():
+                        print(argh)
+
+                    match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] + 1 == pix[0])
+                    match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] + 1 == pix[1])
+                    match_x = (self.pixel_coords[2] - self.pixel_extents[0][2] + 1 == pix[2])
+
+                    idx = np.where((match_z & match_y & match_x))[0]
+
+                    if len(idx) == 0:
+                        raise ValueError("Cannot find matching pixel coordinate to remove.")
+
+                    del_pix.append(idx[0])
+
+            # Delete from bottom to not affect deleted idx ordering.
+            init_size = self.pixel_coords[0].size
+            new_pixel_coords_z = np.delete(self.pixel_coords[0].copy(), sorted(del_pix))
+            new_pixel_coords_y = np.delete(self.pixel_coords[1].copy(), sorted(del_pix))
+            new_pixel_coords_x = np.delete(self.pixel_coords[2].copy(), sorted(del_pix))
+
+            self._pixel_coords = (new_pixel_coords_z, new_pixel_coords_y, new_pixel_coords_x)
+
+            # Sanity check: make sure none of the long path pixels were removed.
+            for node in self._long_path:
+                pix = self._skan_skeleton.coordinates[node]
 
                 match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] + 1 == pix[0])
                 match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] + 1 == pix[1])
@@ -1771,11 +1815,14 @@ class FilamentPPP(FilamentNDBase):
                 idx = np.where((match_z & match_y & match_x))[0]
 
                 if len(idx) == 0:
-                    raise ValueError("Cannot find matching pixel coordinate to remove.")
+                    raise ValueError("Missing pixel from longest path.")
 
-                self._pixel_coords[0] = np.delete(self.pixel_coords[0], idx)
-                self._pixel_coords[1] = np.delete(self.pixel_coords[1], idx)
-                self._pixel_coords[2] = np.delete(self.pixel_coords[2], idx)
+            if test_print:
+                print(f"Reduced pixels from {init_size} to {self._pixel_coords[0].size}")
+
+            long_path_pix = {}
+            for node in self._long_path:
+                long_path_pix[node] = self._skan_skeleton.coordinates[node]
 
             # Trigger remaking the graphs
             self._make_skan_skeleton()
@@ -1784,12 +1831,20 @@ class FilamentPPP(FilamentNDBase):
             new_longpath = []
             for node in self._long_path:
 
+                pix = long_path_pix[node]
+
                 new_idx = (self._skan_skeleton.coordinates == pix).all(axis=1).nonzero()[0]
 
                 if not new_idx.size == 1:
                     raise ValueError("Unable to map pixel to new skeleton after pruning.")
 
                 new_longpath.append(new_idx[0])
+
+            if len(self._long_path) != len(new_longpath):
+                raise ValueError("The new longest path must be the same length as the old."
+                                 " This is a bug")
+
+            self._long_path = new_longpath
 
             n_prune_iter += 1
 
