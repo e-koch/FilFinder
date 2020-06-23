@@ -157,10 +157,10 @@ class FilFinderPPP(Skeleton3D):
 
             fil._make_skan_skeleton()
 
-            fil.skeleton_analysis(self._image, verbose=False, save_png=False,
-                                  save_name=None, prune_criteria='all',
-                                  relintens_thresh=0.2, max_prune_iter=10,
-                                  branch_thresh=0 * u.pix, test_print=test_print)
+            fil.skeleton_analysis(self._image, verbose=verbose, save_png=save_png,
+                                  save_name=save_name, prune_criteria=prune_criteria,
+                                  relintens_thresh=relintens_thresh, max_prune_iter=max_prune_iter,
+                                  branch_thresh=branch_thresh, test_print=test_print)
 
     # TODO: move to Filament3D class or equivalent.
     # TODO: also add a plotly version. Preferably GPU based to make it snappy.
