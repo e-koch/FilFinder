@@ -1728,12 +1728,14 @@ class FilamentPPP(FilamentNDBase):
         # Record the longest path coordinates
         longpath_z = self._skan_skeleton.coordinates[:, 0][np.r_[self._long_path]]
         longpath_z += self.pixel_extents[0][0] - 1
-        longpath_y = self._skan_skeleton.coordinates[:, 1][np.r_[self._long_path]] + self.pixel_extents[0][1] - 1
+        longpath_y = self._skan_skeleton.coordinates[:, 1][np.r_[self._long_path]]
         longpath_y += self.pixel_extents[0][1] - 1
-        longpath_x = self._skan_skeleton.coordinates[:, 2][np.r_[self._long_path]] + self.pixel_extents[0][2] - 1
+        longpath_x = self._skan_skeleton.coordinates[:, 2][np.r_[self._long_path]]
         longpath_x += self.pixel_extents[0][2] - 1
 
-        self._longpath_pixel_coords = (longpath_z, longpath_y, longpath_x)
+        self._longpath_pixel_coords = (longpath_z.astype(int),
+                                       longpath_y.astype(int),
+                                       longpath_x.astype(int))
 
     def prune_skeleton(self, image, verbose=False, save_png=False,
                        save_name=None, prune_criteria='all',
@@ -1836,7 +1838,9 @@ class FilamentPPP(FilamentNDBase):
             new_pixel_coords_y = np.delete(self.pixel_coords[1].copy(), sorted(del_pix))
             new_pixel_coords_x = np.delete(self.pixel_coords[2].copy(), sorted(del_pix))
 
-            self._pixel_coords = (new_pixel_coords_z, new_pixel_coords_y, new_pixel_coords_x)
+            self._pixel_coords = (new_pixel_coords_z.astype(int),
+                                  new_pixel_coords_y.astype(int),
+                                  new_pixel_coords_x.astype(int))
 
             # Sanity check: make sure none of the long path pixels were removed.
             for node in self._long_path:
@@ -1941,7 +1945,7 @@ class FilamentPPP(FilamentNDBase):
                 zi = value[2]
 
                 # Scatter plot
-                ax.scatter(xi, yi, zi, c=colors[i],
+                ax.scatter(xi, yi, zi, c=np.atleast_2d(colors[i]),
                            marker="D" if in_longpath[key] else "o",
                            s=20 + 20 * G.degree(key),
                            edgecolors='k', alpha=0.7)
@@ -1954,7 +1958,7 @@ class FilamentPPP(FilamentNDBase):
                 y = np.array((pos[j[0]][1], pos[j[1]][1]))
                 z = np.array((pos[j[0]][2], pos[j[1]][2]))
 
-            # Plot the connecting lines
+                # Plot the connecting lines
                 ax.plot(x, y, z, c='black', alpha=0.5)
 
         # Set the initial view
