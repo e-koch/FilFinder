@@ -163,3 +163,19 @@ class FilFinderPPP(Skeleton3D):
                                   save_name=save_name, prune_criteria=prune_criteria,
                                   relintens_thresh=relintens_thresh, max_prune_iter=max_prune_iter,
                                   branch_thresh=branch_thresh, test_print=test_print)
+
+        # Update the skeleton array
+        new_skel = np.zeros_like(self.skeleton)
+        new_skel_longpath = np.zeros_like(self.skeleton)
+        for fil in self.filaments:
+
+            new_skel[fil.pixel_coords[0],
+                     fil.pixel_coords[1],
+                     fil.pixel_coords[2]] = True
+
+            new_skel_longpath[fil.longpath_pixel_coords[0],
+                              fil.longpath_pixel_coords[1],
+                              fil.longpath_pixel_coords[2]] = True
+
+        self.skeleton = new_skel
+        self.skeleton_longpath = new_skel_longpath
