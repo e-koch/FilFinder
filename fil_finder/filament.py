@@ -64,6 +64,48 @@ class FilamentNDBase(object):
         else:
             return [centre * u.pix for centre in centres]
 
+    @property
+    def longpath_pixel_coords(self):
+        '''
+        Pixel coordinates of the longest path.
+        '''
+        return self._longpath_pixel_coords
+
+    @property
+    def graph(self):
+        '''
+        The networkx graph for the filament.
+        '''
+        return self._graph
+
+    def to_pickle(self, savename):
+        '''
+        Save a Filament class as a pickle file.
+
+        Parameters
+        ----------
+        savename : str
+            Name of the pickle file.
+        '''
+
+        with open(savename, 'wb') as output:
+            pickle.dump(self, output, -1)
+
+    @staticmethod
+    def from_pickle(filename):
+        '''
+        Load a Filament from a pickle file.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the pickle file.
+        '''
+        with open(filename, 'rb') as input:
+            self = pickle.load(input)
+
+        return self
+
 
 class Filament2D(FilamentNDBase):
     """
@@ -424,7 +466,6 @@ class Filament2D(FilamentNDBase):
 
         return img_branch_pts
 
-
     @property
     def intersec_pts(self):
         '''
@@ -449,20 +490,6 @@ class Filament2D(FilamentNDBase):
             Pixel, angular, or physical unit to convert to.
         '''
         return self._converter.from_pixel(self._length, unit)
-
-    @property
-    def longpath_pixel_coords(self):
-        '''
-        Pixel coordinates of the longest path.
-        '''
-        return self._longpath_pixel_coords
-
-    @property
-    def graph(self):
-        '''
-        The networkx graph for the filament.
-        '''
-        return self._graph
 
     def plot_graph(self, save_name=None, layout_func=nx.spring_layout):
         '''
@@ -1530,34 +1557,6 @@ class Filament2D(FilamentNDBase):
 
         hdulist.writeto(savename, **kwargs)
 
-    def to_pickle(self, savename):
-        '''
-        Save a Filament2D class as a pickle file.
-
-        Parameters
-        ----------
-        savename : str
-            Name of the pickle file.
-        '''
-
-        with open(savename, 'wb') as output:
-            pickle.dump(self, output, -1)
-
-    @staticmethod
-    def from_pickle(filename):
-        '''
-        Load a Filament2D from a pickle file.
-
-        Parameters
-        ----------
-        filename : str
-            Name of the pickle file.
-        '''
-        with open(filename, 'rb') as input:
-            self = pickle.load(input)
-
-        return self
-
 
 class FilamentPPP(FilamentNDBase):
     """
@@ -1660,6 +1659,9 @@ class FilamentPPP(FilamentNDBase):
         for node in self._graph:
             self._graph.nodes[node]['pos'] = self._skan_skeleton.coordinates[node]
 
+        # Node 0 is always (0, 0, 0). Remove that node
+        self._graph.remove_node(0)
+
     def skeleton_analysis(self, image,
                           do_prune=True,
                           verbose=False, save_png=False,
@@ -1714,6 +1716,23 @@ class FilamentPPP(FilamentNDBase):
         self._long_path = long_path
 
         self._length = max(all_weights)
+
+        # Encode in the graph which nodes are in the longest path
+        for node in self._graph:
+            if node in self._long_path:
+                self._graph.nodes[node]['longpath'] = True
+            else:
+                self._graph.nodes[node]['longpath'] = False
+
+        # Record the longest path coordinates
+        longpath_z = self._skan_skeleton.coordinates[:, 0][np.r_[self._long_path]]
+        longpath_z += self.pixel_extents[0][0] - 1
+        longpath_y = self._skan_skeleton.coordinates[:, 1][np.r_[self._long_path]] + self.pixel_extents[0][1] - 1
+        longpath_y += self.pixel_extents[0][1] - 1
+        longpath_x = self._skan_skeleton.coordinates[:, 2][np.r_[self._long_path]] + self.pixel_extents[0][2] - 1
+        longpath_x += self.pixel_extents[0][2] - 1
+
+        self._longpath_pixel_coords = (longpath_z, longpath_y, longpath_x)
 
     def prune_skeleton(self, image, verbose=False, save_png=False,
                        save_name=None, prune_criteria='all',
@@ -1799,9 +1818,6 @@ class FilamentPPP(FilamentNDBase):
 
                     pix = self._skan_skeleton.coordinates[node]
 
-                    if (pix == np.array([7, 18, 15])).all():
-                        print(argh)
-
                     match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] + 1 == pix[0])
                     match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] + 1 == pix[1])
                     match_x = (self.pixel_coords[2] - self.pixel_extents[0][2] + 1 == pix[2])
@@ -1871,7 +1887,8 @@ class FilamentPPP(FilamentNDBase):
                 break
 
     # TODO: also add a plotly version. Preferably GPU based to make it snappy.
-    def network_plot_3D(self, angle=40, filename='plot.pdf', save=False):
+    def network_plot_3D(self, angle=40, filename='plot.pdf', save=False,
+                        longpath_only=False):
         '''
         Credit: Dewanshu
         Gives a 3D plot for networkX using coordinates information of the nodes
@@ -1893,8 +1910,15 @@ class FilamentPPP(FilamentNDBase):
 
         G = self._graph
 
+        for node in G:
+            if node in self._long_path:
+                G.nodes[node]['longpath'] = True
+            else:
+                G.nodes[node]['longpath'] = False
+
         # Get node positions
         pos = nx.get_node_attributes(G, 'pos')
+        in_longpath = nx.get_node_attributes(G, 'longpath')
         # pos = self._skan_skeleton.coordinates
 
         # Get the maximum number of edges adjacent to a single node
@@ -1917,6 +1941,7 @@ class FilamentPPP(FilamentNDBase):
 
                 # Scatter plot
                 ax.scatter(xi, yi, zi, c=colors[i],
+                           marker="D" if in_longpath[key] else "o",
                            s=20 + 20 * G.degree(key),
                            edgecolors='k', alpha=0.7)
 
