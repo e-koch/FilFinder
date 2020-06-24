@@ -78,34 +78,6 @@ class FilamentNDBase(object):
         '''
         return self._graph
 
-    def to_pickle(self, savename):
-        '''
-        Save a Filament class as a pickle file.
-
-        Parameters
-        ----------
-        savename : str
-            Name of the pickle file.
-        '''
-
-        with open(savename, 'wb') as output:
-            pickle.dump(self, output, -1)
-
-    @staticmethod
-    def from_pickle(filename):
-        '''
-        Load a Filament from a pickle file.
-
-        Parameters
-        ----------
-        filename : str
-            Name of the pickle file.
-        '''
-        with open(filename, 'rb') as input:
-            self = pickle.load(input)
-
-        return self
-
 
 class Filament2D(FilamentNDBase):
     """
@@ -120,8 +92,8 @@ class Filament2D(FilamentNDBase):
         Unit converter class.
     wcs : `~astropy.wcs.WCS`, optional
         WCS information for the pixel set.
-    distance : `~astropy.units.Quantity`, optional
-        Distance to the region described by the pixel set. Requires for
+    distance : `~astropy.units.Quantity`, optiona
+l        Distance to the region described by the pixel set. Requires for
         conversions to physical units.
     """
     def __init__(self, pixel_coords, converter=None, wcs=None, distance=None):
@@ -1558,6 +1530,34 @@ class Filament2D(FilamentNDBase):
 
         hdulist.writeto(savename, **kwargs)
 
+    def to_pickle(self, savename):
+        '''
+        Save a Filament class as a pickle file.
+
+        Parameters
+        ----------
+        savename : str
+            Name of the pickle file.
+        '''
+
+        with open(savename, 'wb') as output:
+            pickle.dump(self, output, -1)
+
+    @staticmethod
+    def from_pickle(filename):
+        '''
+        Load a Filament from a pickle file.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the pickle file.
+        '''
+        with open(filename, 'rb') as input:
+            self = pickle.load(input)
+
+        return self
+
 
 class FilamentPPP(FilamentNDBase):
     """
@@ -1663,6 +1663,22 @@ class FilamentPPP(FilamentNDBase):
         # Node 0 is always (0, 0, 0). Remove that node
         self._graph.remove_node(0)
 
+    @property
+    def intersec_pts(self):
+        '''
+        Skeleton pixels associated intersections.
+        '''
+        return [tuple(self._skan_skeleton.coordinates[node].astype(int) - 1)
+                for node in self._internodes]
+
+    @property
+    def end_pts(self):
+        '''
+        Skeleton pixels associated branch end.
+        '''
+        return [tuple(self._skan_skeleton.coordinates[node].astype(int) - 1)
+                for node in self._endnodes]
+
     def skeleton_analysis(self, image,
                           do_prune=True,
                           verbose=False, save_png=False,
@@ -1675,6 +1691,9 @@ class FilamentPPP(FilamentNDBase):
         Combines finding the longest path and pruning the filament.
 
         '''
+
+        if not hasattr(self, "_skan_skeleton"):
+            self._make_skan_skeleton()
 
         self.find_longest_path(verbose=verbose, test_print=test_print)
 
@@ -1716,7 +1735,7 @@ class FilamentPPP(FilamentNDBase):
 
         self._long_path = long_path
 
-        self._length = max(all_weights)
+        self._length = max(all_weights) * u.pix
 
         # Encode in the graph which nodes are in the longest path
         for node in self._graph:
@@ -1891,6 +1910,17 @@ class FilamentPPP(FilamentNDBase):
                     print("Reached maximum number of iterations in pruning.")
                 break
 
+    def length(self, unit=u.pixel):
+        '''
+        The longest path length of the skeleton
+
+        Parameters
+        ----------
+        unit : `~astropy.units.Unit`, optional
+            Pixel, angular, or physical unit to convert to.
+        '''
+        return self._converter.from_pixel(self._length, unit)
+
     # TODO: also add a plotly version. Preferably GPU based to make it snappy.
     def network_plot_3D(self, angle=40, filename='plot.pdf', save=False,
                         longpath_only=False):
@@ -1972,6 +2002,41 @@ class FilamentPPP(FilamentNDBase):
             plt.close('all')
         else:
             plt.show()
+
+    def to_pickle(self, savename):
+        '''
+        Save a Filament class as a pickle file.
+
+        Parameters
+        ----------
+        savename : str
+            Name of the pickle file.
+        '''
+
+        # Can't pickle some of the skan stuff. But we can regenerate
+        # when loading
+        del self._skan_skeleton
+
+        with open(savename, 'wb') as output:
+            pickle.dump(self, output, -1)
+
+    @staticmethod
+    def from_pickle(filename):
+        '''
+        Load a Filament from a pickle file.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the pickle file.
+        '''
+        with open(filename, 'rb') as input:
+            self = pickle.load(input)
+
+        # Regenerate the graph
+        self._make_skan_skeleton()
+
+        return self
 
 
 class FilamentPPV(FilamentNDBase):
