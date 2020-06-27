@@ -9,9 +9,11 @@ import astropy.units as u
 
 from .filament import FilamentPPP
 from .skeleton3D import Skeleton3D
+from .base_conversions import (BaseInfoMixin, UnitConverter,
+                               find_beam_properties, data_unit_check)
 
 
-class FilFinderPPP(Skeleton3D):
+class FilFinderPPP(BaseInfoMixin, Skeleton3D):
     """
     Extract and analyze filamentary structure from a 3D dataset.
 
@@ -28,7 +30,7 @@ class FilFinderPPP(Skeleton3D):
 
     """
 
-    def __init__(self, image, mask=None, save_name='FilFinder3D_output'):
+    def __init__(self, image, wcs=None, mask=None, save_name='FilFinder3D_output'):
 
         self._has_skan()
 
@@ -47,9 +49,7 @@ class FilFinderPPP(Skeleton3D):
             mask[np.isnan(mask)] = 0.0
             self.mask = mask
 
-        # self.converter = UnitConverter(self.wcs, distance)
-        self.converter = None
-
+        self.converter = UnitConverter(self.wcs, distance)
 
     def preprocess_image(self, skip_flatten=False, flatten_percent=None):
         """
@@ -99,8 +99,15 @@ class FilFinderPPP(Skeleton3D):
         """
 
         if self.mask is not None and use_existing_mask:
-            warnings.warn("Using inputted mask. Skipping creation "
-                          " of a new mask.")
+            warnings.warn("Using inputted mask. Skipping creation of a"
+                          "new mask.")
+            # Skip if pre-made mask given
+            self.glob_thresh = 'usermask'
+            self.adapt_thresh = 'usermask'
+            self.size_thresh = 'usermask'
+            self.smooth_size = 'usermask'
+
+            return
 
         if glob_thresh is None:
             self.glob_thresh = None
