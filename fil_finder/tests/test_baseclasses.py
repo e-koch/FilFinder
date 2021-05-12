@@ -3,6 +3,7 @@
 import pytest
 
 import numpy as np
+import numpy.testing as npt
 import astropy.units as u
 from astropy.wcs import WCS
 
@@ -78,16 +79,16 @@ def test_UnitConverter():
     twopix_ang = np.abs(hdr['CDELT2']) * 2 * u.deg
     twopix_phys = twopix_ang.to(u.rad).value * distance
     assert convert.to_pixel(twopix_ang).value == 2.
-    assert convert.to_pixel(twopix_phys).value == 2.
+    npt.assert_allclose(convert.to_pixel(twopix_phys).value, 2.)
 
     assert convert.to_pixel_area(twopix_ang**2) == 4 * u.pix**2
-    assert convert.to_pixel_area(twopix_phys**2) == 4 * u.pix**2
+    npt.assert_allclose(convert.to_pixel_area(twopix_phys**2).value, 4.)
 
     assert convert.from_pixel(2 * u.pix, u.deg) == twopix_ang
     assert convert.to_angular(2 * u.pix, u.deg) == twopix_ang
 
-    assert convert.from_pixel(2 * u.pix, u.pc) == twopix_phys
-    assert convert.to_physical(2 * u.pix, u.pc) == twopix_phys
+    npt.assert_allclose(convert.from_pixel(2 * u.pix, u.pc), twopix_phys)
+    npt.assert_allclose(convert.to_physical(2 * u.pix, u.pc), twopix_phys)
 
     # Round trip
     assert convert.to_pixel(convert.from_pixel(2 * u.pix, u.deg)) == 2 * u.pix
