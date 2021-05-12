@@ -11,7 +11,7 @@ from .filament import FilamentPPP
 from .skeleton3D import Skeleton3D
 from .base_conversions import (BaseInfoMixin, UnitConverter,
                                find_beam_properties, data_unit_check)
-
+from .threshold_local_3D import threshold_local
 
 class FilFinderPPP(BaseInfoMixin, Skeleton3D):
     """
@@ -30,12 +30,14 @@ class FilFinderPPP(BaseInfoMixin, Skeleton3D):
 
     """
 
-    def __init__(self, image, wcs=None, mask=None, save_name='FilFinder3D_output'):
+    def __init__(self, image, wcs=None, mask=None, distance=None, save_name='FilFinder3D_output'):
 
         self._has_skan()
 
         # TODO add image checking here
         self._image = image
+
+        self._wcs = wcs
 
         self.save_name = save_name
 
@@ -49,7 +51,12 @@ class FilFinderPPP(BaseInfoMixin, Skeleton3D):
             mask[np.isnan(mask)] = 0.0
             self.mask = mask
 
-        self.converter = UnitConverter(self.wcs, distance)
+        # TODO: need to handle cases without wcs info for the unit conversion
+        # TODO: minimum should be a pixel scale for 3D products.
+        if self.wcs is not None:
+            self.converter = UnitConverter(self.wcs, distance)
+        else:
+            self.converter = lambda x: x
 
     def preprocess_image(self, skip_flatten=False, flatten_percent=None):
         """
@@ -73,9 +80,12 @@ class FilFinderPPP(BaseInfoMixin, Skeleton3D):
             # TODO Add in here
             pass
 
-    def create_mask(self, glob_thresh=0.0, verbose=False,
+    def create_mask(self, adapt_thresh=9, glob_thresh=0.0,
+                    ball_radius=2, min_object_size=27*3,
+                    max_hole_size=100,
+                    verbose=False,
                     save_png=False, use_existing_mask=False,
-                    ball_radius=3):
+                    **adapt_kwargs):
         """
         Runs the segmentation process and returns a mask of the filaments found.
 
@@ -121,18 +131,28 @@ class FilFinderPPP(BaseInfoMixin, Skeleton3D):
         # Removing NaNs in copy
         flat_copy[np.isnan(flat_copy)] = 0.0
 
-        # Just using global threshold for now
-        glob_mask = flat_copy > glob_thresh
+        # Create the adaptive thresholded mask
+        adapt_mask = flat_copy > threshold_local(flat_copy, adapt_thresh, **adapt_kwargs)
+
+        # Add in global threshold mask
+        adapt_mask = np.logical_and(adapt_mask, flat_copy > glob_thresh)
 
         # TODO should we use other shape here?
         # Create slider object
         selem = mo.ball(ball_radius)
 
         # Dilate the image
-        dilate = mo.dilation(glob_mask, selem)
+        # dilate = mo.dilation(adapt_mask, selem)
+
+        # NOTE: Look into mo.diameter_opening and mo.diameter_closing
+        dilate = mo.opening(adapt_mask, selem)
 
         # Removing dark spots and small bright cracks in image
         close = mo.closing(dilate)
+
+        # Don't allow small holes: these lead to "shell"-shaped skeleton features
+        mo.remove_small_objects(close, min_size=min_object_size, connectivity=1, in_place=True)
+        mo.remove_small_holes(close, area_threshold=max_hole_size, connectivity=1, in_place=True)
 
         self.mask = close
 
