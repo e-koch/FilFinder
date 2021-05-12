@@ -1560,7 +1560,7 @@ l        Distance to the region described by the pixel set. Requires for
 
 class FilamentPPP(FilamentNDBase):
     """
-    docstring for FilamentPPP
+    Filament defined in 3 spatial dimensions (position-position-position; PPP).
     """
 
     def __init__(self, pixel_coords, converter=None, wcs=None, distance=None):
@@ -1679,6 +1679,7 @@ class FilamentPPP(FilamentNDBase):
                 for node in self._endnodes]
 
     def skeleton_analysis(self, image,
+                          compute_longest_path=True,
                           do_prune=True,
                           verbose=False, save_png=False,
                           save_name=None, prune_criteria='all',
@@ -1694,7 +1695,15 @@ class FilamentPPP(FilamentNDBase):
         if not hasattr(self, "_skan_skeleton"):
             self._make_skan_skeleton()
 
-        self.find_longest_path(verbose=verbose, test_print=test_print)
+        self._compute_longest_path = compute_longest_path
+
+        if compute_longest_path:
+            self.find_longest_path(verbose=verbose, test_print=test_print)
+        else:
+            # Set the long path values to None
+            self._length = None
+            self._long_path = None
+            self._longpath_pixel_coords = (None,) * 3
 
         if do_prune:
 
@@ -1716,6 +1725,7 @@ class FilamentPPP(FilamentNDBase):
         # Loop through pairs of end nodes to avoid unnecessary length calcs.
         all_paths = []
         all_weights = []
+
         for k in range(len(self._endnodes)):
             for i in range(k + 1, len(self._endnodes)):
                 if i == k:
@@ -1789,13 +1799,14 @@ class FilamentPPP(FilamentNDBase):
                 # if len(branch_path_nointers) == 0:
 
                 # 1) Check if on longest path. If it is, it is not eligible to be removed.
-                longpath_diffs = list(set(branch_path) - set(self._long_path))
+                if self._compute_longest_path:
+                    longpath_diffs = list(set(branch_path) - set(self._long_path))
 
-                if len(longpath_diffs) == 0:
-                    if test_print:
-                        print(f"Branch {branch} is on the long path.")
+                    if len(longpath_diffs) == 0:
+                        if test_print:
+                            print(f"Branch {branch} is on the long path.")
 
-                    continue
+                        continue
 
                 # Next check if the branch has an endpoint. If it doesn't, it will
                 # split the skeleton into separate skeletons.
@@ -1833,9 +1844,15 @@ class FilamentPPP(FilamentNDBase):
             del_pix = []
             for branch in del_branches:
 
-                branch_path = list(set(self._skan_skeleton.path(branch)) - set(self._long_path))
+                if self._compute_longest_path:
+                    branch_path = list(set(self._skan_skeleton.path(branch)) - set(self._long_path))
 
                 for node in branch_path:
+
+                    # If that node is an intersection point, skip:
+                    # This is required to keep connectivity in the skeleton
+                    if node in self._internodes:
+                        continue
 
                     pix = self._skan_skeleton.coordinates[node]
 
@@ -1860,47 +1877,50 @@ class FilamentPPP(FilamentNDBase):
                                   new_pixel_coords_y.astype(int),
                                   new_pixel_coords_x.astype(int))
 
-            # Sanity check: make sure none of the long path pixels were removed.
-            for node in self._long_path:
-                pix = self._skan_skeleton.coordinates[node]
-
-                match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] + 1 == pix[0])
-                match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] + 1 == pix[1])
-                match_x = (self.pixel_coords[2] - self.pixel_extents[0][2] + 1 == pix[2])
-
-                idx = np.where((match_z & match_y & match_x))[0]
-
-                if len(idx) == 0:
-                    raise ValueError("Missing pixel from longest path.")
-
-            if test_print:
-                print(f"Reduced pixels from {init_size} to {self._pixel_coords[0].size}")
-
-            long_path_pix = {}
-            for node in self._long_path:
-                long_path_pix[node] = self._skan_skeleton.coordinates[node]
-
             # Trigger remaking the graphs
             self._make_skan_skeleton()
 
-            # Loop through the first long path and re-assign the new node labels.
-            new_longpath = []
-            for node in self._long_path:
+            # Update the longest path node IDs in the pruned skeleton
+            if self._compute_longest_path:
 
-                pix = long_path_pix[node]
+                # Sanity check: make sure none of the long path pixels were removed.
+                for node in self._long_path:
+                    pix = self._skan_skeleton.coordinates[node]
 
-                new_idx = (self._skan_skeleton.coordinates == pix).all(axis=1).nonzero()[0]
+                    match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] + 1 == pix[0])
+                    match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] + 1 == pix[1])
+                    match_x = (self.pixel_coords[2] - self.pixel_extents[0][2] + 1 == pix[2])
 
-                if not new_idx.size == 1:
-                    raise ValueError("Unable to map pixel to new skeleton after pruning.")
+                    idx = np.where((match_z & match_y & match_x))[0]
 
-                new_longpath.append(new_idx[0])
+                    if len(idx) == 0:
+                        raise ValueError("Missing pixel from longest path.")
 
-            if len(self._long_path) != len(new_longpath):
-                raise ValueError("The new longest path must be the same length as the old."
-                                 " This is a bug")
+                long_path_pix = {}
+                for node in self._long_path:
+                    long_path_pix[node] = self._skan_skeleton.coordinates[node]
 
-            self._long_path = new_longpath
+                # Loop through the first long path and re-assign the new node labels.
+                new_longpath = []
+                for node in self._long_path:
+
+                    pix = long_path_pix[node]
+
+                    new_idx = (self._skan_skeleton.coordinates == pix).all(axis=1).nonzero()[0]
+
+                    if not new_idx.size == 1:
+                        raise ValueError("Unable to map pixel to new skeleton after pruning.")
+
+                    new_longpath.append(new_idx[0])
+
+                if len(self._long_path) != len(new_longpath):
+                    raise ValueError("The new longest path must be the same length as the old."
+                                    " This is a bug")
+
+                self._long_path = new_longpath
+
+            if test_print:
+                print(f"Reduced pixels from {init_size} to {self._pixel_coords[0].size}")
 
             n_prune_iter += 1
 
