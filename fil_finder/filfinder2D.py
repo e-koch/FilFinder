@@ -62,6 +62,9 @@ class FilFinder2D(BaseInfoMixin):
         A pre-made, boolean mask may be supplied to skip the segmentation
         process. The algorithm will skeletonize and run the analysis portions
         only.
+    capture_pre_recombine_masks : bool, optional
+        If True, will save the pre-`recombine_skeletons()` mask objects and
+        corners and expose them as attributes. Default is False.
     save_name : str, optional
         Sets the prefix name that is used for output files. Can be overridden
         in ``save_fits`` and ``save_table``. Default is "FilFinder_output".
@@ -86,7 +89,8 @@ class FilFinder2D(BaseInfoMixin):
     """
 
     def __init__(self, image, header=None, beamwidth=None, ang_scale=None,
-                 distance=None, mask=None, save_name="FilFinder_output"):
+                 distance=None, mask=None, save_name="FilFinder_output",
+                 capture_pre_recombine_masks=False):
 
         # Accepts a numpy array or fits.PrimaryHDU
         output = input_data(image, header)
@@ -148,6 +152,10 @@ class FilFinder2D(BaseInfoMixin):
                                  "same shape as the image.")
             mask[np.isnan(mask)] = 0.0
             self.mask = mask
+
+        self.capture_pre_recombine_masks = capture_pre_recombine_masks
+        self._pre_recombine_mask_objs = None
+        self._pre_recombine_mask_corners = None
 
     def preprocess_image(self, skip_flatten=False, flatten_percent=None):
         '''
@@ -293,6 +301,10 @@ class FilFinder2D(BaseInfoMixin):
             self.size_thresh = 'usermask'
             self.smooth_size = 'usermask'
 
+            if self.capture_pre_recombine_masks:
+                warnings.warn("Creation of a new mask skipped, pre-"
+                              "recombined masks will not be captured.")
+
             return
 
         if not hasattr(self.converter, 'distance'):
@@ -422,6 +434,10 @@ class FilFinder2D(BaseInfoMixin):
             isolateregions(cleaned, fill_hole=True,
                            rel_size=fill_hole_size.value,
                            morph_smooth=True, pad_size=1)
+
+        if self.capture_pre_recombine_masks:
+            self._pre_recombine_mask_objs = mask_objs
+            self._pre_recombine_mask_corners = corners
 
         self.mask = recombine_skeletons(mask_objs,
                                         corners, self.image.shape, 1)
@@ -849,6 +865,26 @@ class FilFinder2D(BaseInfoMixin):
         `~FilFinder2D.exec_rht` with `branches=False`.
         '''
         return [fil.curvature_branches for fil in self.filaments]
+
+    @property
+    def pre_recombine_mask_objs(self):
+        '''
+        Returns the pre `recombine_skeletons()` mask objects. These objects will
+        only be captured if `capture_pre_recombine_masks=True` and
+        `FilFinder2D.create_mask` has been run with `use_existing_mask=False`.
+        Otherwise will return None. This is useful if there are multiple
+        filamentary objects in the image and you want to extract the masks for
+        individual filaments.
+        '''
+        return self._pre_recombine_mask_objs
+
+    @property
+    def pre_recombine_mask_corners(self):
+        '''
+        Returns the pre-recombine skeletons mask corners. These corners are
+        needed if you want to use `FilFinder2D.pre_recombine_mask_objs`.
+        '''
+        return self._pre_recombine_mask_corners
 
     def find_widths(self, max_dist=10 * u.pix,
                     pad_to_distance=0 * u.pix,
