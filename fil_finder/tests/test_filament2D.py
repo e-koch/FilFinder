@@ -145,7 +145,8 @@ def test_Filament2D_with_distance():
 
     assert fil.length(unit=u.deg) == 2.0 * u.deg
 
-    assert fil.length(unit=u.pc) == (2.0 * u.deg).to(u.rad).value * 100 * u.pc
+    pc_test_length = (2.0 * u.deg).to(u.rad).value * 100 * u.pc
+    npt.assert_allclose(fil.length(unit=u.pc).value, pc_test_length.value)
 
 
 def test_Filament2D_onebranch():
