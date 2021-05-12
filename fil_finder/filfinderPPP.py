@@ -156,13 +156,16 @@ class FilFinderPPP(BaseInfoMixin, Skeleton3D):
 
         self.mask = close
 
-    def analyze_skeletons(self, do_prune=True,
+    def analyze_skeletons(self, compute_longest_path=True,
+                          do_prune=True,
                           verbose=False, save_png=False,
                           save_name=None, prune_criteria='all',
                           relintens_thresh=0.2, max_prune_iter=10,
                           branch_thresh=0 * u.pix, test_print=False):
         '''
         '''
+
+        self._compute_longest_path = compute_longest_path
 
         # Define the skeletons
 
@@ -185,7 +188,9 @@ class FilFinderPPP(BaseInfoMixin, Skeleton3D):
 
             fil._make_skan_skeleton()
 
-            fil.skeleton_analysis(self._image, do_prune=do_prune,
+            fil.skeleton_analysis(self._image,
+                                  compute_longest_path=compute_longest_path,
+                                  do_prune=do_prune,
                                   verbose=verbose, save_png=save_png,
                                   save_name=save_name, prune_criteria=prune_criteria,
                                   relintens_thresh=relintens_thresh, max_prune_iter=max_prune_iter,
@@ -193,16 +198,24 @@ class FilFinderPPP(BaseInfoMixin, Skeleton3D):
 
         # Update the skeleton array
         new_skel = np.zeros_like(self.skeleton)
-        new_skel_longpath = np.zeros_like(self.skeleton)
+
+        if self._compute_longest_path:
+            new_skel_longpath = np.zeros_like(self.skeleton)
+
         for fil in self.filaments:
 
             new_skel[fil.pixel_coords[0],
                      fil.pixel_coords[1],
                      fil.pixel_coords[2]] = True
 
-            new_skel_longpath[fil.longpath_pixel_coords[0],
-                              fil.longpath_pixel_coords[1],
-                              fil.longpath_pixel_coords[2]] = True
+            if self._compute_longest_path:
+
+                new_skel_longpath[fil.longpath_pixel_coords[0],
+                                fil.longpath_pixel_coords[1],
+                                fil.longpath_pixel_coords[2]] = True
 
         self.skeleton = new_skel
-        self.skeleton_longpath = new_skel_longpath
+
+        if self._compute_longest_path:
+            self.skeleton_longpath = new_skel_longpath
+
