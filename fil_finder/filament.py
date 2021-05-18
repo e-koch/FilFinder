@@ -2062,6 +2062,10 @@ class FilamentPPP(Filament3D, FilamentNDBase):
         unit : `~astropy.units.Unit`, optional
             Pixel, angular, or physical unit to convert to.
         '''
+        if not hasattr(self, '_length'):
+            raise ValueError("The longest length is not defined. Run `skeleton_analysis`"
+                             " with `compute_longest_path=True`")
+
         return self._converter.from_pixel(self._length, unit)
 
 class FilamentPPV(Filament3D, FilamentNDBase):
