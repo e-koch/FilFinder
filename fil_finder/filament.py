@@ -1558,7 +1558,177 @@ l        Distance to the region described by the pixel set. Requires for
         return self
 
 
-class FilamentPPP(FilamentNDBase):
+class Filament3D(object):
+    '''
+    Common 3D properties for different filament types.
+    '''
+
+    def _make_skan_skeleton(self):
+        '''
+        Use skan.Skeleton to create a graph and get branch statistics.
+        '''
+
+        # Import skan here to create the graph.
+        from skan import Skeleton
+
+        self._skan_skeleton = Skeleton(self.skeleton(out_type='all',
+                                                     pad_size=1),
+                                       unique_junctions=False)
+
+        self._graph = nx.from_scipy_sparse_matrix(self._skan_skeleton.graph)
+
+        self._endnodes = []
+        self._internodes = []
+
+        # Filing self._Endnodes and internode lists
+        for node in self._graph:
+            if self._graph.degree(node) == 1:
+                self._endnodes.append(node)
+            elif self._graph.degree(node) > 2:
+                self._internodes.append(node)
+
+        # Append the position of each node into the networkx graph
+        for node in self._graph:
+            self._graph.nodes[node]['pos'] = self._skan_skeleton.coordinates[node]
+
+        # Node 0 is always (0, 0, 0). Remove that node
+        self._graph.remove_node(0)
+
+    @property
+    def intersec_pts(self):
+        '''
+        Skeleton pixels associated intersections.
+        '''
+        return [tuple(self._skan_skeleton.coordinates[node].astype(int) - 1)
+                for node in self._internodes]
+
+    @property
+    def end_pts(self):
+        '''
+        Skeleton pixels associated branch end.
+        '''
+        return [tuple(self._skan_skeleton.coordinates[node].astype(int) - 1)
+                for node in self._endnodes]
+
+    # TODO: also add a plotly version. Preferably GPU based to make it snappy.
+    def network_plot_3D(self, angle=40, filename='plot.pdf', save=False,
+                        longpath_only=False):
+        '''
+        Credit: Dewanshu
+        Gives a 3D plot for networkX using coordinates information of the nodes
+
+        Parameters
+        ----------
+        G : networkx.Graph
+        angle : int
+            Angle to view the graph plot
+        filename : str
+            Filename to save the plot
+        save : bool
+            boolean value when true saves the plot
+
+        '''
+
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+
+        G = self._graph
+
+        for node in G:
+            if node in self._long_path:
+                G.nodes[node]['longpath'] = True
+            else:
+                G.nodes[node]['longpath'] = False
+
+        # Get node positions
+        pos = nx.get_node_attributes(G, 'pos')
+        in_longpath = nx.get_node_attributes(G, 'longpath')
+        # pos = self._skan_skeleton.coordinates
+
+        # Get the maximum number of edges adjacent to a single node
+        edge_max = max([G.degree(i) for i in G.nodes])
+
+        # Define color range proportional to number of edges adjacent to a single node
+        colors = [plt.cm.plasma(G.degree(i) / edge_max) for i in G.nodes]
+
+        # 3D network plot
+        with plt.style.context(('ggplot')):
+
+            fig = plt.figure(figsize=(10, 7))
+            ax = Axes3D(fig)
+
+            # Loop on the pos dictionary to extract the x,y,z coordinates of each node
+            for i, (key, value) in enumerate(pos.items()):
+                xi = value[0]
+                yi = value[1]
+                zi = value[2]
+
+                # Scatter plot
+                ax.scatter(xi, yi, zi, c=np.atleast_2d(colors[i]),
+                           marker="D" if in_longpath[key] else "o",
+                           s=20 + 20 * G.degree(key),
+                           edgecolors='k', alpha=0.7)
+
+            # Loop on the list of edges to get the x,y,z, coordinates of the connected nodes
+            # Those two points are the extrema of the line to be plotted
+            for i, j in enumerate(G.edges()):
+
+                x = np.array((pos[j[0]][0], pos[j[1]][0]))
+                y = np.array((pos[j[0]][1], pos[j[1]][1]))
+                z = np.array((pos[j[0]][2], pos[j[1]][2]))
+
+                # Plot the connecting lines
+                ax.plot(x, y, z, c='black', alpha=0.5)
+
+        # Set the initial view
+        ax.view_init(30, angle)
+
+        # Hide the axes
+        # ax.set_axis_off()
+
+        if save is not False:
+            plt.savefig(filename)
+            plt.close('all')
+        else:
+            plt.show()
+
+    def to_pickle(self, savename):
+        '''
+        Save a Filament class as a pickle file.
+
+        Parameters
+        ----------
+        savename : str
+            Name of the pickle file.
+        '''
+
+        # Can't pickle some of the skan stuff. But we can regenerate
+        # when loading
+        del self._skan_skeleton
+
+        with open(savename, 'wb') as output:
+            pickle.dump(self, output, -1)
+
+    @staticmethod
+    def from_pickle(filename):
+        '''
+        Load a Filament from a pickle file.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the pickle file.
+        '''
+        with open(filename, 'rb') as input:
+            self = pickle.load(input)
+
+        # Regenerate the graph
+        self._make_skan_skeleton()
+
+        return self
+
+
+class FilamentPPP(Filament3D, FilamentNDBase):
     """
     Filament defined in 3 spatial dimensions (position-position-position; PPP).
     """
@@ -1631,52 +1801,6 @@ class FilamentPPP(FilamentNDBase):
 
         return mask
 
-    def _make_skan_skeleton(self):
-        '''
-        Use skan.Skeleton to create a graph and get branch statistics.
-        '''
-
-        # Import skan here to create the graph.
-        from skan import Skeleton
-
-        self._skan_skeleton = Skeleton(self.skeleton(out_type='all',
-                                                     pad_size=1),
-                                       unique_junctions=False)
-
-        self._graph = nx.from_scipy_sparse_matrix(self._skan_skeleton.graph)
-
-        self._endnodes = []
-        self._internodes = []
-
-        # Filing self._Endnodes and internode lists
-        for node in self._graph:
-            if self._graph.degree(node) == 1:
-                self._endnodes.append(node)
-            elif self._graph.degree(node) > 2:
-                self._internodes.append(node)
-
-        # Append the position of each node into the networkx graph
-        for node in self._graph:
-            self._graph.nodes[node]['pos'] = self._skan_skeleton.coordinates[node]
-
-        # Node 0 is always (0, 0, 0). Remove that node
-        self._graph.remove_node(0)
-
-    @property
-    def intersec_pts(self):
-        '''
-        Skeleton pixels associated intersections.
-        '''
-        return [tuple(self._skan_skeleton.coordinates[node].astype(int) - 1)
-                for node in self._internodes]
-
-    @property
-    def end_pts(self):
-        '''
-        Skeleton pixels associated branch end.
-        '''
-        return [tuple(self._skan_skeleton.coordinates[node].astype(int) - 1)
-                for node in self._endnodes]
 
     def skeleton_analysis(self, image,
                           compute_longest_path=True,
@@ -1940,129 +2064,11 @@ class FilamentPPP(FilamentNDBase):
         '''
         return self._converter.from_pixel(self._length, unit)
 
-    # TODO: also add a plotly version. Preferably GPU based to make it snappy.
-    def network_plot_3D(self, angle=40, filename='plot.pdf', save=False,
-                        longpath_only=False):
-        '''
-        Credit: Dewanshu
-        Gives a 3D plot for networkX using coordinates information of the nodes
-
-        Parameters
-        ----------
-        G : networkx.Graph
-        angle : int
-            Angle to view the graph plot
-        filename : str
-            Filename to save the plot
-        save : bool
-            boolean value when true saves the plot
-
-        '''
-
-        import matplotlib.pyplot as plt
-        from mpl_toolkits.mplot3d import Axes3D
-
-        G = self._graph
-
-        for node in G:
-            if node in self._long_path:
-                G.nodes[node]['longpath'] = True
-            else:
-                G.nodes[node]['longpath'] = False
-
-        # Get node positions
-        pos = nx.get_node_attributes(G, 'pos')
-        in_longpath = nx.get_node_attributes(G, 'longpath')
-        # pos = self._skan_skeleton.coordinates
-
-        # Get the maximum number of edges adjacent to a single node
-        edge_max = max([G.degree(i) for i in G.nodes])
-
-        # Define color range proportional to number of edges adjacent to a single node
-        colors = [plt.cm.plasma(G.degree(i) / edge_max) for i in G.nodes]
-
-        # 3D network plot
-        with plt.style.context(('ggplot')):
-
-            fig = plt.figure(figsize=(10, 7))
-            ax = Axes3D(fig)
-
-            # Loop on the pos dictionary to extract the x,y,z coordinates of each node
-            for i, (key, value) in enumerate(pos.items()):
-                xi = value[0]
-                yi = value[1]
-                zi = value[2]
-
-                # Scatter plot
-                ax.scatter(xi, yi, zi, c=np.atleast_2d(colors[i]),
-                           marker="D" if in_longpath[key] else "o",
-                           s=20 + 20 * G.degree(key),
-                           edgecolors='k', alpha=0.7)
-
-            # Loop on the list of edges to get the x,y,z, coordinates of the connected nodes
-            # Those two points are the extrema of the line to be plotted
-            for i, j in enumerate(G.edges()):
-
-                x = np.array((pos[j[0]][0], pos[j[1]][0]))
-                y = np.array((pos[j[0]][1], pos[j[1]][1]))
-                z = np.array((pos[j[0]][2], pos[j[1]][2]))
-
-                # Plot the connecting lines
-                ax.plot(x, y, z, c='black', alpha=0.5)
-
-        # Set the initial view
-        ax.view_init(30, angle)
-
-        # Hide the axes
-        # ax.set_axis_off()
-
-        if save is not False:
-            plt.savefig(filename)
-            plt.close('all')
-        else:
-            plt.show()
-
-    def to_pickle(self, savename):
-        '''
-        Save a Filament class as a pickle file.
-
-        Parameters
-        ----------
-        savename : str
-            Name of the pickle file.
-        '''
-
-        # Can't pickle some of the skan stuff. But we can regenerate
-        # when loading
-        del self._skan_skeleton
-
-        with open(savename, 'wb') as output:
-            pickle.dump(self, output, -1)
-
-    @staticmethod
-    def from_pickle(filename):
-        '''
-        Load a Filament from a pickle file.
-
-        Parameters
-        ----------
-        filename : str
-            Name of the pickle file.
-        '''
-        with open(filename, 'rb') as input:
-            self = pickle.load(input)
-
-        # Regenerate the graph
-        self._make_skan_skeleton()
-
-        return self
-
-
-class FilamentPPV(FilamentNDBase):
+class FilamentPPV(Filament3D, FilamentNDBase):
 
     def __init__(self, network):
 
-        super(Filament3D, self).__init__()
+        super(FilamentPPV, self).__init__()
 
         # Sets the network object associated with filament
         self.network = network
