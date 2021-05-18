@@ -1564,6 +1564,62 @@ class Filament3D(object):
     Common 3D properties for different filament types.
     '''
 
+    def skeleton(self, pad_size=0, corner_pix=None, out_type='all'):
+        '''
+        Create a mask from the pixel coordinates.
+
+        Parameters
+        ----------
+        pad_size : int, optional
+            Number of pixels to pad along each edge.
+        corner_pix : tuple of ints, optional
+            The position of the left-bottom corner of the pixels in the
+            skeleton. Used for offsetting the location of the pixels.
+        out_type : {"all", "longpath"}, optional
+            Return the entire skeleton or just the longest path. Default is to
+            return the whole skeleton.
+
+        Returns
+        -------
+        mask : `~numpy.ndarray`
+            Boolean mask containing the skeleton pixels.
+        '''
+
+        pad_size = int(pad_size)
+        if pad_size < 0:
+            raise ValueError("pad_size must be a positive integer.")
+
+        if corner_pix is None:
+            # Place the smallest pixel in the set at the pad size
+            corner_pix = [pad_size, pad_size, pad_size]
+
+        out_types = ['all', 'longpath']
+        if out_type not in out_types:
+            raise ValueError("out_type must be 'all' or 'longpath'.")
+
+        z_shape = self.pixel_extents[1][0] - self.pixel_extents[0][0] + \
+            2 * pad_size + 1
+        y_shape = self.pixel_extents[1][1] - self.pixel_extents[0][1] + \
+            2 * pad_size + 1
+        x_shape = self.pixel_extents[1][2] - self.pixel_extents[0][2] + \
+            2 * pad_size + 1
+
+        mask = np.zeros((z_shape, y_shape, x_shape), dtype=bool)
+
+        if out_type == 'all':
+            pixels = self.pixel_coords
+        else:
+            if not hasattr(self, '_longpath_pixel_coords'):
+                raise AttributeError("longest path is not defined. Run "
+                                     "`skeleton_analysis` first.")
+            pixels = self.longpath_pixel_coords
+
+        mask[pixels[0] - self.pixel_extents[0][0] + corner_pix[0],
+             pixels[1] - self.pixel_extents[0][1] + corner_pix[1],
+             pixels[2] - self.pixel_extents[0][2] + corner_pix[2]] = True
+
+        return mask
+
     def _make_skan_skeleton(self):
         '''
         Use skan.Skeleton to create a graph and get branch statistics.
@@ -1745,63 +1801,6 @@ class FilamentPPP(Filament3D, FilamentNDBase):
             self._converter = converter
         else:
             self._converter = UnitConverter(wcs=wcs, distance=distance)
-
-    def skeleton(self, pad_size=0, corner_pix=None, out_type='all'):
-        '''
-        Create a mask from the pixel coordinates.
-
-        Parameters
-        ----------
-        pad_size : int, optional
-            Number of pixels to pad along each edge.
-        corner_pix : tuple of ints, optional
-            The position of the left-bottom corner of the pixels in the
-            skeleton. Used for offsetting the location of the pixels.
-        out_type : {"all", "longpath"}, optional
-            Return the entire skeleton or just the longest path. Default is to
-            return the whole skeleton.
-
-        Returns
-        -------
-        mask : `~numpy.ndarray`
-            Boolean mask containing the skeleton pixels.
-        '''
-
-        pad_size = int(pad_size)
-        if pad_size < 0:
-            raise ValueError("pad_size must be a positive integer.")
-
-        if corner_pix is None:
-            # Place the smallest pixel in the set at the pad size
-            corner_pix = [pad_size, pad_size, pad_size]
-
-        out_types = ['all', 'longpath']
-        if out_type not in out_types:
-            raise ValueError("out_type must be 'all' or 'longpath'.")
-
-        z_shape = self.pixel_extents[1][0] - self.pixel_extents[0][0] + \
-            2 * pad_size + 1
-        y_shape = self.pixel_extents[1][1] - self.pixel_extents[0][1] + \
-            2 * pad_size + 1
-        x_shape = self.pixel_extents[1][2] - self.pixel_extents[0][2] + \
-            2 * pad_size + 1
-
-        mask = np.zeros((z_shape, y_shape, x_shape), dtype=bool)
-
-        if out_type == 'all':
-            pixels = self.pixel_coords
-        else:
-            if not hasattr(self, '_longpath_pixel_coords'):
-                raise AttributeError("longest path is not defined. Run "
-                                     "`Filament2D.skeleton_analysis` first.")
-            pixels = self.longpath_pixel_coords
-
-        mask[pixels[0] - self.pixel_extents[0][0] + corner_pix[0],
-             pixels[1] - self.pixel_extents[0][1] + corner_pix[1],
-             pixels[2] - self.pixel_extents[0][2] + corner_pix[2]] = True
-
-        return mask
-
 
     def skeleton_analysis(self, image,
                           compute_longest_path=True,
@@ -2071,57 +2070,387 @@ class FilamentPPP(Filament3D, FilamentNDBase):
 
 class FilamentPPV(Filament3D, FilamentNDBase):
 
-    def __init__(self, network):
+    def __init__(self, pixel_coords, converter=None, wcs=None, distance=None):
 
         super(FilamentPPV, self).__init__()
 
-        # Sets the network object associated with filament
-        self.network = network
+        self._pixel_coords = pixel_coords
 
-        # Number of nodes
-        self.number_of_nodes = network.number_of_nodes()
+        # Create a separate account of the initial skeleton pixels
+        self._orig_pixel_coords = pixel_coords
 
-        # Compute the spatial/spectral length of the filament
-        self.spatial_length = 0
-        self.spectral_length = 0
-        self.intensity = 0
+        if converter is not None:
+            self._converter = converter
+        else:
+            self._converter = UnitConverter(wcs=wcs, distance=distance)
 
-        # Loop through and compute both spatial and spectral lengths
-        # Also track total intensity
+    def _make_skan_skeleton(self, data):
+        '''
+        Use skan.Skeleton to create a graph and get branch statistics.
+        '''
 
-        for ind, node in enumerate(network):
-            # This first iteration should only set the x1,y1,z1, and intensity
-            if ind == 0:
-                x1 = network.nodes[node]['pos'][0]
-                y1 = network.nodes[node]['pos'][1]
-                z1 = network.nodes[node]['pos'][2]
+        # Import skan here to create the graph.
+        from skan import Skeleton
 
-                self.intensity += network.nodes[node]['data']
-                continue
+        self._skan_skeleton = Skeleton(self.skeleton(out_type='all',
+                                                     pad_size=1),
+                                       unique_junctions=False)
 
-            # Setting current node as '2'
-            x2 = network.nodes[node]['pos'][0]
-            y2 = network.nodes[node]['pos'][1]
-            z2 = network.nodes[node]['pos'][2]
+        self._graph = nx.from_scipy_sparse_matrix(self._skan_skeleton.graph)
 
-            # Compute spatial length here
-            self.spatial_length += (((x1+x2)**2) + ((y1+y2)**2))
+        self._endnodes = []
+        self._internodes = []
 
-            # Compute spectral length here
-            self.spectral_length += (((x1+x2)**2) + ((y1+y2)**2) + ((z1+z2)**2))
+        # Filing self._Endnodes and internode lists
+        for node in self._graph:
+            if self._graph.degree(node) == 1:
+                self._endnodes.append(node)
+            elif self._graph.degree(node) > 2:
+                self._internodes.append(node)
 
-            # Add intensity to the attribute
-            self.intensity += network.nodes[node]['data']
+        # Append the position of each node into the networkx graph
+        for node in self._graph:
+            self._graph.nodes[node]['pos'] = self._skan_skeleton.coordinates[node]
+            self._graph.nodes[node]['data'] = data[self._skan_skeleton.coordinates[node].astype(int)]
 
-            # Set x1 and y2 as current x2 and y2 for next iteration
-            x2 = x1
-            y2 = y1
+        # Node 0 is always (0, 0, 0). Remove that node
+        self._graph.remove_node(0)
 
-            # If current index is second from the end, then exit the loop
-            # as all lengths will be calculated
-            if ind == self.number_of_nodes - 2:
+        # Add in separate properties for the spatial and spectral properties.
+        self._branch_spatial_lengths = []
+        self._branch_spectral_lengths = []
+
+        for branch in self._skan_skeleton.n_paths:
+            branch_pix = self._skan_skeleton.path_coordinates(branch)
+
+            self._branch_spatial_lengths.append(np.sqrt(np.sum(np.diff(branch_pix[..., 1:], axis=0)**2, axis=1)).sum() * u.pix)
+
+            self._branch_spectral_lengths.append(np.diff(branch_pix[..., 1:]).sum() * u.pix)
+
+    def branch_spatial_lengths(self, unit=u.pix):
+
+        return self._converter.from_pixel(self._branch_spatial_lengths, unit)
+
+    def branch_spatial_lengths(self, unit=u.pix):
+
+        return self._converter.from_pixel_spectral(self._branch_spectral_lengths, unit)
+
+    def skeleton_analysis(self, data,
+                          compute_longest_path=True,
+                          do_prune=True,
+                          verbose=False, save_png=False,
+                          save_name=None, prune_criteria='all',
+                          relintens_thresh=0.2, max_prune_iter=10,
+                          branch_spatial_thresh=0 * u.pix,
+                          branch_spectral_thresh=0 * u.pix,
+                          test_print=False):
+
+        '''
+        Combines finding the longest path and pruning the filament.
+
+        '''
+
+        if not hasattr(self, "_skan_skeleton"):
+            self._make_skan_skeleton(data)
+
+        self._compute_longest_path = compute_longest_path
+
+        if compute_longest_path:
+            self.find_longest_path(verbose=verbose, test_print=test_print)
+        else:
+            # Set the long path values to None
+            self._length = None
+            self._long_path = None
+            self._longpath_pixel_coords = (None,) * 3
+
+        if do_prune:
+
+            self.prune_skeleton(data,
+                                verbose=verbose,
+                                save_png=save_png,
+                                save_name=save_name,
+                                prune_criteria=prune_criteria,
+                                relintens_thresh=relintens_thresh,
+                                max_prune_iter=max_prune_iter,
+                                branch_spatial_thresh=branch_spatial_thresh,
+                                branch_spectral_thresh=branch_spectral_thresh,
+                                test_print=test_print)
+
+
+    def find_longest_path(self, verbose=False, test_print=0, spatial_only=False):
+        '''
+        Identify the longest path through the skeleton.
+        '''
+
+        # Loop through pairs of end nodes to avoid unnecessary length calcs.
+        all_paths = []
+        all_weights = []
+
+        for k in range(len(self._endnodes)):
+            for i in range(k + 1, len(self._endnodes)):
+                if i == k:
+                    continue
+
+                # Grabbing the shortest(s) path(s) from k to i
+                # TODO: add spatial length only option
+                path, length = all_shortest_paths(self._graph,
+                                                  self._endnodes[k],
+                                                  self._endnodes[i],
+                                                  test_print=test_print > 1)
+
+                all_paths.append(path)
+                all_weights.append(length)
+
+        long_path = all_paths[all_weights.index(max(all_weights))]
+
+        self._long_path = long_path
+
+        self._length = max(all_weights) * u.pix
+
+        # Encode in the graph which nodes are in the longest path
+        for node in self._graph:
+            if node in self._long_path:
+                self._graph.nodes[node]['longpath'] = True
+            else:
+                self._graph.nodes[node]['longpath'] = False
+
+        # Record the longest path coordinates
+        longpath_z = self._skan_skeleton.coordinates[:, 0][np.r_[self._long_path]]
+        longpath_z += self.pixel_extents[0][0] - 1
+        longpath_y = self._skan_skeleton.coordinates[:, 1][np.r_[self._long_path]]
+        longpath_y += self.pixel_extents[0][1] - 1
+        longpath_x = self._skan_skeleton.coordinates[:, 2][np.r_[self._long_path]]
+        longpath_x += self.pixel_extents[0][2] - 1
+
+        self._longpath_pixel_coords = (longpath_z.astype(int),
+                                       longpath_y.astype(int),
+                                       longpath_x.astype(int))
+
+    def prune_skeleton(self, data,
+                       verbose=False, save_png=False,
+                       save_name=None, prune_criteria='all',
+                       relintens_thresh=0.2,
+                       max_prune_iter=10,
+                       branch_spatial_thresh=0 * u.pix,
+                       branch_spectral_thresh=0 * u.pix,
+                       test_print=0):
+        '''
+        Remove short branches not on the longest path.
+        '''
+
+        test_print = test_print > 0
+
+        n_prune_iter = 0
+
+        while True:
+
+            # Record to break when no branches are deleted in an iteration.
+            del_branches = []
+
+            for branch in range(self._skan_skeleton.n_paths):
+
+                length_spatial = self._branch_spatial_lengths[branch]
+                length_spectral = self._branch_spectral_lengths[branch]
+
+                branch_path = self._skan_skeleton.path(branch)
+
+                if test_print:
+                    print(f"Branch {branch} with spatial length: {length_spatial}. "
+                          f"And spectral length: {length_spectral}. "
+                          f"Minimum spatial length: {branch_spatial_thresh.to(u.pix).value}",
+                          f"Minimum spectral length: {branch_spectral_thresh.to(u.pix).value}")
+
+                # Remove intersections from the path to avoid deleting
+                # branch_path_nointers = list(set(branch_path) - set(self._internodes))
+
+                # Cases where the path is only intersections points.
+                # if len(branch_path_nointers) == 0:
+
+                # 1) Check if on longest path. If it is, it is not eligible to be removed.
+                if self._compute_longest_path:
+                    longpath_diffs = list(set(branch_path) - set(self._long_path))
+
+                    if len(longpath_diffs) == 0:
+                        if test_print:
+                            print(f"Branch {branch} is on the long path.")
+
+                        continue
+
+                # Next check if the branch has an endpoint. If it doesn't, it will
+                # split the skeleton into separate skeletons.
+                endpt_match = list(set(branch_path) & set(self._endnodes))
+
+                if len(endpt_match) == 0:
+                    if test_print:
+                        print(f"Branch {branch} does not have an end point. Skipping.")
+
+                    continue
+
+                # This branch is eligible to be removed. Next check removal criteria.
+
+                if length_spatial >= branch_spatial_thresh.to(u.pix).value:
+                    continue
+
+                if length_spectral >= branch_spectral_thresh.to(u.pix).value:
+                    continue
+
+                # TODO: Add in other criteria, intensity, etc. Maybe curvature?
+
+                # This branch will be deleted.
+                del_branches.append(branch)
+
+            # Stop pruning if no branches need to be deleted
+            if len(del_branches) == 0:
+                if test_print:
+                    print(f"No further branches to prune on iteration {n_prune_iter}")
                 break
 
+            if test_print:
+                print(f"Pruning branches {del_branches} on iteration {n_prune_iter}")
 
-        # Compute the average intensity of data
-        self.average_intensity = self.intensity / self.number_of_nodes
+            # Branch removal
+            # We'll do this by removing these pixels from the skeleton coordinates,
+            # remaking the skan skeleton, and updating the longest path node names
+            # (the longest path won't change, but the node labels will)
+            del_pix = []
+            for branch in del_branches:
+
+                if self._compute_longest_path:
+                    branch_path = list(set(self._skan_skeleton.path(branch)) - set(self._long_path))
+
+                for node in branch_path:
+
+                    # If that node is an intersection point, skip:
+                    # This is required to keep connectivity in the skeleton
+                    if node in self._internodes:
+                        continue
+
+                    pix = self._skan_skeleton.coordinates[node]
+
+                    match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] + 1 == pix[0])
+                    match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] + 1 == pix[1])
+                    match_x = (self.pixel_coords[2] - self.pixel_extents[0][2] + 1 == pix[2])
+
+                    idx = np.where((match_z & match_y & match_x))[0]
+
+                    if len(idx) == 0:
+                        raise ValueError("Cannot find matching pixel coordinate to remove.")
+
+                    del_pix.append(idx[0])
+
+            # Delete from bottom to not affect deleted idx ordering.
+            init_size = self.pixel_coords[0].size
+            new_pixel_coords_z = np.delete(self.pixel_coords[0].copy(), sorted(del_pix))
+            new_pixel_coords_y = np.delete(self.pixel_coords[1].copy(), sorted(del_pix))
+            new_pixel_coords_x = np.delete(self.pixel_coords[2].copy(), sorted(del_pix))
+
+            self._pixel_coords = (new_pixel_coords_z.astype(int),
+                                  new_pixel_coords_y.astype(int),
+                                  new_pixel_coords_x.astype(int))
+
+            # Trigger remaking the graphs
+            self._make_skan_skeleton(data)
+
+            # Update the longest path node IDs in the pruned skeleton
+            if self._compute_longest_path:
+
+                # Sanity check: make sure none of the long path pixels were removed.
+                for node in self._long_path:
+                    pix = self._skan_skeleton.coordinates[node]
+
+                    match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] + 1 == pix[0])
+                    match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] + 1 == pix[1])
+                    match_x = (self.pixel_coords[2] - self.pixel_extents[0][2] + 1 == pix[2])
+
+                    idx = np.where((match_z & match_y & match_x))[0]
+
+                    if len(idx) == 0:
+                        raise ValueError("Missing pixel from longest path.")
+
+                long_path_pix = {}
+                for node in self._long_path:
+                    long_path_pix[node] = self._skan_skeleton.coordinates[node]
+
+                # Loop through the first long path and re-assign the new node labels.
+                new_longpath = []
+                for node in self._long_path:
+
+                    pix = long_path_pix[node]
+
+                    new_idx = (self._skan_skeleton.coordinates == pix).all(axis=1).nonzero()[0]
+
+                    if not new_idx.size == 1:
+                        raise ValueError("Unable to map pixel to new skeleton after pruning.")
+
+                    new_longpath.append(new_idx[0])
+
+                if len(self._long_path) != len(new_longpath):
+                    raise ValueError("The new longest path must be the same length as the old."
+                                    " This is a bug")
+
+                self._long_path = new_longpath
+
+            if test_print:
+                print(f"Reduced pixels from {init_size} to {self._pixel_coords[0].size}")
+
+            n_prune_iter += 1
+
+            if n_prune_iter >= max_prune_iter:
+                if test_print:
+                    print("Reached maximum number of iterations in pruning.")
+                break
+
+    # def __init__(self, network):
+
+    #     super(FilamentPPV, self).__init__()
+
+    #     # Sets the network object associated with filament
+    #     self.network = network
+
+    #     # Number of nodes
+    #     self.number_of_nodes = network.number_of_nodes()
+
+    #     # Compute the spatial/spectral length of the filament
+    #     self.spatial_length = 0
+    #     self.spectral_length = 0
+    #     self.intensity = 0
+
+    #     # Loop through and compute both spatial and spectral lengths
+    #     # Also track total intensity
+
+    #     for ind, node in enumerate(network):
+    #         # This first iteration should only set the x1,y1,z1, and intensity
+    #         if ind == 0:
+    #             x1 = network.nodes[node]['pos'][0]
+    #             y1 = network.nodes[node]['pos'][1]
+    #             z1 = network.nodes[node]['pos'][2]
+
+    #             self.intensity += network.nodes[node]['data']
+    #             continue
+
+    #         # Setting current node as '2'
+    #         x2 = network.nodes[node]['pos'][0]
+    #         y2 = network.nodes[node]['pos'][1]
+    #         z2 = network.nodes[node]['pos'][2]
+
+    #         # Compute spatial length here
+    #         self.spatial_length += (((x1+x2)**2) + ((y1+y2)**2))
+
+    #         # Compute spectral length here
+    #         self.spectral_length += (((x1+x2)**2) + ((y1+y2)**2) + ((z1+z2)**2))
+
+    #         # Add intensity to the attribute
+    #         self.intensity += network.nodes[node]['data']
+
+    #         # Set x1 and y2 as current x2 and y2 for next iteration
+    #         x2 = x1
+    #         y2 = y1
+
+    #         # If current index is second from the end, then exit the loop
+    #         # as all lengths will be calculated
+    #         if ind == self.number_of_nodes - 2:
+    #             break
+
+
+    #     # Compute the average intensity of data
+    #     self.average_intensity = self.intensity / self.number_of_nodes
