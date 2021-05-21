@@ -15,6 +15,7 @@ import warnings
 
 from .filament import FilamentPPV
 from .skeleton3D import Skeleton3D
+from .threshold_local_3D import threshold_local
 
 
 class FilFinderPPV(Skeleton3D):
@@ -38,8 +39,7 @@ class FilFinderPPV(Skeleton3D):
 
         self._has_skan()
 
-        # TODO add image checking here
-        self._image = image
+        self.image = image
 
         self.save_name = save_name
 
@@ -52,6 +52,17 @@ class FilFinderPPV(Skeleton3D):
             # Clearing NaN entries
             mask[np.isnan(mask)] = 0.0
             self.mask = mask
+
+    @property
+    def image(self):
+        return self._image
+
+    @image.setter
+    def image(self, value):
+        if not value.ndim == 3:
+            raise ValueError(f"The array must be 3D. Given a {} array.")
+
+        self._image = value
 
     def preprocess_image(self, skip_flatten=False, flatten_percent=None):
         """
@@ -75,8 +86,12 @@ class FilFinderPPV(Skeleton3D):
             # TODO Add in here
             return
 
-    def create_mask(self, glob_thresh=None, verbose=False,
-                    save_png=False, use_existing_mask=False):
+    def create_mask(self, adapt_thresh=9, glob_thresh=0.0,
+                    ball_radius=2, min_object_size=27*3,
+                    max_hole_size=100,
+                    verbose=False,
+                    save_png=False, use_existing_mask=False,
+                    **adapt_kwargs):
         """
         Runs the segmentation process and returns a mask of the filaments found.
 
@@ -100,8 +115,15 @@ class FilFinderPPV(Skeleton3D):
         """
 
         if self.mask is not None and use_existing_mask:
-            warnings.warn("Using inputted mask. Skipping creation "
-                          " of a new mask.")
+            warnings.warn("Using inputted mask. Skipping creation of a"
+                          "new mask.")
+            # Skip if pre-made mask given
+            self.glob_thresh = 'usermask'
+            self.adapt_thresh = 'usermask'
+            self.size_thresh = 'usermask'
+            self.smooth_size = 'usermask'
+
+            return
 
         if glob_thresh is None:
             self.glob_thresh = None
@@ -115,10 +137,34 @@ class FilFinderPPV(Skeleton3D):
         # Removing NaNs in copy
         flat_copy[np.isnan(flat_copy)] = 0.0
 
-        # Just using global threshold for now
-        self.mask = flat_copy > glob_thresh
+        # Create the adaptive thresholded mask
+        thresh_image = threshold_local(flat_copy, adapt_thresh, **adapt_kwargs)
+        if hasattr(flat_copy, 'unit'):
+            thresh_image = thresh_image * flat_copy.unit
 
-        return
+        adapt_mask = flat_copy > thresh_image
+
+        # Add in global threshold mask
+        adapt_mask = np.logical_and(adapt_mask, flat_copy > glob_thresh)
+
+        # TODO should we use other shape here?
+        # TODO Create an ellipse shape so we can control the spectral shape independently
+        selem = mo.ball(ball_radius)
+
+        # Dilate the image
+        # dilate = mo.dilation(adapt_mask, selem)
+
+        # NOTE: Look into mo.diameter_opening and mo.diameter_closing
+        dilate = mo.opening(adapt_mask, selem)
+
+        # Removing dark spots and small bright cracks in image
+        close = mo.closing(dilate)
+
+        # Don't allow small holes: these lead to "shell"-shaped skeleton features
+        mo.remove_small_objects(close, min_size=min_object_size, connectivity=1, in_place=True)
+        mo.remove_small_holes(close, area_threshold=max_hole_size, connectivity=1, in_place=True)
+
+        self.mask = close
 
     def filament_trimmer(self, filament, branches):
         """
