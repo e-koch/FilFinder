@@ -151,6 +151,8 @@ class FilFinderPPV(Skeleton3D):
         selem = mo.disk(ball_radius)
         if ball_spectral_depth > 1:
             selem = np.tile(selem, (ball_spectral_depth, 1, 1))
+        else:
+            selem = selem[np.newaxis, ...]
 
         # Dilate the image
         # dilate = mo.dilation(adapt_mask, selem)
