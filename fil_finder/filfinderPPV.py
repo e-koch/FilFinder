@@ -87,7 +87,8 @@ class FilFinderPPV(Skeleton3D):
             return
 
     def create_mask(self, adapt_thresh=9, glob_thresh=0.0,
-                    ball_radius=2, min_object_size=27*3,
+                    ball_radius=2, ball_spectral_depth=1,
+                    min_object_size=27*3,
                     max_hole_size=100,
                     verbose=False,
                     save_png=False, use_existing_mask=False,
@@ -147,9 +148,9 @@ class FilFinderPPV(Skeleton3D):
         # Add in global threshold mask
         adapt_mask = np.logical_and(adapt_mask, flat_copy > glob_thresh)
 
-        # TODO should we use other shape here?
-        # TODO Create an ellipse shape so we can control the spectral shape independently
-        selem = mo.ball(ball_radius)
+        selem = mo.disk(ball_radius)
+        if ball_spectral_depth > 1:
+            selem = np.tile(selem, (ball_spectral_depth, 1, 1))
 
         # Dilate the image
         # dilate = mo.dilation(adapt_mask, selem)
