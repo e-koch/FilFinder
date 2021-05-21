@@ -2354,6 +2354,14 @@ class FilamentPPV(Filament3D, FilamentNDBase):
                                   new_pixel_coords_y.astype(int),
                                   new_pixel_coords_x.astype(int))
 
+            if test_print:
+                print(f"Remaining pixels: {new_pixel_coords_z.shape}")
+
+            if new_pixel_coords_z.size == 0:
+                # TODO: change to logger debug/warning here
+                print("WARNING: The entire skeleton has been pruned. Consider lowering the pruning length requirements")
+                return
+
             # Trigger remaking the graphs
             self._make_skan_skeleton(data)
 
