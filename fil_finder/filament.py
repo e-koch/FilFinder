@@ -2120,18 +2120,24 @@ class FilamentPPV(Filament3D, FilamentNDBase):
         self._branch_spatial_lengths = []
         self._branch_spectral_lengths = []
 
-        for branch in self._skan_skeleton.n_paths:
+        for branch in range(self._skan_skeleton.n_paths):
             branch_pix = self._skan_skeleton.path_coordinates(branch)
 
             self._branch_spatial_lengths.append(np.sqrt(np.sum(np.diff(branch_pix[..., 1:], axis=0)**2, axis=1)).sum() * u.pix)
 
-            self._branch_spectral_lengths.append(np.diff(branch_pix[..., 1:]).sum() * u.pix)
+            self._branch_spectral_lengths.append(np.diff(branch_pix[..., 0]).sum() * u.pix)
 
     def branch_spatial_lengths(self, unit=u.pix):
+
+        if unit == u.pix:
+            return self._branch_spatial_lengths
 
         return self._converter.from_pixel(self._branch_spatial_lengths, unit)
 
-    def branch_spatial_lengths(self, unit=u.pix):
+    def branch_spectral_lengths(self, unit=u.pix):
+
+        if unit == u.pix:
+            return self._branch_spectral_lengths
 
         return self._converter.from_pixel_spectral(self._branch_spectral_lengths, unit)
 
@@ -2288,10 +2294,10 @@ class FilamentPPV(Filament3D, FilamentNDBase):
 
                 # This branch is eligible to be removed. Next check removal criteria.
 
-                if length_spatial >= branch_spatial_thresh.to(u.pix).value:
+                if length_spatial >= branch_spatial_thresh.to(u.pix):
                     continue
 
-                if length_spectral >= branch_spectral_thresh.to(u.pix).value:
+                if length_spectral >= branch_spectral_thresh.to(u.pix):
                     continue
 
                 # TODO: Add in other criteria, intensity, etc. Maybe curvature?
