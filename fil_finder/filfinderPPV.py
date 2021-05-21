@@ -12,6 +12,7 @@ import numpy as np
 import skimage.morphology as mo
 import networkx as nx
 import warnings
+import astropy.units as u
 
 from .filament import FilamentPPV
 from .skeleton3D import Skeleton3D
@@ -169,42 +170,78 @@ class FilFinderPPV(Skeleton3D):
 
         self.mask = close
 
-    def filament_trimmer(self, filament, branches):
-        """
-        Runs through the branches of the filament and trims based on
-        certain inputted criteria.
+    def analyze_skeletons(self, compute_longest_path=True,
+                          do_prune=True,
+                          verbose=False, save_png=False,
+                          save_name=None, prune_criteria='all',
+                          relintens_thresh=0.2,
+                          max_prune_iter=10,
+                          branch_spatial_thresh=0 * u.pix,
+                          branch_spectral_thresh=0 * u.pix,
+                          test_print=0):
+        '''
+        '''
 
-        Parameters
-        ----------
-        filament : networkx.Graph
-            Associated with the longest path filament found.
-        branches : list (of networkx.Graph objects)
-            Associated with the branches off the longest path filament.
+        self._compute_longest_path = compute_longest_path
 
-        Attributes
-        -------
-        filaments : list
-            Will include all the filaments that make it through the trimming
-            process of this function. Each index in the list is a Filament3D
-            instance.
+        # Define the skeletons
 
-        """
+        num = self._skel_labels.max()
 
-        # Creating filaments attribute which will hold a list of Filament3D
-        # objects that are not trimmed from the criteria
         self.filaments = []
 
-        main_filament = FilamentPPV(filament)
-        inspect_branches = [FilamentPPV(x) for x in branches]
+        for i in range(1, num + 1):
 
-        # TODO Code here for testing branches
-        # use del in this code to delete the branches from the list as the code runs
+            coords = np.where(self._skel_labels == i)
 
-        # Add leftover branches and main_filament to the self.filaments attribute
-        self.filaments.append(main_filament)
-        # Loop through leftover branches here
-        for i in inspect_branches:
-            self.filaments.append(i)
+            self.filaments.append(FilamentPPV(coords,))
+                                            #   converter=self.converter))
+
+        # Calculate lengths and find the longest path.
+        # Followed by pruning.
+        for num, fil in enumerate(self.filaments):
+            if test_print:
+                print(f"Skeleton analysis for {num} of {len(self.filaments)}")
+
+            fil._make_skan_skeleton(self._image)
+
+            fil.skeleton_analysis(self._image,
+                                  compute_longest_path=compute_longest_path,
+                                  verbose=verbose, save_png=save_png,
+                                  save_name=save_name, prune_criteria=prune_criteria,
+                                  relintens_thresh=relintens_thresh,
+                                  max_prune_iter=max_prune_iter,
+                                  branch_spatial_thresh=branch_spatial_thresh,
+                                  branch_spectral_thresh=branch_spectral_thresh,
+                                  test_print=test_print)
+
+        # Check for now empty skeletons:
+        del_fil_inds = [ii for ii, fil in enumerate(self.filaments) if fil.pixel_coords[0].size == 0]
+        for ii in sorted(del_fil_inds, reverse=True):
+            self.filaments.pop(ii)
+
+        # Update the skeleton array
+        new_skel = np.zeros_like(self.skeleton)
+
+        if self._compute_longest_path:
+            new_skel_longpath = np.zeros_like(self.skeleton)
+
+        for fil in self.filaments:
+
+            new_skel[fil.pixel_coords[0],
+                     fil.pixel_coords[1],
+                     fil.pixel_coords[2]] = True
+
+            if self._compute_longest_path:
+
+                new_skel_longpath[fil.longpath_pixel_coords[0],
+                                  fil.longpath_pixel_coords[1],
+                                  fil.longpath_pixel_coords[2]] = True
+
+        self.skeleton = new_skel
+
+        if self._compute_longest_path:
+            self.skeleton_longpath = new_skel_longpath
 
     @staticmethod
     def network_plot_3D(G, angle=40, filename='plot.pdf', save=False):
