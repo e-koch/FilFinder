@@ -2372,8 +2372,6 @@ class FilamentPPV(Filament3D, FilamentNDBase):
                 for node in self._long_path:
                     pix = self._skan_skeleton.coordinates[node]
 
-                    print(self._skan_skeleton.coordinates.shape, node)
-
                     match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] + 1 == pix[0])
                     match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] + 1 == pix[1])
                     match_x = (self.pixel_coords[2] - self.pixel_extents[0][2] + 1 == pix[2])
