@@ -60,7 +60,7 @@ class FilFinderPPV(Skeleton3D):
     @image.setter
     def image(self, value):
         if not value.ndim == 3:
-            raise ValueError(f"The array must be 3D. Given a {} array.")
+            raise ValueError(f"The array must be 3D. Given a {value.ndim} array.")
 
         self._image = value
 
