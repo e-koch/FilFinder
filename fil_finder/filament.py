@@ -2000,9 +2000,6 @@ class FilamentPPP(Filament3D, FilamentNDBase):
                                   new_pixel_coords_y.astype(int),
                                   new_pixel_coords_x.astype(int))
 
-            # Trigger remaking the graphs
-            self._make_skan_skeleton()
-
             # Update the longest path node IDs in the pruned skeleton
             if self._compute_longest_path:
 
@@ -2023,6 +2020,9 @@ class FilamentPPP(Filament3D, FilamentNDBase):
                 for node in self._long_path:
                     long_path_pix[node] = self._skan_skeleton.coordinates[node]
 
+                # Trigger remaking the graphs
+                self._make_skan_skeleton()
+
                 # Loop through the first long path and re-assign the new node labels.
                 new_longpath = []
                 for node in self._long_path:
@@ -2041,6 +2041,11 @@ class FilamentPPP(Filament3D, FilamentNDBase):
                                     " This is a bug")
 
                 self._long_path = new_longpath
+
+            else:
+                # Trigger remaking the graphs
+                self._make_skan_skeleton()
+
 
             if test_print:
                 print(f"Reduced pixels from {init_size} to {self._pixel_coords[0].size}")
@@ -2260,10 +2265,8 @@ class FilamentPPV(Filament3D, FilamentNDBase):
                 branch_path = self._skan_skeleton.path(branch)
 
                 if test_print:
-                    print(f"Branch {branch} with spatial length: {length_spatial}. "
-                          f"And spectral length: {length_spectral}. "
-                          f"Minimum spatial length: {branch_spatial_thresh.to(u.pix).value}",
-                          f"Minimum spectral length: {branch_spectral_thresh.to(u.pix).value}")
+                    print(f"Branch {branch} with spatial length: {length_spatial}. Threshold: {branch_spatial_thresh.to(u.pix).value} \n"
+                          f"And spectral length: {length_spectral}. Threshold: {branch_spectral_thresh.to(u.pix).value} \n")
 
                 # Remove intersections from the path to avoid deleting
                 # branch_path_nointers = list(set(branch_path) - set(self._internodes))
@@ -2361,15 +2364,14 @@ class FilamentPPV(Filament3D, FilamentNDBase):
                 print("WARNING: The entire skeleton has been pruned. Consider lowering the pruning length requirements")
                 return
 
-            # Trigger remaking the graphs
-            self._make_skan_skeleton(data)
-
             # Update the longest path node IDs in the pruned skeleton
             if self._compute_longest_path:
 
                 # Sanity check: make sure none of the long path pixels were removed.
                 for node in self._long_path:
                     pix = self._skan_skeleton.coordinates[node]
+
+                    print(self._skan_skeleton.coordinates.shape, node)
 
                     match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] + 1 == pix[0])
                     match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] + 1 == pix[1])
@@ -2383,6 +2385,9 @@ class FilamentPPV(Filament3D, FilamentNDBase):
                 long_path_pix = {}
                 for node in self._long_path:
                     long_path_pix[node] = self._skan_skeleton.coordinates[node]
+
+                # Trigger remaking the graphs
+                self._make_skan_skeleton(data)
 
                 # Loop through the first long path and re-assign the new node labels.
                 new_longpath = []
@@ -2402,6 +2407,11 @@ class FilamentPPV(Filament3D, FilamentNDBase):
                                     " This is a bug")
 
                 self._long_path = new_longpath
+
+            else:
+                # Trigger remaking the graphs
+                self._make_skan_skeleton(data)
+
 
             if test_print:
                 print(f"Reduced pixels from {init_size} to {self._pixel_coords[0].size}")
