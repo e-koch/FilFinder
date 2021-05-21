@@ -9,3 +9,4 @@ if not _ASTROPY_SETUP_:
     from .width_profiles import filament_profile
 
     from .filfinderPPP import FilFinderPPP
+    from .filfinderPPV import FilFinderPPV
