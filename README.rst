@@ -13,8 +13,8 @@ Build and coverage status
 
 |Coverage Status| |DOI|
 
-.. |Coverage Status| image:: https://coveralls.io/repos/github/e-koch/FilFinder/badge.svg?branch=master
-   :target: https://coveralls.io/github/e-koch/FilFinder?branch=master
+.. |Coverage Status| image:: https://codecov.io/gh/e-koch/FilFinder/branch/master/graph/badge.svg?token=MxoAaTTsjc
+   :target: https://codecov.io/gh/e-koch/FilFinder
 .. |DOI| image:: https://zenodo.org/badge/9172/e-koch/FilFinder.svg
    :target: http://dx.doi.org/10.5281/zenodo.18463
 
