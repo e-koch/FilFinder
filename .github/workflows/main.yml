@@ -37,8 +37,13 @@ jobs:
 
           - os: ubuntu-latest
             python-version: 3.9
-            name: Python 3.8, all dependencies, and dev versions of key dependencies
+            name: Python 3.9, all dependencies, and dev versions of key dependencies
             toxenv: py38-test-dev
+
+          - os: ubuntu-latest
+            python-version: 3.9
+            name: Python 398, all dependencies, and coverage
+            toxenv: py38-test-all-cov
 
           - os: macos-latest
             python-version: 3.9
@@ -66,6 +71,7 @@ jobs:
     - name: Run tests with ${{ matrix.name }}
       run: tox -v -e ${{ matrix.toxenv }}
     - name: Upload coverage to codecov
+      if: ${{ contains(matrix.toxenv,'-cov') }}
       uses: codecov/codecov-action@v1.0.13
       with:
         file: ./coverage.xml
