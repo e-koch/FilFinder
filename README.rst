@@ -27,7 +27,7 @@ The algorithm proceeds through multiple steps:
 
 * FilFinder segments filamentary structure by using `adaptive thresholding <http://scikit-image.org/docs/dev/auto_examples/plot_threshold_adaptive.html>`__. This performs thresholding over local neighborhoods, allowing for the extraction of structure over a large dynamic range.
 * The final filament mask is constructed by applying morphological operators to remove extraneous small regions. The order of these operations are:
-*
+
     * (Optionally) Flatten using an arctan transform - this removes the effects of small bright features (ie. cores) from effecting the filament mask.
     * Smooth with a small median filter (half the size of the expected filament widths) - this decreases fragmentation of regions in the final mask
     * Apply the adaptive threshold - the patch size is set to the expected filament width (0.1 pc) by default - this sets the scale of the objects to be detected. Within a factor of a few, this size does not effect the result greatly. The widths of the masked regions are not used for deriving any physical properties.
