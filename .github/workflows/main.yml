@@ -38,12 +38,12 @@ jobs:
           - os: ubuntu-latest
             python-version: 3.9
             name: Python 3.9, all dependencies, and dev versions of key dependencies
-            toxenv: py38-test-dev
+            toxenv: py39-test-dev
 
           - os: ubuntu-latest
             python-version: 3.9
-            name: Python 398, all dependencies, and coverage
-            toxenv: py38-test-all-cov
+            name: Python 3.9, all dependencies, and coverage
+            toxenv: py39-test-all-cov
 
           - os: macos-latest
             python-version: 3.9
