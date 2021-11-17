@@ -5,16 +5,9 @@ FilFinder can be installed via pip:
 
 >>> pip install fil_finder # doctest: +SKIP
 
-To install from the repository, run:
+To install from the repository, run the following from within the repository folder:
 
->>> python setup.py install # doctest: +SKIP
-
-
-**NOTE:** Due to install conflicts amongst FilFinder's dependencies, installing the package will **NOT** install the dependencies. To check if you have the necessary packages installed, run:
-
->>> python setup.py check_deps # doctest: +SKIP
-
-Unfortunately, this is only available when installing from the repository.
+>>> pip install -e . # doctest: +SKIP
 
 Quickest way to get FilFinder working
 -------------------------------------
@@ -27,18 +20,18 @@ Install the dependencies using:
 >>> conda install --yes numpy scipy matplotlib astropy scikit-image networkx # doctest: +SKIP
 
 This will install all of the newest releases of those packages. FilFinder can then be installed as explained
-above. Test with the ``check_deps`` option if in doubt.
+above.
 
 Package Dependencies
 --------------------
 
 Requires:
 
- *   numpy >= 1.7.1
+ *   numpy
  *   matplotlib
- *   astropy >= 0.4.0
+ *   astropy
  *   scipy
- *   scikits-image >= 0.8.0
+ *   scikits-image
  *   networkx
 
 Optional:
