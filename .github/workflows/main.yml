@@ -15,7 +15,7 @@ jobs:
             name: Python 3.9 with minimal dependencies
             toxenv: py39-test
 
-            - os: ubuntu-latest
+          - os: ubuntu-latest
             python-version: 3.8
             name: Python 3.8 with minimal dependencies
             toxenv: py38-test
