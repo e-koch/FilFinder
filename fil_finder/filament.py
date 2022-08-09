@@ -854,6 +854,7 @@ class Filament2D(FilamentNDBase):
         else:
             # Record the fit type
             self._radprof_type = fit_model.name
+            skip_fitting = False
 
         if not skip_fitting:
             fitted_model, fitter = fit_radial_model(dist, radprof, fit_model,
