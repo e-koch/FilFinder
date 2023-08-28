@@ -1628,11 +1628,19 @@ class Filament3D(object):
         # Import skan here to create the graph.
         from skan import Skeleton
 
-        self._skan_skeleton = Skeleton(self.skeleton(out_type='all',
-                                                     pad_size=1),
-                                       unique_junctions=False)
+        try:
+            self._skan_skeleton = Skeleton(self.skeleton(out_type='all',
+                                                         pad_size=1),
+                                           unique_junctions=False)
+            old_skan_version = True
+        except TypeError:
+            # skan v0.11 and above have a revamped graph to pixel
+            # algorithm and unique_junctions has been removed.
+            self._skan_skeleton = Skeleton(self.skeleton(out_type='all',
+                                                         pad_size=1))
+            old_skan_version = False
 
-        self._graph = nx.from_scipy_sparse_matrix(self._skan_skeleton.graph)
+        self._graph = nx.from_scipy_sparse_array(self._skan_skeleton.graph)
 
         self._endnodes = []
         self._internodes = []
@@ -1648,8 +1656,9 @@ class Filament3D(object):
         for node in self._graph:
             self._graph.nodes[node]['pos'] = self._skan_skeleton.coordinates[node]
 
-        # Node 0 is always (0, 0, 0). Remove that node
-        self._graph.remove_node(0)
+        if old_skan_version:
+            # Node 0 is always (0, 0, 0). Remove that node
+            self._graph.remove_node(0)
 
     @property
     def intersec_pts(self):
