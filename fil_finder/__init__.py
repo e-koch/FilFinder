@@ -7,3 +7,6 @@ if not _ASTROPY_SETUP_:
     from .filfinder2D import FilFinder2D
     from .filament import FilamentNDBase, Filament2D
     from .width_profiles import filament_profile
+
+    from .filfinderPPP import FilFinderPPP
+    from .filfinderPPV import FilFinderPPV
