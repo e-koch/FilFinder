@@ -478,10 +478,10 @@ def radial_profile(img, dist_transform_all, dist_transform_sep, offsets,
     if bins is None:
         nbins = int(np.sqrt(len(width_value)))
         maxbin = np.max(width_distance)
-        if bintype is "log":
+        if bintype == "log":
             # bins must start at 1 if logspaced
             bins = np.logspace(0, np.log10(maxbin), nbins + 1)
-        elif bintype is "linear":
+        elif bintype == "linear":
             bins = np.linspace(0, maxbin, nbins + 1)
 
     whichbins = np.digitize(width_distance, bins)
