@@ -115,9 +115,10 @@ def convert_bunit(bunit):
     unit : `~astropy.unit.Unit`
         Corresponding unit.
     '''
-
+    import re 
+    
     # special case: CASA (sometimes) makes non-FITS-compliant jy/beam headers
-    bunit_lower = re.sub("\s", "", bunit.lower())
+    bunit_lower = re.sub(r"\s", "", bunit.lower())
     if bunit_lower == 'jy/beam':
         unit = u.Jy / u.beam
     else:
