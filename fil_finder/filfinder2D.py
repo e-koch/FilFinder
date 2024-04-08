@@ -247,7 +247,7 @@ class FilFinder2D(BaseInfoMixin):
         size_thresh : int, optional
             This sets the lower threshold on the size of objects found in the
             adaptive thresholding. If None, the value is set at
-            :math:`5\pi (0.1 \text(pc))^2` which is the area of the minimum dimensions
+            :math:`5\\pi (0.1 \text(pc))^2` which is the area of the minimum dimensions
             expected for a filament. Any region smaller than this threshold may be
             safely labeled as an artifact of the thresholding.
         glob_thresh : float, optional
