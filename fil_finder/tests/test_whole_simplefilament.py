@@ -16,7 +16,7 @@ def test_simple_filament_compareold():
     Check the outputs using a simple straight filament with a Gaussian profile.
     '''
 
-    mod = generate_filament_model(return_hdu=True, pad_size=30, shape=150,
+    mod = generate_filament_model(return_hdu=True, pad_size=31, shape=150,
                                   width=10., background=0.1)[0]
 
     mask = mod.data > 0.5
@@ -252,8 +252,8 @@ def test_simple_filament_noheader():
     No FITS header is given; outputs must have pixel units in all cases.
     '''
 
-    mod = generate_filament_model(return_hdu=True, pad_size=30, shape=150,
-                                  width=10., background=0.1)[0]
+    mod, centers = generate_filament_model(return_hdu=True, pad_size=31, shape=150,
+                                           width=10., background=0.1)
 
     mask = mod.data > 0.5
 
@@ -483,7 +483,7 @@ def test_simple_filament_noheader_angscale():
     No FITS header is given; outputs must have pixel units in all cases.
     '''
 
-    mod = generate_filament_model(return_hdu=True, pad_size=30, shape=150,
+    mod = generate_filament_model(return_hdu=True, pad_size=31, shape=150,
                                   width=10., background=0.1)[0]
 
     mask = mod.data > 0.5
@@ -700,7 +700,7 @@ def test_simple_filament_nodistance():
     No distance given.
     '''
 
-    mod = generate_filament_model(return_hdu=True, pad_size=30, shape=150,
+    mod = generate_filament_model(return_hdu=True, pad_size=31, shape=150,
                                   width=10., background=0.1)[0]
 
     mask = mod.data > 0.5
