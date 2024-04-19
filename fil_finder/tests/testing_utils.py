@@ -52,20 +52,6 @@ def generate_filament_model(shape=100, pad_size=0,
 
     return fits.PrimaryHDU(filament, header), centers
 
-
-# def make_skeleton_mask(shape=(256, 256), nfils=1):
-#     '''
-#     Generate a skeleton mask defining positions of filaments.
-#     '''
-
-
-#     mask = np.zeros(shape, dtype=bool)
-
-#     for _ in range(nfils):
-
-#         # Sample random start and end points
-#         start = (np.random.randint(shape[0]))
-
 def create_image_header(pixel_scale, beamfwhm, imshape,
                         restfreq, bunit):
     '''
