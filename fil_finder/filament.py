@@ -15,9 +15,9 @@ if sys.version_info[0] >= 3:
 else:
     import cPickle as pickle
 
-from .length import (init_lengths, main_length, make_final_skeletons,
+from .length import (init_lengths, main_length,
                      pre_graph, longest_path, prune_graph)
-from .pixel_ident import pix_identify
+from .pixel_ident import pix_identify, make_final_skeletons
 from .utilities import pad_image, in_ipynb, red_chisq
 from .base_conversions import UnitConverter
 from .rollinghough import rht
