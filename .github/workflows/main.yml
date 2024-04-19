@@ -28,7 +28,7 @@ jobs:
           - os: ubuntu-latest
             python-version: 3.11
             name: Python 3.11 with minimal dependencies
-            toxenv: py37-test
+            toxenv: py311-test
 
           - os: ubuntu-latest
             python-version: 3.9
