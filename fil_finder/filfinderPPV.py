@@ -186,6 +186,9 @@ class FilFinderPPV(Skeleton3D):
 
         # Define the skeletons
 
+        if not hasattr(self, '_skel_labels'):
+            raise ValueError("Run create_skeleton() before analyze_skeletons()")
+
         num = self._skel_labels.max()
 
         self.filaments = []
