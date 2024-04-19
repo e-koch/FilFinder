@@ -14,9 +14,20 @@ if astropy_version < '3.0':
 else:
     from pytest_astropy_header.display import PYTEST_HEADER_MODULES, TESTED_VERSIONS
 
+from fil_finder.tests.testing_utils import generate_filament_model
+
 
 def pytest_configure(config):
 
     config.option.astropy_header = True
 
     PYTEST_HEADER_MODULES['Astropy'] = 'astropy'
+
+
+@pytest.fixture
+def simple_filament_model():
+
+    mod = generate_filament_model(return_hdu=True, pad_size=31, shape=150,
+                                  width=10., background=0.1)[0]
+
+    yield mod

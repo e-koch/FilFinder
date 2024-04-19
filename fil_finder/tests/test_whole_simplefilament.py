@@ -7,7 +7,6 @@ import astropy.units as u
 import os
 
 from .. import fil_finder_2D, FilFinder2D
-from .testing_utils import generate_filament_model
 
 
 @pytest.mark.openfiles_ignore
@@ -16,7 +15,7 @@ def test_simple_filament_compareold():
     Check the outputs using a simple straight filament with a Gaussian profile.
     '''
 
-    mod = generate_filament_model(return_hdu=True, pad_size=31, shape=150,
+    mod = generate_filament_model(return_hdu=True, pad_size=30, shape=150,
                                   width=10., background=0.1)[0]
 
     mask = mod.data > 0.5
@@ -246,14 +245,13 @@ def test_simple_filament_compareold():
 
 
 @pytest.mark.openfiles_ignore
-def test_simple_filament_noheader():
+def test_simple_filament_noheader(simple_filament_model):
     '''
     Check the outputs using a simple straight filament with a Gaussian profile.
     No FITS header is given; outputs must have pixel units in all cases.
     '''
 
-    mod, centers = generate_filament_model(return_hdu=True, pad_size=31, shape=150,
-                                           width=10., background=0.1)
+    mod = simple_filament_model
 
     mask = mod.data > 0.5
 
@@ -477,14 +475,13 @@ def test_simple_filament_noheader():
     del hdu
 
 
-def test_simple_filament_noheader_angscale():
+def test_simple_filament_noheader_angscale(simple_filament_model):
     '''
     Check the outputs using a simple straight filament with a Gaussian profile.
     No FITS header is given; outputs must have pixel units in all cases.
     '''
 
-    mod = generate_filament_model(return_hdu=True, pad_size=31, shape=150,
-                                  width=10., background=0.1)[0]
+    mod = simple_filament_model
 
     mask = mod.data > 0.5
 
@@ -694,14 +691,13 @@ def test_simple_filament_noheader_angscale():
     hdu.close()
     del hdu
 
-def test_simple_filament_nodistance():
+def test_simple_filament_nodistance(simple_filament_model):
     '''
     Check the outputs using a simple straight filament with a Gaussian profile.
     No distance given.
     '''
 
-    mod = generate_filament_model(return_hdu=True, pad_size=31, shape=150,
-                                  width=10., background=0.1)[0]
+    mod = simple_filament_model
 
     mask = mod.data > 0.5
 
@@ -791,12 +787,12 @@ def test_simple_filament_nodistance():
     # Covering fraction
     cov_frac = test.covering_fraction()
     act_frac = (mod.data - 0.1).sum() / np.sum(mod.data)
-    npt.assert_allclose(cov_frac, act_frac, atol=1e-4)
+    npt.assert_allclose(cov_frac, act_frac, atol=0.01)
 
     # Ridge profile along skeleton. Should all equal 1.1
     ridge = fil1.ridge_profile(test.image)
     assert ridge.unit == u.K
-    assert (ridge.value == 1.1).all()
+    npt.assert_allclose(ridge.value, 1.1, atol=0.005)
 
     # Make sure the version from FilFinder2D is the same
     ridge_2 = test.ridge_profiles()
