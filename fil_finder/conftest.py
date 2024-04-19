@@ -14,6 +14,7 @@ if astropy_version < '3.0':
 else:
     from pytest_astropy_header.display import PYTEST_HEADER_MODULES, TESTED_VERSIONS
 
+import pytest
 from fil_finder.tests.testing_utils import generate_filament_model
 
 
