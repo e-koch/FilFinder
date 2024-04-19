@@ -498,7 +498,7 @@ class FilFinder2D(BaseInfoMixin):
             if in_ipynb():
                 p.clf()
 
-    def medskel(self, verbose=False, save_png=False):
+    def medskel(self, verbose=False, save_png=False, rng=None):
         '''
         This function performs the medial axis transform (skeletonization)
         on the mask. This is essentially a wrapper function of
@@ -516,6 +516,9 @@ class FilFinder2D(BaseInfoMixin):
             Enables plotting.
         save_png : bool, optional
             Saves the plot made in verbose mode. Disabled by default.
+        rng : numpy.random.RandomState or int, optional
+            Random number generator for reproducibility. Used for tie breaks in
+            the `medial_axis <https://scikit-image.org/docs/stable/api/skimage.morphology.html#skimage.morphology.medial_axis>`_ function.
 
         Attributes
         ----------
@@ -525,8 +528,17 @@ class FilFinder2D(BaseInfoMixin):
             The distance transform used to create the skeletons.
         '''
 
-        self.skeleton, self.medial_axis_distance = \
-            medial_axis(self.mask, return_distance=True)
+        if rng is None:
+            rng = np.random.default_rng()
+
+        # The kwarg for rng has changed in different skimage versions.
+        try:
+            self.skeleton, self.medial_axis_distance = \
+                medial_axis(self.mask, return_distance=True, rng=rng)
+        except TypeError:
+            self.skeleton, self.medial_axis_distance = \
+                medial_axis(self.mask, return_distance=True, random_state=rng)
+
         self.medial_axis_distance = \
             self.medial_axis_distance * self.skeleton * u.pix
         # Delete connection smaller than 2 pixels wide. Such a small
