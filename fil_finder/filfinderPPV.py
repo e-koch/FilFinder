@@ -116,6 +116,9 @@ class FilFinderPPV(Skeleton3D):
 
         """
 
+        warnings.warn("Units are not yet supported for kwargs. Please provide pixel units",
+                      UserWarning)
+
         if self.mask is not None and use_existing_mask:
             warnings.warn("Using inputted mask. Skipping creation of a"
                           "new mask.")
@@ -165,8 +168,15 @@ class FilFinderPPV(Skeleton3D):
         close = mo.closing(dilate)
 
         # Don't allow small holes: these lead to "shell"-shaped skeleton features
-        mo.remove_small_objects(close, min_size=min_object_size, connectivity=1, in_place=True)
-        mo.remove_small_holes(close, area_threshold=max_hole_size, connectivity=1, in_place=True)
+        # Specify out to avoid duplicating the mask in memory
+        close = mo.remove_small_objects(close,
+                                        min_size=min_object_size,
+                                        connectivity=1,
+                                        out=close)
+        close = mo.remove_small_holes(close,
+                                      area_threshold=max_hole_size,
+                                      connectivity=1,
+                                      out=close)
 
         self.mask = close
 
