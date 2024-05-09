@@ -2100,7 +2100,11 @@ class FilamentPPV(Filament3D, FilamentNDBase):
         self._skan_skeleton = Skeleton(self.skeleton(out_type='all',
                                                         pad_size=1))
 
-        self._graph = nx.from_scipy_sparse_matrix(self._skan_skeleton.graph)
+        # Create the networkx graph. Function name changed for networkx v3
+        try:
+            self._graph = nx.from_scipy_sparse_matrix(self._skan_skeleton.graph)
+        except AttributeError:
+            self._graph = nx.from_scipy_sparse_array(self._skan_skeleton.graph)
 
         self._endnodes = []
         self._internodes = []
