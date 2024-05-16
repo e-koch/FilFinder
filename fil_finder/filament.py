@@ -1631,9 +1631,14 @@ class Filament3D(object):
         # skan v0.11 and above have a revamped graph to pixel
         # algorithm and unique_junctions has been removed.
         self._skan_skeleton = Skeleton(self.skeleton(out_type='all',
-                                                        pad_size=1))
+                                                     pad_size=0))
 
-        self._graph = nx.from_scipy_sparse_array(self._skan_skeleton.graph)
+        try:
+            self._graph = nx.from_scipy_sparse_matrix(self._skan_skeleton.graph)
+        except AttributeError:
+            self._graph = nx.from_scipy_sparse_array(self._skan_skeleton.graph)
+
+
 
         self._endnodes = []
         self._internodes = []
@@ -2098,7 +2103,7 @@ class FilamentPPV(Filament3D, FilamentNDBase):
         # skan v0.11 and above have a revamped graph to pixel
         # algorithm and unique_junctions has been removed.
         self._skan_skeleton = Skeleton(self.skeleton(out_type='all',
-                                                        pad_size=1))
+                                                     pad_size=0))
 
         # Create the networkx graph. Function name changed for networkx v3
         try:
@@ -2118,11 +2123,14 @@ class FilamentPPV(Filament3D, FilamentNDBase):
 
         # Append the position of each node into the networkx graph
         for node in self._graph:
-            self._graph.nodes[node]['pos'] = self._skan_skeleton.coordinates[node]
-            self._graph.nodes[node]['data'] = data[self._skan_skeleton.coordinates[node].astype(int)]
+            # Skan is starting the position index at 1
+            pix_posn = self._skan_skeleton.coordinates[node] - 1
+
+            self._graph.nodes[node]['pos'] = pix_posn
+            self._graph.nodes[node]['data'] = data[tuple(pix_posn)]
 
         # Node 0 is always (0, 0, 0). Remove that node
-        self._graph.remove_node(0)
+        # self._graph.remove_node(0)
 
         # Add in separate properties for the spatial and spectral properties.
         self._branch_spatial_lengths = []
