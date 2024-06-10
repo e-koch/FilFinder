@@ -1122,17 +1122,25 @@ class Filament2D(FilamentNDBase):
         '''
         return self._radprof_model
 
-    def plot_radial_profile(self, save_name=None, xunit=u.pix,
-                            ax=None):
+    def plot_radial_profile(self,
+                            ax=None,
+                            save_name=None,
+                            show_plot=True,
+                            xunit=u.pix
+                            ):
         '''
         Plot the radial profile of the filament and the fitted model.
 
         Parameters
         ----------
-        xunit : `~astropy.units.Unit`, optional
-            Pixel, angular, or physical unit to convert to.
         ax : `~matplotlib.axes`, optional
             Use an existing set of axes to plot the profile.
+        save_name : str, optional
+            Name of saved plot. A plot is only saved if a name is given.        
+        show_plot : bool, optional
+            Display open figure.        
+        xunit : `~astropy.units.Unit`, optional
+            Pixel, angular, or physical unit to convert to.
         '''
 
         dist, radprof = self.radprofile
@@ -1164,8 +1172,12 @@ class Filament2D(FilamentNDBase):
 
         if save_name is not None:
             plt.savefig(save_name)
-
-        plt.show()
+            if not show_plot:
+                plt.close()
+            
+        if show_plot:
+            plt.show()
+            
         if in_ipynb():
             plt.clf()
 
