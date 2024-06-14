@@ -72,6 +72,37 @@ class Skeleton3D(object):
 
         self.skeleton = skeleton_init
 
+    @property
+    def skeleton_labels(self):
+        return self._skel_labels
+
+    def skeleton_labels_to_pixel_coords(self, label_nums=None):
+
+        if label_nums is None:
+            nmax = self.skeleton_labels.max()
+            label_nums = range(1, nmax+1)
+
+        # Convert labels to lists of pixel coords
+        skel_label_pixels = []
+
+        for this_label in label_nums:
+            coords = np.where(self.skeleton_labels == this_label)
+
+            # Create a new column with the label number
+            new_column = np.ones(coords[0].shape) * this_label
+
+            # Stack the new column with the coordinates
+            new_coords = np.vstack((coords[0], coords[1], new_column)).T
+
+            # Append the new coordinates to the list of arrays
+            skel_label_pixels.append(new_coords)
+
+        # Convert the list of arrays to a single array
+        skel_label_pixels = np.vstack(skel_label_pixels)
+
+        return skel_label_pixels
+
+
 #     def create_network(self):
 #         """
 #         Creates the initial network and subgraph_list objects.
