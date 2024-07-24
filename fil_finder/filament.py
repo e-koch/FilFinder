@@ -2212,9 +2212,36 @@ class FilamentPPV(Filament3D, FilamentNDBase):
 
 
     def find_longest_path(self, verbose=False, test_print=0,
-                          spatial_only=False):
+                          spatial_only=False,
+                          raise_error_on_no_path=False):
         '''
         Identify the longest path through the skeleton.
+
+        Parameters
+        ----------
+        verbose : bool
+            If True, print out the path lengths and the longest path.
+            Default is False.
+        test_print : int
+            If non-zero, print out the shortest paths and the shortest path lengths.
+            Default is 0.
+        spatial_only : bool
+            If True, only consider spatial distance when finding the longest path.
+            Default is False.
+        raise_error_on_no_path : bool
+            If True and no path is found, raise an error.
+            Default is False.
+
+        Raises
+        ------
+        ValueError
+            If no path is found and `raise_error_on_no_path` is True.
+
+        Notes
+        -----
+        This method sets the `_long_path` attribute to the longest path in the skeleton.
+        It also sets the `_length` attribute to the length of the longest path.
+        The `_longpath_pixel_coords` attribute is set to the pixel coordinates of the longest path.
         '''
 
         # Loop through pairs of end nodes to avoid unnecessary length calcs.
@@ -2235,6 +2262,13 @@ class FilamentPPV(Filament3D, FilamentNDBase):
 
                 all_paths.append(path)
                 all_weights.append(length)
+
+        if len(all_weights) == 0:
+            # No paths found
+            self._length = 0 * u.pix
+            self._long_path = None
+            self._longpath_pixel_coords = (None,) * 3
+            return
 
         long_path = all_paths[all_weights.index(max(all_weights))]
 
