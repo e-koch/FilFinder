@@ -2121,6 +2121,18 @@ class FilamentPPV(Filament3D, FilamentNDBase):
             elif self._graph.degree(node) > 2:
                 self._internodes.append(node)
 
+        # Check for a complete loop.
+        if len(self._endnodes) == 0:
+            # If there are no end nodes, this is a complete loop
+            # If there is an intercept, there are two nodes that are 4- and 8-connected
+            # with neighbors. Arbitrarily pick the first one as the "end"
+            if len(self._internodes) > 0:
+                self._endnodes.append(self._internodes[0])
+                self._internodes = self._internodes[1:]
+            # Otherwise it's a perfect loop. Assign the 0th node as the endnode
+            else:
+                self._endnodes.append(self._graph[0])
+
         # Append the position of each node into the networkx graph
         for node in self._graph:
             # Skan is starting the position index at 1
@@ -2199,7 +2211,8 @@ class FilamentPPV(Filament3D, FilamentNDBase):
                                 test_print=test_print)
 
 
-    def find_longest_path(self, verbose=False, test_print=0, spatial_only=False):
+    def find_longest_path(self, verbose=False, test_print=0,
+                          spatial_only=False):
         '''
         Identify the longest path through the skeleton.
         '''
@@ -2209,9 +2222,9 @@ class FilamentPPV(Filament3D, FilamentNDBase):
         all_weights = []
 
         for k in range(len(self._endnodes)):
-            for i in range(k + 1, len(self._endnodes)):
-                if i == k:
-                    continue
+            for i in range(k, len(self._endnodes)):
+                # if i == k:
+                #     continue
 
                 # Grabbing the shortest(s) path(s) from k to i
                 # TODO: add spatial length only option
