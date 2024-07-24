@@ -2244,6 +2244,10 @@ class FilamentPPV(Filament3D, FilamentNDBase):
         The `_longpath_pixel_coords` attribute is set to the pixel coordinates of the longest path.
         '''
 
+        if spatial_only:
+            raise NotImplementedError("Spatial only path finding is not implemented yet. "
+                                      "Set `spatial_only` to False.")
+
         # Loop through pairs of end nodes to avoid unnecessary length calcs.
         all_paths = []
         all_weights = []
@@ -2264,7 +2268,13 @@ class FilamentPPV(Filament3D, FilamentNDBase):
                 all_weights.append(length)
 
         if len(all_weights) == 0:
-            # No paths found
+
+            if raise_error_on_no_path:
+                raise ValueError("No path found.")
+
+            # Otherwise, set to empty. To indicate no paths were found.
+            # NOTE: this is likely to cause a failure in subsequent analysis steps.
+            # this remains in its current form to test if we are catching an expected bug.
             self._length = 0 * u.pix
             self._long_path = None
             self._longpath_pixel_coords = (None,) * 3
