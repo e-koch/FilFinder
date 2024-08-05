@@ -23,35 +23,24 @@ class Skeleton3D(object):
         except ImportError:
             raise ImportError("3D filaments requires the skan package to be installed.")
 
-    def create_skeleton(self, min_pixel=0):
+    def create_skeleton(self, min_pixel=1):
         """
-        Creates the sparse.csr_matrix skeleton representation of the input data.
-        Uses a ball object to dilate the image, includes a morphological closing
-        step, and finally creates the skeleton via the skeletonize_3d function.
 
         Parameters
         ----------
-        ball_radius : int, optional
-            Amount of pixels that ball object is used
-            for dilation of mask. The default is 3.
+        min_pixel: int
+            Minimum number of pixels in the skeleton. Must be >1 to form a valid skeleton.
 
-        Attributes
-        ----------
-        skeleton : numpy.ndarray
-            Thinned skeleton image
-        pixel_graph : sparse.csr_matrix
-            The value graph[i,j] is the distance between adjacent pixels
-            i and j.
-        coodinates : numpy.ndarray
-            Mapping indices in pixel_graph to pixel coordinates
-        degrees : numpy.ndarray
-            Degree of node at specific position in data
         """
+
+        if min_pixel < 1:
+            raise ValueError("Minimum number of pixels must be > 1.")
 
         self._min_pixel = min_pixel
 
         # Creating Skeleton
-        skeleton_init = mo.skeletonize_3d(self.mask)
+        # Force output type to be a bool
+        skeleton_init = mo.skeletonize(self.mask, method='lee') > 0
 
         skel_labels, num = nd.label(skeleton_init, np.ones((3, 3, 3)))
 
