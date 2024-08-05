@@ -344,6 +344,82 @@ class FilFinderPPV(Skeleton3D):
 
         return
 
+
+    def network_plot_3D_plotly(self, filament=None, angle=40, filename='plot.pdf', save=False):
+        '''
+        Gives a 3D plot for networkX using coordinates information of the nodes
+
+        Parameters
+        ----------
+        filament : Filament
+            Filament object or list of objects from `self.filaments`. The default is None
+            and will plot all the filaments in the network.
+        angle : int
+            Angle to view the graph plot
+        filename : str
+            Filename to save the plot
+        save : bool
+            boolen value when true saves the plot
+
+        '''
+
+        import plotly.graph_objects as go
+
+        if filament is None:
+            filament = self.filaments
+
+        # 3D network plot
+        edge_traces = []
+        node_traces = []
+
+        for this_filament in filament:
+            G = this_filament.graph
+
+            # Get node positions
+            pos = nx.get_node_attributes(G, 'pos')
+
+            x_nodes = [pos[node][0] for node in G.nodes()]
+            y_nodes = [pos[node][1] for node in G.nodes()]
+            z_nodes = [pos[node][2] for node in G.nodes()]
+
+            # Create a 3D scatter plot for the nodes
+            node_trace = go.Scatter3d(
+                x=x_nodes,
+                y=y_nodes,
+                z=z_nodes,
+                mode='markers',
+                marker=dict(size=5, color='blue')
+            )
+            node_traces.append(node_trace)
+
+            # Create a 3D line plot for the edges
+            edge_x = []
+            edge_y = []
+            edge_z = []
+            for edge in G.edges():
+                source, target = edge
+                x1, y1, z1 = pos[source]
+                x2, y2, z2 = pos[target]
+                edge_x.extend([x1, x2, None])
+                edge_y.extend([y1, y2, None])
+                edge_z.extend([z1, z2, None])
+
+            edge_trace = go.Scatter3d(
+                x=edge_x,
+                y=edge_y,
+                z=edge_z,
+                mode='lines',
+                line=dict(color='black')
+            )
+            edge_traces.append(edge_trace)
+
+        # Create the figure
+        fig = go.Figure(data=edge_traces + node_traces)
+
+        fig.show()
+
+        return fig
+
     def plot_data_mask_slice(self, slice_number,
                              show_flat_img=False,):
         """
