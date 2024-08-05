@@ -65,7 +65,8 @@ class FilFinderPPV(Skeleton3D):
 
         self._image = value
 
-    def preprocess_image(self, skip_flatten=False, flatten_percent=None):
+    def preprocess_image(self, skip_flatten=False,
+                         flatten_percent=85):
         """
         Preprocess and flatten the dataset before running the masking process.
 
@@ -76,7 +77,7 @@ class FilFinderPPV(Skeleton3D):
             construct the mask. Default is False.
         flatten_percent : int, optional
             The percentile of the data (0-100) to set the normalization.
-            Default is None.
+            Default is 85th.
 
         """
         if skip_flatten:
@@ -85,7 +86,18 @@ class FilFinderPPV(Skeleton3D):
 
         else:
             # TODO Add in here
-            return
+            thresh_val = np.nanpercentile(self.image,
+                                          flatten_percent)
+
+            # self._flatten_threshold = data_unit_check(thresh_val,
+            #                                           self.image.unit)
+            self._flatten_threshold = thresh_val
+
+            # Make the units dimensionless
+            self.flat_img = thresh_val * np.arctan(self.image / self._flatten_threshold)
+            # / u.rad
+
+
 
     def create_mask(self, adapt_thresh=9, glob_thresh=0.0,
                     selem_disc_radius=2, selem_spectral_width=1,
@@ -256,15 +268,15 @@ class FilFinderPPV(Skeleton3D):
         if self._compute_longest_path:
             self.skeleton_longpath = new_skel_longpath
 
-    @staticmethod
-    def network_plot_3D(G, angle=40, filename='plot.pdf', save=False):
+    def network_plot_3D(self, filament=None, angle=40, filename='plot.pdf', save=False):
         '''
-        Credit: Dewanshu
         Gives a 3D plot for networkX using coordinates information of the nodes
 
         Parameters
         ----------
-        G : networkx.Graph
+        filament : Filament
+            Filament object or list of objects from `self.filaments`. The default is None
+            and will plot all the filaments in the network.
         angle : int
             Angle to view the graph plot
         filename : str
@@ -273,14 +285,9 @@ class FilFinderPPV(Skeleton3D):
             boolen value when true saves the plot
 
         '''
-        # Get node positions
-        pos = nx.get_node_attributes(G, 'pos')
 
-        # Get the maximum number of edges adjacent to a single node
-        edge_max = max([G.degree(i) for i in G.nodes])
-
-        # Define color range proportional to number of edges adjacent to a single node
-        colors = [plt.cm.plasma(G.degree(i) / edge_max) for i in G.nodes]
+        if filament is None:
+            filament = self.filaments
 
         # 3D network plot
         with plt.style.context(('ggplot')):
@@ -288,43 +295,57 @@ class FilFinderPPV(Skeleton3D):
             fig = plt.figure(figsize=(10, 7))
             ax = Axes3D(fig)
 
-            # Loop on the pos dictionary to extract the x,y,z coordinates of each node
-            for i, (key, value) in enumerate(pos.items()):
-                xi = value[0]
-                yi = value[1]
-                zi = value[2]
+            for this_filament in filament:
 
-                # Scatter plot
-                ax.scatter(xi, yi, zi, c=colors[i],
-                           s=20 + 20 * G.degree(key),
-                           edgecolors='k', alpha=0.7)
+                G = this_filament.graph
 
-            # Loop on the list of edges to get the x,y,z, coordinates of the connected nodes
-            # Those two points are the extrema of the line to be plotted
-            for i, j in enumerate(G.edges()):
+                # Get node positions
+                pos = nx.get_node_attributes(G, 'pos')
 
-                x = np.array((pos[j[0]][0], pos[j[1]][0]))
-                y = np.array((pos[j[0]][1], pos[j[1]][1]))
-                z = np.array((pos[j[0]][2], pos[j[1]][2]))
+                # Get the maximum number of edges adjacent to a single node
+                edge_max = max([G.degree(i) for i in G.nodes])
 
-            # Plot the connecting lines
-                ax.plot(x, y, z, c='black', alpha=0.5)
+                # Define color range proportional to number of edges adjacent to a single node
+                # colors = [plt.cm.plasma(G.degree(i) / edge_max) for i in G.nodes]
 
-        # Set the initial view
-        ax.view_init(30, angle)
+                # Loop on the pos dictionary to extract the x,y,z coordinates of each node
+                for i, (key, value) in enumerate(pos.items()):
+                    xi = value[0]
+                    yi = value[1]
+                    zi = value[2]
 
-        # Hide the axes
-        # ax.set_axis_off()
+                    # Scatter plot
+                    ax.scatter(xi, yi, zi, # c=colors[i],
+                               s=20 + 20 * G.degree(key),
+                               edgecolors='k', alpha=0.7)
 
-        if save is not False:
-            plt.savefig(filename)
-            plt.close('all')
-        else:
-            plt.show()
+                # Loop on the list of edges to get the x,y,z, coordinates of the connected nodes
+                # Those two points are the extrema of the line to be plotted
+                for i, j in enumerate(G.edges()):
+
+                    x = np.array((pos[j[0]][0], pos[j[1]][0]))
+                    y = np.array((pos[j[0]][1], pos[j[1]][1]))
+                    z = np.array((pos[j[0]][2], pos[j[1]][2]))
+
+                    # Plot the connecting lines
+                    ax.plot(x, y, z, c='black', alpha=0.5)
+
+            # Set the initial view
+            ax.view_init(30, angle)
+
+            # Hide the axes
+            # ax.set_axis_off()
+
+            if save is not False:
+                plt.savefig(filename)
+                plt.close('all')
+            else:
+                plt.show()
 
         return
 
-    def plot_data_mask_slice(self, slice_number):
+    def plot_data_mask_slice(self, slice_number,
+                             show_flat_img=False,):
         """
         Plots slice of mask, alongside image.
 
@@ -337,4 +358,10 @@ class FilFinderPPV(Skeleton3D):
         fig, axs = plt.subplots(2, 1)
 
         axs[0].imshow(self.image[slice_number])
+        axs[0].contour(self.skeleton[slice_number],
+                       levels=[0.5], colors='r')
         axs[1].imshow(self.mask[slice_number])
+        axs[1].contour(self.skeleton[slice_number],
+                       levels=[0.5], colors='r')
+
+
