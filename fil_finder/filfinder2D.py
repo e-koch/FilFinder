@@ -665,6 +665,7 @@ class FilFinder2D(BaseInfoMixin):
                                      converter=self.converter) for lab in
                           range(1, num + 1)]
 
+        # Now loop over the skeleton analysis for each filament object
         with concurrent.futures.ProcessPoolExecutor(nthreads) as executor:
             futures = [executor.submit(fil.skeleton_analysis, self.image,
                                                              verbose=verbose,
@@ -678,25 +679,7 @@ class FilFinder2D(BaseInfoMixin):
                        for fil in self.filaments]
             self.filaments = [future.result() for future in futures]
 
-        print(self.filaments[0].length(),)
-        print(self.filaments[0].branch_properties['length'],)
-        print(self.filaments[0].pixel_coords)
-
         self.number_of_filaments = num
-
-        # Now loop over the skeleton analysis for each filament object
-        # for n, fil in enumerate(self.filaments):
-        #     savename = "{0}_{1}".format(save_name, n)
-        #     if verbose:
-        #         print("Filament: %s / %s" % (n + 1, self.number_of_filaments))
-
-        #     fil.skeleton_analysis(self.image, verbose=verbose,
-        #                           save_png=save_png,
-        #                           save_name=savename,
-        #                           prune_criteria=prune_criteria,
-        #                           relintens_thresh=relintens_thresh,
-        #                           branch_thresh=self.branch_thresh,
-        #                           max_prune_iter=max_prune_iter)
 
         self.array_offsets = [fil.pixel_extents for fil in self.filaments]
 
