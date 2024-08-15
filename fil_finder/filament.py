@@ -1535,6 +1535,7 @@ class Filament2D(FilamentNDBase):
             input_image = input_image.value.copy()
 
         hdu = fits.PrimaryHDU(input_image, header)
+        hdu.name = 'IMAGE'
 
         skel_hdr = header.copy()
         skel_hdr['BUNIT'] = ("", "bool")
@@ -1542,13 +1543,18 @@ class Filament2D(FilamentNDBase):
             time.strftime("%c")
 
         skel_hdu = fits.ImageHDU(skels.astype(int), skel_hdr)
+        skel_hdu.name = 'SKELETON'
 
         skel_lp_hdu = fits.ImageHDU(skels_lp.astype(int), skel_hdr)
+        skel_lp_hdu.name = 'SKELETON_LONGPATH'
 
         model_hdu = fits.ImageHDU(model, header)
+        model_hdu.name = 'MODEL'
 
-        hdulist = fits.HDUList([hdu, skel_hdu, skel_lp_hdu, model_hdu])
-        hdulist.append(fits.table_to_hdu(tab))
+        tab_hdu = fits.table_to_hdu(tab)
+        tab_hdu.name = 'PIXEXTENTS'
+
+        hdulist = fits.HDUList([hdu, skel_hdu, skel_lp_hdu, model_hdu, tab_hdu])
 
         hdulist.writeto(savename, **kwargs)
 
