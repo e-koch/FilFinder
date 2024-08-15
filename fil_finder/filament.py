@@ -185,7 +185,8 @@ class Filament2D(FilamentNDBase):
     def skeleton_analysis(self, image, verbose=False, save_png=False,
                           save_name=None, prune_criteria='all',
                           relintens_thresh=0.2, max_prune_iter=10,
-                          branch_thresh=0 * u.pix):
+                          branch_thresh=0 * u.pix,
+                          return_self=False):
         '''
         Run the skeleton analysis.
 
@@ -215,6 +216,9 @@ class Filament2D(FilamentNDBase):
             Maximum number of pruning iterations to apply.
         branch_thresh : `~astropy.units.Quantity`, optional
             Minimum length for a branch to be eligible to be pruned.
+        return_self : bool, optional
+            Return the Filament2D object after skeleton analysis. This is needed
+            for parallel processing in FilFinder2D.
         '''
 
         # NOTE:
@@ -390,6 +394,9 @@ class Filament2D(FilamentNDBase):
              'intensity': np.array(branch_properties['intensity'][0]),
              'number': branch_properties['number'][0],
              'pixels': branch_properties['pixels'][0]}
+
+        if return_self:
+            return self
 
     @property
     def branch_properties(self):

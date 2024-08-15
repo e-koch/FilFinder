@@ -14,6 +14,7 @@ from copy import deepcopy
 import os
 import time
 import warnings
+import concurrent.futures
 
 from .pixel_ident import recombine_skeletons, isolateregions
 from .utilities import eight_con, round_to_odd, threshold_local, in_ipynb
@@ -563,11 +564,18 @@ class FilFinder2D(BaseInfoMixin):
             if in_ipynb():
                 p.clf()
 
-    def analyze_skeletons(self, prune_criteria='all', relintens_thresh=0.2,
-                          nbeam_lengths=5, branch_nbeam_lengths=3,
-                          skel_thresh=None, branch_thresh=None,
+    def analyze_skeletons(self,
+                          nthreads=1,
+                          prune_criteria='all',
+                          relintens_thresh=0.2,
+                          nbeam_lengths=5,
+                          branch_nbeam_lengths=3,
+                          skel_thresh=None,
+                          branch_thresh=None,
                           max_prune_iter=10,
-                          verbose=False, save_png=False, save_name=None):
+                          verbose=False,
+                          save_png=False,
+                          save_name=None):
         '''
 
         Prune skeleton structure and calculate the branch and longest-path
@@ -576,6 +584,8 @@ class FilFinder2D(BaseInfoMixin):
 
         Parameters
         ----------
+        nthreads : int, optional
+            Number of threads to use to parallelize the skeleton analysis.
         prune_criteria : {'all', 'intensity', 'length'}, optional
             Choose the property to base pruning on. 'all' requires that the
             branch fails to satisfy the length and relative intensity checks.
@@ -650,25 +660,43 @@ class FilFinder2D(BaseInfoMixin):
             # Relabel after deleting short skeletons.
             labels, num = nd.label(self.skeleton, eight_con())
 
+
         self.filaments = [Filament2D(np.where(labels == lab),
                                      converter=self.converter) for lab in
                           range(1, num + 1)]
 
+        with concurrent.futures.ProcessPoolExecutor(nthreads) as executor:
+            futures = [executor.submit(fil.skeleton_analysis, self.image,
+                                                             verbose=verbose,
+                                                             save_png=save_png,
+                                                             save_name=save_name,
+                                                             prune_criteria=prune_criteria,
+                                                             relintens_thresh=relintens_thresh,
+                                                             branch_thresh=self.branch_thresh,
+                                                             max_prune_iter=max_prune_iter,
+                                                             return_self=True)
+                       for fil in self.filaments]
+            self.filaments = [future.result() for future in futures]
+
+        print(self.filaments[0].length(),)
+        print(self.filaments[0].branch_properties['length'],)
+        print(self.filaments[0].pixel_coords)
+
         self.number_of_filaments = num
 
         # Now loop over the skeleton analysis for each filament object
-        for n, fil in enumerate(self.filaments):
-            savename = "{0}_{1}".format(save_name, n)
-            if verbose:
-                print("Filament: %s / %s" % (n + 1, self.number_of_filaments))
+        # for n, fil in enumerate(self.filaments):
+        #     savename = "{0}_{1}".format(save_name, n)
+        #     if verbose:
+        #         print("Filament: %s / %s" % (n + 1, self.number_of_filaments))
 
-            fil.skeleton_analysis(self.image, verbose=verbose,
-                                  save_png=save_png,
-                                  save_name=savename,
-                                  prune_criteria=prune_criteria,
-                                  relintens_thresh=relintens_thresh,
-                                  branch_thresh=self.branch_thresh,
-                                  max_prune_iter=max_prune_iter)
+        #     fil.skeleton_analysis(self.image, verbose=verbose,
+        #                           save_png=save_png,
+        #                           save_name=savename,
+        #                           prune_criteria=prune_criteria,
+        #                           relintens_thresh=relintens_thresh,
+        #                           branch_thresh=self.branch_thresh,
+        #                           max_prune_iter=max_prune_iter)
 
         self.array_offsets = [fil.pixel_extents for fil in self.filaments]
 
