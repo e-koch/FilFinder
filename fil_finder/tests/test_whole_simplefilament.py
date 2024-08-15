@@ -54,7 +54,8 @@ def test_simple_filament_noheader(simple_filament_model):
     assert len(branch_pts) == 1
     # Padded by 1 for morphological operations
     assert (branch_pts[0][:, 0] == 1).all()
-    assert (branch_pts[0][:, 1] == np.arange(1, 151)).all()
+    assert branch_pts[0][:, 1].shape[0] == 151
+    assert (branch_pts[0][:, 1] == np.arange(1, 152)).all()
 
     # Image coordinate branch pts should match the skeleton
     skel_pts = np.where(test.skeleton)
