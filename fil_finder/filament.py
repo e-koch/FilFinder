@@ -1466,7 +1466,10 @@ class Filament2D(FilamentNDBase):
                     names=branch_data.keys())
         return tab
 
-    def save_fits(self, savename, image, pad_size=20 * u.pix, header=None,
+    def save_fits(self, savename, image,
+                  image_list=None,
+                  pad_size=20 * u.pix,
+                  header=None,
                   model_kwargs={},
                   **kwargs):
         '''
@@ -1555,6 +1558,20 @@ class Filament2D(FilamentNDBase):
         tab_hdu.name = 'PIXEXTENTS'
 
         hdulist = fits.HDUList([hdu, skel_hdu, skel_lp_hdu, model_hdu, tab_hdu])
+
+        # If image_list is provided, save cutouts from the image list
+        if image_list is not None:
+            for key in image_list:
+                img = image_list[key]
+                img = pad_image(img, self.pixel_extents, pad_size)
+                if img.shape != skels.shape:
+                    img = self.image_slicer(img, skels.shape,
+                                            pad_size=pad_size)
+
+                img_hdu = fits.ImageHDU(img, header)
+                img_hdu.name = key.upper()
+
+                hdulist.append(img_hdu)
 
         hdulist.writeto(savename, **kwargs)
 

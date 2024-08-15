@@ -1432,7 +1432,10 @@ class FilFinder2D(BaseInfoMixin):
         out_hdu.writeto("{0}_image_output.fits".format(save_name),
                         **kwargs)
 
-    def save_stamp_fits(self, save_name=None, pad_size=20 * u.pix,
+    def save_stamp_fits(self,
+                        image_list=None,
+                        save_name=None,
+                        pad_size=20 * u.pix,
                         model_kwargs={},
                         **kwargs):
         '''
@@ -1444,6 +1447,10 @@ class FilFinder2D(BaseInfoMixin):
 
         Parameters
         ----------
+        image_list : dict, optional
+            Dictionary of arrays to save matching the pixel extents of each filament.
+            The shape of each array *must* be the same shape as the original image
+            given to `~FilFinder2D`.
         save_name : str, optional
             The prefix for the saved file. If None, the save name specified
             when `~FilFinder2D` was first called.
@@ -1459,10 +1466,21 @@ class FilFinder2D(BaseInfoMixin):
         else:
             save_name = os.path.splitext(save_name)[0]
 
+        if image_list is not None:
+            for ii, key in enumerate(image_list):
+                this_image = image_list[key]
+                if this_image.shape != self.image.shape:
+                    raise ValueError("All images in image_list must be same shape as fil.image. "
+                                     f"For index {ii}, found shape {this_image.shape} not {self.image.shape}")
+
+
         for n, fil in enumerate(self.filaments):
 
-            savename = "{0}_stamp_{1}.fits".format(save_name, n)
+            savename = f"{save_name}_stamp_{n}.fits"
 
-            fil.save_fits(savename, self.image, pad_size=pad_size,
+            fil.save_fits(savename,
+                          self.image,
+                          image_list=image_list,
+                          pad_size=pad_size,
                           model_kwargs=model_kwargs,
                           **kwargs)
