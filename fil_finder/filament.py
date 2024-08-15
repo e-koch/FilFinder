@@ -1475,6 +1475,8 @@ class Filament2D(FilamentNDBase):
 
         Parameters
         ----------
+        savename : str
+            Filename to save to.
         image : `~numpy.ndarray` or `~astropy.units.Quantity`
             The image from which the filament was extracted.
         pad_size : `~astropy.units.Quantity`, optional
@@ -1516,6 +1518,18 @@ class Filament2D(FilamentNDBase):
             else:
                 header = fits.Header()
 
+        # Add the pixel extents into the header
+        from astropy.table import Table, Column
+
+        tab = Table()
+        tab.add_column(Column([self.pixel_extents[0][0],
+                               self.pixel_extents[1][0]],
+                              name='lower_coord'))
+        tab.add_column(Column([self.pixel_extents[0][1],
+                               self.pixel_extents[1][1]],
+                              name='upper_coord'))
+
+
         # Strip off units if the image is a Quantity
         if hasattr(input_image, 'unit'):
             input_image = input_image.value.copy()
@@ -1534,6 +1548,7 @@ class Filament2D(FilamentNDBase):
         model_hdu = fits.ImageHDU(model, header)
 
         hdulist = fits.HDUList([hdu, skel_hdu, skel_lp_hdu, model_hdu])
+        hdulist.append(fits.table_to_hdu(tab))
 
         hdulist.writeto(savename, **kwargs)
 
