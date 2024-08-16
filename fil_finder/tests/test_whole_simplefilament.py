@@ -33,12 +33,12 @@ def test_simple_filament_noheader(simple_filament_model):
         test.analyze_skeletons()
     assert exc.value.args[0] == "Distance not given. Must specify skel_thresh in pixel units."
 
-    test.analyze_skeletons(skel_thresh=5 * u.pix)
+    test.analyze_skeletons(nthreads=2, skel_thresh=5 * u.pix)
 
-    test.find_widths(auto_cut=False, max_dist=30 * u.pix)
+    test.find_widths(nthreads=2, auto_cut=False, max_dist=30 * u.pix)
 
-    test.exec_rht(branches=False)
-    test.exec_rht(branches=True)
+    test.exec_rht(nthreads=2, branches=False)
+    test.exec_rht(nthreads=2, branches=True)
 
     # Should be oriented along the x-axis. Set to be pi/2.
     npt.assert_allclose(np.pi / 2., test.orientation[0].value)
@@ -85,7 +85,7 @@ def test_simple_filament_noheader(simple_filament_model):
     npt.assert_allclose(exp_pars, new_pars, rtol=0.05)
 
     # Test the non-param fitting in the new code
-    test.find_widths(auto_cut=False, max_dist=30 * u.pix,
+    test.find_widths(nthreads=2, auto_cut=False, max_dist=30 * u.pix,
                      fit_model='nonparam')
 
     new_pars = [par.value for par in fil1.radprof_params]
@@ -94,7 +94,7 @@ def test_simple_filament_noheader(simple_filament_model):
     npt.assert_allclose(exp_pars[:-1], new_pars, rtol=0.2)
 
     # Use the Gaussian fit for the model comparisons below.
-    test.find_widths(auto_cut=False, max_dist=30 * u.pix)
+    test.find_widths(nthreads=2, auto_cut=False, max_dist=30 * u.pix)
 
     # Test other output of the new code.
 
@@ -187,6 +187,14 @@ def test_simple_filament_noheader(simple_filament_model):
 
     fil1.save_fits("test_image_output.fits", test.image, overwrite=True)
 
+    # Test saving additional extensions
+    image_dict = {'ext1': test.image.value, 'ext2': test.image.value}
+    fil1.save_fits("test_image_output.fits",
+                   test.image,
+                   image_dict=image_dict,
+                   overwrite=True)
+    assert len(fits.open("test_image_output.fits")) == 5
+
     hdu = fits.open("test_image_output.fits")
     skel = fil1.skeleton(pad_size=20)
     npt.assert_allclose(skel, hdu[1].data.astype(bool))
@@ -203,7 +211,12 @@ def test_simple_filament_noheader(simple_filament_model):
     hdu.close()
     del hdu
 
-    test.save_stamp_fits(overwrite=True)
+    image_dict = {'ext1': test.image.value, 'ext2': test.image.value}
+    fil1.save_fits("test_image_output.fits",
+                   test.image,
+                   image_dict=image_dict,
+                   overwrite=True)
+
     hdu = fits.open("test1_stamp_0.fits")
     skel = fil1.skeleton(pad_size=20)
     npt.assert_allclose(skel, hdu[1].data.astype(bool))
@@ -225,6 +238,15 @@ def test_simple_filament_noheader(simple_filament_model):
     #     os.remove("test_image_output.fits")
 
     test.save_fits(overwrite=True)
+
+    # Test saving additional extensions
+    image_dict = {'ext1': test.image.value, 'ext2': test.image.value}
+    test.save_fits("test_image_output.fits",
+                   test.image,
+                   image_dict=image_dict,
+                   overwrite=True)
+    assert len(fits.open("test_image_output.fits")) == 5
+
     hdu = fits.open("test1_image_output.fits")
 
     mod = test.filament_model()
@@ -267,12 +289,12 @@ def test_simple_filament_noheader_angscale(simple_filament_model):
         test.analyze_skeletons()
     assert exc.value.args[0] == "Distance not given. Must specify skel_thresh in pixel units."
 
-    test.analyze_skeletons(skel_thresh=5 * u.pix)
+    test.analyze_skeletons(nthreads=2, skel_thresh=5 * u.pix)
 
-    test.find_widths(auto_cut=False, max_dist=30 * u.pix)
+    test.find_widths(nthreads=2, auto_cut=False, max_dist=30 * u.pix)
 
-    test.exec_rht(branches=False)
-    test.exec_rht(branches=True)
+    test.exec_rht(nthreads=2, branches=False)
+    test.exec_rht(nthreads=2, branches=True)
 
     # Should be oriented along the x-axis. Set to be pi/2.
     npt.assert_allclose(np.pi / 2., test.orientation[0].value)
@@ -303,7 +325,7 @@ def test_simple_filament_noheader_angscale(simple_filament_model):
     npt.assert_allclose(exp_pars, new_pars, rtol=0.05)
 
     # Test the non-param fitting in the new code
-    test.find_widths(auto_cut=False, max_dist=30 * u.pix,
+    test.find_widths(nthreads=2, auto_cut=False, max_dist=30 * u.pix,
                      fit_model='nonparam')
 
     new_pars = [par.value for par in fil1.radprof_params]
@@ -312,7 +334,7 @@ def test_simple_filament_noheader_angscale(simple_filament_model):
     npt.assert_allclose(exp_pars[:-1], new_pars, rtol=0.2)
 
     # Use the Gaussian fit for the model comparisons below.
-    test.find_widths(auto_cut=False, max_dist=30 * u.pix)
+    test.find_widths(nthreads=2, auto_cut=False, max_dist=30 * u.pix)
 
     # Test other output of the new code.
 
@@ -403,6 +425,14 @@ def test_simple_filament_noheader_angscale(simple_filament_model):
     #     os.remove("test_image_output.fits")
 
     fil1.save_fits("test_image_output.fits", test.image, overwrite=True)
+
+    # Test saving additional extensions
+    image_dict = {'ext1': test.image.value, 'ext2': test.image.value}
+    fil1.save_fits("test_image_output.fits",
+                   test.image,
+                   image_dict=image_dict,
+                   overwrite=True)
+    assert len(fits.open("test_image_output.fits")) == 5
 
     hdu = fits.open("test_image_output.fits")
     skel = fil1.skeleton(pad_size=20)
@@ -479,12 +509,12 @@ def test_simple_filament_nodistance(simple_filament_model):
         test.analyze_skeletons()
     assert exc.value.args[0] == "Distance not given. Must specify skel_thresh in pixel units."
 
-    test.analyze_skeletons(skel_thresh=5 * u.pix)
+    test.analyze_skeletons(nthreads=2, skel_thresh=5 * u.pix)
 
-    test.find_widths(auto_cut=False, max_dist=30 * u.pix)
+    test.find_widths(nthreads=2, auto_cut=False, max_dist=30 * u.pix)
 
-    test.exec_rht(branches=False)
-    test.exec_rht(branches=True)
+    test.exec_rht(nthreads=2, branches=False)
+    test.exec_rht(nthreads=2, branches=True)
 
     # Should be oriented along the x-axis. Set to be pi/2.
     npt.assert_allclose(np.pi / 2., test.orientation[0].value)
@@ -515,7 +545,7 @@ def test_simple_filament_nodistance(simple_filament_model):
     npt.assert_allclose(exp_pars, new_pars, rtol=0.05)
 
     # Test the non-param fitting in the new code
-    test.find_widths(auto_cut=False, max_dist=30 * u.pix,
+    test.find_widths(nthreads=2, auto_cut=False, max_dist=30 * u.pix,
                      fit_model='nonparam')
 
     new_pars = [par.value for par in fil1.radprof_params]
@@ -524,7 +554,7 @@ def test_simple_filament_nodistance(simple_filament_model):
     npt.assert_allclose(exp_pars[:-1], new_pars, rtol=0.2)
 
     # Use the Gaussian fit for the model comparisons below.
-    test.find_widths(auto_cut=False, max_dist=30 * u.pix)
+    test.find_widths(nthreads=2, auto_cut=False, max_dist=30 * u.pix)
 
     # Test other output of the new code.
 
