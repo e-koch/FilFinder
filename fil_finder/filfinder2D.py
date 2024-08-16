@@ -909,7 +909,9 @@ class FilFinder2D(BaseInfoMixin):
         '''
         return self._pre_recombine_mask_corners
 
-    def find_widths(self, max_dist=10 * u.pix,
+    def find_widths(self,
+                    nthreads=1,
+                    max_dist=10 * u.pix,
                     pad_to_distance=0 * u.pix,
                     fit_model='gaussian_bkg',
                     fitter=None,
@@ -938,12 +940,8 @@ class FilFinder2D(BaseInfoMixin):
 
         Parameters
         ----------
-        image : `~astropy.unit.Quantity` or `~numpy.ndarray`
-            The image from which the filament was extracted.
-        all_skeleton_array : np.ndarray
-            An array with the skeletons of other filaments. This is used to
-            avoid double-counting pixels in the radial profiles in nearby
-            filaments.
+        nthreads : int, optional
+            Number of threads to use.
         max_dist : `~astropy.units.Quantity`, optional
             Largest radius around the skeleton to create the profile from. This
             can be given in physical, angular, or physical units.
@@ -989,6 +987,25 @@ class FilFinder2D(BaseInfoMixin):
         '''
         if save_name is None:
             save_name = self.save_name
+
+        with concurrent.futures.ProcessPoolExecutor(nthreads) as executor:
+            futures = [executor.submit(fil.width_analysis, self.image,
+                                       all_skeleton_array=self.skeleton,
+                                       max_dist=max_dist,
+                                       pad_to_distance=pad_to_distance,
+                                       fit_model=fit_model,
+                                       fitter=fitter, try_nonparam=try_nonparam,
+                                       use_longest_path=use_longest_path,
+                                       add_width_to_length=add_width_to_length,
+                                       deconvolve_width=deconvolve_width,
+                                       beamwidth=self.beamwidth,
+                                       fwhm_function=fwhm_function,
+                                       chisq_max=chisq_max,
+                                       return_self=True,
+                                       **kwargs)
+                       for fil in self.filaments]
+            self.filaments = [future.result() for future in futures]
+
 
         for n, fil in enumerate(self.filaments):
 
@@ -1433,7 +1450,7 @@ class FilFinder2D(BaseInfoMixin):
                         **kwargs)
 
     def save_stamp_fits(self,
-                        image_list=None,
+                        image_dict=None,
                         save_name=None,
                         pad_size=20 * u.pix,
                         model_kwargs={},
@@ -1447,7 +1464,7 @@ class FilFinder2D(BaseInfoMixin):
 
         Parameters
         ----------
-        image_list : dict, optional
+        image_dict : dict, optional
             Dictionary of arrays to save matching the pixel extents of each filament.
             The shape of each array *must* be the same shape as the original image
             given to `~FilFinder2D`.
@@ -1466,11 +1483,11 @@ class FilFinder2D(BaseInfoMixin):
         else:
             save_name = os.path.splitext(save_name)[0]
 
-        if image_list is not None:
-            for ii, key in enumerate(image_list):
-                this_image = image_list[key]
+        if image_dict is not None:
+            for ii, key in enumerate(image_dict):
+                this_image = image_dict[key]
                 if this_image.shape != self.image.shape:
-                    raise ValueError("All images in image_list must be same shape as fil.image. "
+                    raise ValueError("All images in image_dict must be same shape as fil.image. "
                                      f"For index {ii}, found shape {this_image.shape} not {self.image.shape}")
 
 
@@ -1480,7 +1497,7 @@ class FilFinder2D(BaseInfoMixin):
 
             fil.save_fits(savename,
                           self.image,
-                          image_list=image_list,
+                          image_dict=image_dict,
                           pad_size=pad_size,
                           model_kwargs=model_kwargs,
                           **kwargs)

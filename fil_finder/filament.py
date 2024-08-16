@@ -713,6 +713,7 @@ class Filament2D(FilamentNDBase):
                        beamwidth=None,
                        fwhm_function=None,
                        chisq_max=10.,
+                       return_self=False,
                        **kwargs):
         '''
 
@@ -763,6 +764,8 @@ class Filament2D(FilamentNDBase):
         chisq_max : float, optional
             Enable the fail flag if the reduced chi-squared value is above
             this limit.
+        return_self : bool, optional
+            Return the `Filament2D` object if True. Defaults to False.
         kwargs : Passed to `~fil_finder.width.radial_profile`.
 
         '''
@@ -1024,6 +1027,9 @@ class Filament2D(FilamentNDBase):
                 self._length += self._fwhm
 
         self._radprof_failflag = fail_flag
+
+        if return_self:
+            return self
 
     @property
     def radprof_fit_fail_flag(self):
@@ -1467,7 +1473,7 @@ class Filament2D(FilamentNDBase):
         return tab
 
     def save_fits(self, savename, image,
-                  image_list=None,
+                  image_dict=None,
                   pad_size=20 * u.pix,
                   header=None,
                   model_kwargs={},
@@ -1559,10 +1565,10 @@ class Filament2D(FilamentNDBase):
 
         hdulist = fits.HDUList([hdu, skel_hdu, skel_lp_hdu, model_hdu, tab_hdu])
 
-        # If image_list is provided, save cutouts from the image list
-        if image_list is not None:
-            for key in image_list:
-                img = image_list[key]
+        # If image_dict is provided, save cutouts from the image list
+        if image_dict is not None:
+            for key in image_dict:
+                img = image_dict[key]
                 img = pad_image(img, self.pixel_extents, pad_size)
                 if img.shape != skels.shape:
                     img = self.image_slicer(img, skels.shape,
