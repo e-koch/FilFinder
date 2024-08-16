@@ -1010,22 +1010,6 @@ class FilFinder2D(BaseInfoMixin):
         for n, fil in enumerate(self.filaments):
 
             if verbose:
-                print("Filament: %s / %s" % (n + 1, self.number_of_filaments))
-
-            fil.width_analysis(self.image, all_skeleton_array=self.skeleton,
-                               max_dist=max_dist,
-                               pad_to_distance=pad_to_distance,
-                               fit_model=fit_model,
-                               fitter=fitter, try_nonparam=try_nonparam,
-                               use_longest_path=use_longest_path,
-                               add_width_to_length=add_width_to_length,
-                               deconvolve_width=deconvolve_width,
-                               beamwidth=self.beamwidth,
-                               fwhm_function=fwhm_function,
-                               chisq_max=chisq_max,
-                               **kwargs)
-
-            if verbose:
                 if save_png:
                     save_name = "{0}_{1}_radprof.png".format(self.save_name, n)
                 else:
