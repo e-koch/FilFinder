@@ -504,7 +504,8 @@ class Filament2D(FilamentNDBase):
         # Add in the ipynb checker
 
     def rht_analysis(self, radius=10 * u.pix, ntheta=180,
-                     background_percentile=25):
+                     background_percentile=25,
+                     return_self=False):
         '''
         Use the RHT to find the filament orientation and dispersion of the
         longest path.
@@ -519,6 +520,8 @@ class Filament2D(FilamentNDBase):
         background_percentile : float, optional
             Float between 0 and 100 that sets a background level for the RHT
             distribution before calculating orientation and curvature.
+        return_self : bool, optional
+            If True, return the `Filament2D` object. Defaults to False.
         '''
 
         if not hasattr(radius, 'unit'):
@@ -545,6 +548,9 @@ class Filament2D(FilamentNDBase):
 
         self._orientation_hist = [theta, R]
         self._orientation_quantiles = [twofive, sevenfive]
+
+        if return_self:
+            return self
 
     @property
     def orientation_hist(self):
@@ -610,9 +616,10 @@ class Filament2D(FilamentNDBase):
         else:
             plt.show()
 
-    def rht_branch_analysis(self, radius=10 * u.pix, ntheta=180,
+    def rht_branch_analysis(self,radius=10 * u.pix, ntheta=180,
                             background_percentile=25,
-                            min_branch_length=3 * u.pix):
+                            min_branch_length=3 * u.pix,
+                            return_self=False):
         '''
         Use the RHT to find the filament orientation and dispersion of each
         branch in the filament.
@@ -630,6 +637,8 @@ class Filament2D(FilamentNDBase):
         min_branch_length : `~astropy.units.Quantity`, optional
             Minimum length of a branch to run the RHT on. Branches that are
             too short will cause spikes along the axis angles or 45 deg. off.
+        return_self : bool, optional
+            Return the `Filament2D` object with the results.
         '''
 
         # Convert length cut to pixel units
@@ -686,6 +695,9 @@ class Filament2D(FilamentNDBase):
 
         self._orientation_branches = np.array(means) * u.rad
         self._curvature_branches = np.array(iqrs) * u.rad
+
+        if return_self:
+            return self
 
     @property
     def orientation_branches(self):

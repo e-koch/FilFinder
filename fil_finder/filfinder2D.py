@@ -772,7 +772,9 @@ class FilFinder2D(BaseInfoMixin):
         '''
         return [fil.end_pts for fil in self.filaments]
 
-    def exec_rht(self, radius=10 * u.pix,
+    def exec_rht(self,
+                 nthreads=1,
+                 radius=10 * u.pix,
                  ntheta=180, background_percentile=25,
                  branches=False, min_branch_length=3 * u.pix,
                  verbose=False, save_png=False, save_name=None):
@@ -797,6 +799,8 @@ class FilFinder2D(BaseInfoMixin):
 
         Parameters
         ----------
+        nthreads : int, optional
+            The number of threads to use.
         radius : int
             Sets the patch size that the RHT uses.
         ntheta : int, optional
@@ -814,6 +818,7 @@ class FilFinder2D(BaseInfoMixin):
             Saves the plot made in verbose mode. Disabled by default.
         save_name : str, optional
             Prefix for the saved plots.
+
 
         Attributes
         ----------
@@ -836,23 +841,35 @@ class FilFinder2D(BaseInfoMixin):
         if save_name is None:
             save_name = self.save_name
 
-        for n, fil in enumerate(self.filaments):
-            if verbose:
-                print("Filament: %s / %s" % (n + 1, self.number_of_filaments))
 
-            if branches:
-                fil.rht_branch_analysis(radius=radius,
+        if branches:
+            with concurrent.futures.ProcessPoolExecutor(nthreads) as executor:
+                futures = [executor.submit(fil.rht_branch_analysis,
+                                           radius=radius,
                                         ntheta=ntheta,
                                         background_percentile=background_percentile,
-                                        min_branch_length=min_branch_length)
+                                        min_branch_length=min_branch_length,
+                                        return_self=True)
+                        for fil in self.filaments]
+                self.filaments = [future.result() for future in futures]
 
-            else:
-                fil.rht_analysis(radius=radius, ntheta=ntheta,
-                                 background_percentile=background_percentile)
 
-                if verbose:
+        else:
+            with concurrent.futures.ProcessPoolExecutor(nthreads) as executor:
+                futures = [executor.submit(fil.rht_analysis,
+                                           radius=radius,
+                                        ntheta=ntheta,
+                                        background_percentile=background_percentile,
+                                        return_self=True)
+                        for fil in self.filaments]
+                self.filaments = [future.result() for future in futures]
+
+
+            if verbose:
+                for n, fil in enumerate(self.filaments):
+
                     if save_png:
-                        savename = "{0}_{1}_rht.png".format(save_name, n)
+                        save_name = "{0}_{1}_rht.png".format(save_name, n)
                     else:
                         save_name = None
                     fil.plot_rht_distrib(save_name=save_name)
