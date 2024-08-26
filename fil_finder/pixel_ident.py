@@ -862,22 +862,3 @@ def is_tpoint(vallist):
             return True
 
     return False
-
-
-def merge_nodes(node, G):
-    '''
-    Combine a node into its neighbors.
-    '''
-
-    neigb = list(G[node])
-
-    if len(neigb) != 2:
-        return G
-
-    new_weight = G[node][neigb[0]]['weight'] + \
-        G[node][neigb[1]]['weight']
-
-    G.remove_node(node)
-    G.add_edge(neigb[0], neigb[1], weight=new_weight)
-
-    return G

@@ -56,7 +56,7 @@ def test_radial_profile_output(theta):
     model, skeleton = generate_filament_model(width=10.0,
                                               amplitude=1.0, background=0.0)
 
-    dist_transform = nd.distance_transform_edt((~skeleton).astype(np.int))
+    dist_transform = nd.distance_transform_edt((~skeleton).astype(int))
 
     dist, radprof, weights, unbin_dist, unbin_radprof = \
         radial_profile(model, dist_transform, dist_transform,
@@ -75,7 +75,7 @@ def test_radial_profile_cutoff(cutoff):
     model, skeleton = generate_filament_model(width=10.0,
                                               amplitude=1.0, background=0.0)
 
-    dist_transform = nd.distance_transform_edt((~skeleton).astype(np.int))
+    dist_transform = nd.distance_transform_edt((~skeleton).astype(int))
 
     dist, radprof, weights, unbin_dist, unbin_radprof = \
         radial_profile(model, dist_transform, dist_transform,
@@ -92,7 +92,7 @@ def test_radial_profile_padding(padding, max_distance=20.0):
     model, skeleton = generate_filament_model(width=10.0,
                                               amplitude=1.0, background=0.0)
 
-    dist_transform = nd.distance_transform_edt((~skeleton).astype(np.int))
+    dist_transform = nd.distance_transform_edt((~skeleton).astype(int))
 
     dist, radprof, weights, unbin_dist, unbin_radprof = \
         radial_profile(model, dist_transform, dist_transform,
@@ -116,7 +116,7 @@ def test_radial_profile_fail_pad(padding=30.0, max_distance=20.0):
     model, skeleton = generate_filament_model(width=10.0,
                                               amplitude=1.0, background=0.0)
 
-    dist_transform = nd.distance_transform_edt((~skeleton).astype(np.int))
+    dist_transform = nd.distance_transform_edt((~skeleton).astype(int))
 
     dist, radprof, weights, unbin_dist, unbin_radprof = \
         radial_profile(model, dist_transform, dist_transform,
@@ -138,7 +138,7 @@ def test_radial_profile_autocut():
 
     # all_skeleton += np.roll(skeleton, -30, axis=0)
 
-    dist_transform = nd.distance_transform_edt((~skeleton).astype(np.int))
+    dist_transform = nd.distance_transform_edt((~skeleton).astype(int))
 
     dist, radprof, weights, unbin_dist, unbin_radprof = \
         radial_profile(model, dist_transform, dist_transform,
@@ -174,7 +174,7 @@ def test_radial_profile_autocut_plateau():
                                                   amplitude=5.0,
                                                   background=0.0)[::-1]
 
-    dist_transform = nd.distance_transform_edt((~skeleton).astype(np.int))
+    dist_transform = nd.distance_transform_edt((~skeleton).astype(int))
 
     dist, radprof, weights, unbin_dist, unbin_radprof = \
         radial_profile(model, dist_transform, dist_transform,

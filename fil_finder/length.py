@@ -1,8 +1,6 @@
 # Licensed under an MIT open source license - see LICENSE
 
 from .utilities import *
-from .pixel_ident import *
-
 
 import numpy as np
 import scipy.ndimage as nd
@@ -830,3 +828,23 @@ def all_shortest_paths(G, start, finish, test_print=False, max_npath=200):
     long_path_length = max(all_weights)
 
     return long_path, long_path_length
+
+  
+def merge_nodes(node, G):
+    '''
+    Combine a node into its neighbors.
+    '''
+
+    neigb = list(G[node])
+
+    if len(neigb) != 2:
+        return G
+
+    new_weight = G[node][neigb[0]]['weight'] + \
+        G[node][neigb[1]]['weight']
+
+    G.remove_node(node)
+    G.add_edge(neigb[0], neigb[1], weight=new_weight)
+
+    return G
+

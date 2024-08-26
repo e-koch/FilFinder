@@ -16,9 +16,9 @@ if sys.version_info[0] >= 3:
 else:
     import cPickle as pickle
 
-from .length import (init_lengths, main_length, make_final_skeletons,
-                     pre_graph, longest_path, prune_graph, all_shortest_paths)
-from .pixel_ident import pix_identify
+from .length import (init_lengths, main_length,
+                     pre_graph, longest_path, prune_graph)
+from .pixel_ident import pix_identify, make_final_skeletons
 from .utilities import pad_image, in_ipynb, red_chisq
 from .base_conversions import UnitConverter
 from .rollinghough import rht
@@ -200,7 +200,8 @@ l        Distance to the region described by the pixel set. Requires for
     def skeleton_analysis(self, image, verbose=False, save_png=False,
                           save_name=None, prune_criteria='all',
                           relintens_thresh=0.2, max_prune_iter=10,
-                          branch_thresh=0 * u.pix):
+                          branch_thresh=0 * u.pix,
+                          return_self=False):
         '''
         Run the skeleton analysis.
 
@@ -230,6 +231,9 @@ l        Distance to the region described by the pixel set. Requires for
             Maximum number of pruning iterations to apply.
         branch_thresh : `~astropy.units.Quantity`, optional
             Minimum length for a branch to be eligible to be pruned.
+        return_self : bool, optional
+            Return the Filament2D object after skeleton analysis. This is needed
+            for parallel processing in FilFinder2D.
         '''
 
         # NOTE:
@@ -406,6 +410,9 @@ l        Distance to the region described by the pixel set. Requires for
              'number': branch_properties['number'][0],
              'pixels': branch_properties['pixels'][0]}
 
+        if return_self:
+            return self
+
     @property
     def branch_properties(self):
         '''
@@ -497,7 +504,8 @@ l        Distance to the region described by the pixel set. Requires for
         # Add in the ipynb checker
 
     def rht_analysis(self, radius=10 * u.pix, ntheta=180,
-                     background_percentile=25):
+                     background_percentile=25,
+                     return_self=False):
         '''
         Use the RHT to find the filament orientation and dispersion of the
         longest path.
@@ -512,6 +520,8 @@ l        Distance to the region described by the pixel set. Requires for
         background_percentile : float, optional
             Float between 0 and 100 that sets a background level for the RHT
             distribution before calculating orientation and curvature.
+        return_self : bool, optional
+            If True, return the `Filament2D` object. Defaults to False.
         '''
 
         if not hasattr(radius, 'unit'):
@@ -538,6 +548,9 @@ l        Distance to the region described by the pixel set. Requires for
 
         self._orientation_hist = [theta, R]
         self._orientation_quantiles = [twofive, sevenfive]
+
+        if return_self:
+            return self
 
     @property
     def orientation_hist(self):
@@ -603,9 +616,10 @@ l        Distance to the region described by the pixel set. Requires for
         else:
             plt.show()
 
-    def rht_branch_analysis(self, radius=10 * u.pix, ntheta=180,
+    def rht_branch_analysis(self,radius=10 * u.pix, ntheta=180,
                             background_percentile=25,
-                            min_branch_length=3 * u.pix):
+                            min_branch_length=3 * u.pix,
+                            return_self=False):
         '''
         Use the RHT to find the filament orientation and dispersion of each
         branch in the filament.
@@ -623,6 +637,8 @@ l        Distance to the region described by the pixel set. Requires for
         min_branch_length : `~astropy.units.Quantity`, optional
             Minimum length of a branch to run the RHT on. Branches that are
             too short will cause spikes along the axis angles or 45 deg. off.
+        return_self : bool, optional
+            Return the `Filament2D` object with the results.
         '''
 
         # Convert length cut to pixel units
@@ -680,6 +696,9 @@ l        Distance to the region described by the pixel set. Requires for
         self._orientation_branches = np.array(means) * u.rad
         self._curvature_branches = np.array(iqrs) * u.rad
 
+        if return_self:
+            return self
+
     @property
     def orientation_branches(self):
         '''
@@ -706,6 +725,7 @@ l        Distance to the region described by the pixel set. Requires for
                        beamwidth=None,
                        fwhm_function=None,
                        chisq_max=10.,
+                       return_self=False,
                        **kwargs):
         '''
 
@@ -756,6 +776,8 @@ l        Distance to the region described by the pixel set. Requires for
         chisq_max : float, optional
             Enable the fail flag if the reduced chi-squared value is above
             this limit.
+        return_self : bool, optional
+            Return the `Filament2D` object if True. Defaults to False.
         kwargs : Passed to `~fil_finder.width.radial_profile`.
 
         '''
@@ -1018,6 +1040,9 @@ l        Distance to the region described by the pixel set. Requires for
 
         self._radprof_failflag = fail_flag
 
+        if return_self:
+            return self
+
     @property
     def radprof_fit_fail_flag(self):
         '''
@@ -1122,17 +1147,25 @@ l        Distance to the region described by the pixel set. Requires for
         '''
         return self._radprof_model
 
-    def plot_radial_profile(self, save_name=None, xunit=u.pix,
-                            ax=None):
+    def plot_radial_profile(self,
+                            ax=None,
+                            save_name=None,
+                            show_plot=True,
+                            xunit=u.pix
+                            ):
         '''
         Plot the radial profile of the filament and the fitted model.
 
         Parameters
         ----------
-        xunit : `~astropy.units.Unit`, optional
-            Pixel, angular, or physical unit to convert to.
         ax : `~matplotlib.axes`, optional
             Use an existing set of axes to plot the profile.
+        save_name : str, optional
+            Name of saved plot. A plot is only saved if a name is given.        
+        show_plot : bool, optional
+            Display open figure.        
+        xunit : `~astropy.units.Unit`, optional
+            Pixel, angular, or physical unit to convert to.
         '''
 
         dist, radprof = self.radprofile
@@ -1164,8 +1197,12 @@ l        Distance to the region described by the pixel set. Requires for
 
         if save_name is not None:
             plt.savefig(save_name)
-
-        plt.show()
+            if not show_plot:
+                plt.close()
+            
+        if show_plot:
+            plt.show()
+            
         if in_ipynb():
             plt.clf()
 
@@ -1459,7 +1496,10 @@ l        Distance to the region described by the pixel set. Requires for
                     names=branch_data.keys())
         return tab
 
-    def save_fits(self, savename, image, pad_size=20 * u.pix, header=None,
+    def save_fits(self, savename, image,
+                  image_dict=None,
+                  pad_size=20 * u.pix,
+                  header=None,
                   model_kwargs={},
                   **kwargs):
         '''
@@ -1468,6 +1508,8 @@ l        Distance to the region described by the pixel set. Requires for
 
         Parameters
         ----------
+        savename : str
+            Filename to save to.
         image : `~numpy.ndarray` or `~astropy.units.Quantity`
             The image from which the filament was extracted.
         pad_size : `~astropy.units.Quantity`, optional
@@ -1509,11 +1551,24 @@ l        Distance to the region described by the pixel set. Requires for
             else:
                 header = fits.Header()
 
+        # Add the pixel extents into the header
+        from astropy.table import Table, Column
+
+        tab = Table()
+        tab.add_column(Column([self.pixel_extents[0][0],
+                               self.pixel_extents[1][0]],
+                              name='lower_coord'))
+        tab.add_column(Column([self.pixel_extents[0][1],
+                               self.pixel_extents[1][1]],
+                              name='upper_coord'))
+
+
         # Strip off units if the image is a Quantity
         if hasattr(input_image, 'unit'):
             input_image = input_image.value.copy()
 
         hdu = fits.PrimaryHDU(input_image, header)
+        hdu.name = 'IMAGE'
 
         skel_hdr = header.copy()
         skel_hdr['BUNIT'] = ("", "bool")
@@ -1521,12 +1576,32 @@ l        Distance to the region described by the pixel set. Requires for
             time.strftime("%c")
 
         skel_hdu = fits.ImageHDU(skels.astype(int), skel_hdr)
+        skel_hdu.name = 'SKELETON'
 
         skel_lp_hdu = fits.ImageHDU(skels_lp.astype(int), skel_hdr)
+        skel_lp_hdu.name = 'SKELETON_LONGPATH'
 
         model_hdu = fits.ImageHDU(model, header)
+        model_hdu.name = 'MODEL'
 
-        hdulist = fits.HDUList([hdu, skel_hdu, skel_lp_hdu, model_hdu])
+        tab_hdu = fits.table_to_hdu(tab)
+        tab_hdu.name = 'PIXEXTENTS'
+
+        hdulist = fits.HDUList([hdu, skel_hdu, skel_lp_hdu, model_hdu, tab_hdu])
+
+        # If image_dict is provided, save cutouts from the image list
+        if image_dict is not None:
+            for key in image_dict:
+                img = image_dict[key]
+                img = pad_image(img, self.pixel_extents, pad_size)
+                if img.shape != skels.shape:
+                    img = self.image_slicer(img, skels.shape,
+                                            pad_size=pad_size)
+
+                img_hdu = fits.ImageHDU(img, header)
+                img_hdu.name = key.upper()
+
+                hdulist.append(img_hdu)
 
         hdulist.writeto(savename, **kwargs)
 

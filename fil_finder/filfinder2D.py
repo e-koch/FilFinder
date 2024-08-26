@@ -14,6 +14,7 @@ from copy import deepcopy
 import os
 import time
 import warnings
+import concurrent.futures
 
 from .pixel_ident import recombine_skeletons, isolateregions
 from .utilities import eight_con, round_to_odd, threshold_local, in_ipynb
@@ -498,7 +499,7 @@ class FilFinder2D(BaseInfoMixin):
             if in_ipynb():
                 p.clf()
 
-    def medskel(self, verbose=False, save_png=False):
+    def medskel(self, verbose=False, save_png=False, rng=None):
         '''
         This function performs the medial axis transform (skeletonization)
         on the mask. This is essentially a wrapper function of
@@ -516,6 +517,9 @@ class FilFinder2D(BaseInfoMixin):
             Enables plotting.
         save_png : bool, optional
             Saves the plot made in verbose mode. Disabled by default.
+        rng : numpy.random.RandomState or int, optional
+            Random number generator for reproducibility. Used for tie breaks in
+            the `medial_axis <https://scikit-image.org/docs/stable/api/skimage.morphology.html#skimage.morphology.medial_axis>`_ function.
 
         Attributes
         ----------
@@ -525,8 +529,17 @@ class FilFinder2D(BaseInfoMixin):
             The distance transform used to create the skeletons.
         '''
 
-        self.skeleton, self.medial_axis_distance = \
-            medial_axis(self.mask, return_distance=True)
+        if rng is None:
+            rng = np.random.default_rng()
+
+        # The kwarg for rng has changed in different skimage versions.
+        try:
+            self.skeleton, self.medial_axis_distance = \
+                medial_axis(self.mask, return_distance=True, rng=rng)
+        except TypeError:
+            self.skeleton, self.medial_axis_distance = \
+                medial_axis(self.mask, return_distance=True, random_state=rng)
+
         self.medial_axis_distance = \
             self.medial_axis_distance * self.skeleton * u.pix
         # Delete connection smaller than 2 pixels wide. Such a small
@@ -551,11 +564,18 @@ class FilFinder2D(BaseInfoMixin):
             if in_ipynb():
                 p.clf()
 
-    def analyze_skeletons(self, prune_criteria='all', relintens_thresh=0.2,
-                          nbeam_lengths=5, branch_nbeam_lengths=3,
-                          skel_thresh=None, branch_thresh=None,
+    def analyze_skeletons(self,
+                          nthreads=1,
+                          prune_criteria='all',
+                          relintens_thresh=0.2,
+                          nbeam_lengths=5,
+                          branch_nbeam_lengths=3,
+                          skel_thresh=None,
+                          branch_thresh=None,
                           max_prune_iter=10,
-                          verbose=False, save_png=False, save_name=None):
+                          verbose=False,
+                          save_png=False,
+                          save_name=None):
         '''
 
         Prune skeleton structure and calculate the branch and longest-path
@@ -564,6 +584,8 @@ class FilFinder2D(BaseInfoMixin):
 
         Parameters
         ----------
+        nthreads : int, optional
+            Number of threads to use to parallelize the skeleton analysis.
         prune_criteria : {'all', 'intensity', 'length'}, optional
             Choose the property to base pruning on. 'all' requires that the
             branch fails to satisfy the length and relative intensity checks.
@@ -638,25 +660,26 @@ class FilFinder2D(BaseInfoMixin):
             # Relabel after deleting short skeletons.
             labels, num = nd.label(self.skeleton, eight_con())
 
+
         self.filaments = [Filament2D(np.where(labels == lab),
                                      converter=self.converter) for lab in
                           range(1, num + 1)]
 
-        self.number_of_filaments = num
-
         # Now loop over the skeleton analysis for each filament object
-        for n, fil in enumerate(self.filaments):
-            savename = "{0}_{1}".format(save_name, n)
-            if verbose:
-                print("Filament: %s / %s" % (n + 1, self.number_of_filaments))
+        with concurrent.futures.ProcessPoolExecutor(nthreads) as executor:
+            futures = [executor.submit(fil.skeleton_analysis, self.image,
+                                                             verbose=verbose,
+                                                             save_png=save_png,
+                                                             save_name=save_name,
+                                                             prune_criteria=prune_criteria,
+                                                             relintens_thresh=relintens_thresh,
+                                                             branch_thresh=self.branch_thresh,
+                                                             max_prune_iter=max_prune_iter,
+                                                             return_self=True)
+                       for fil in self.filaments]
+            self.filaments = [future.result() for future in futures]
 
-            fil.skeleton_analysis(self.image, verbose=verbose,
-                                  save_png=save_png,
-                                  save_name=savename,
-                                  prune_criteria=prune_criteria,
-                                  relintens_thresh=relintens_thresh,
-                                  branch_thresh=self.branch_thresh,
-                                  max_prune_iter=max_prune_iter)
+        self.number_of_filaments = num
 
         self.array_offsets = [fil.pixel_extents for fil in self.filaments]
 
@@ -749,7 +772,9 @@ class FilFinder2D(BaseInfoMixin):
         '''
         return [fil.end_pts for fil in self.filaments]
 
-    def exec_rht(self, radius=10 * u.pix,
+    def exec_rht(self,
+                 nthreads=1,
+                 radius=10 * u.pix,
                  ntheta=180, background_percentile=25,
                  branches=False, min_branch_length=3 * u.pix,
                  verbose=False, save_png=False, save_name=None):
@@ -774,6 +799,8 @@ class FilFinder2D(BaseInfoMixin):
 
         Parameters
         ----------
+        nthreads : int, optional
+            The number of threads to use.
         radius : int
             Sets the patch size that the RHT uses.
         ntheta : int, optional
@@ -791,6 +818,7 @@ class FilFinder2D(BaseInfoMixin):
             Saves the plot made in verbose mode. Disabled by default.
         save_name : str, optional
             Prefix for the saved plots.
+
 
         Attributes
         ----------
@@ -813,23 +841,35 @@ class FilFinder2D(BaseInfoMixin):
         if save_name is None:
             save_name = self.save_name
 
-        for n, fil in enumerate(self.filaments):
-            if verbose:
-                print("Filament: %s / %s" % (n + 1, self.number_of_filaments))
 
-            if branches:
-                fil.rht_branch_analysis(radius=radius,
+        if branches:
+            with concurrent.futures.ProcessPoolExecutor(nthreads) as executor:
+                futures = [executor.submit(fil.rht_branch_analysis,
+                                           radius=radius,
                                         ntheta=ntheta,
                                         background_percentile=background_percentile,
-                                        min_branch_length=min_branch_length)
+                                        min_branch_length=min_branch_length,
+                                        return_self=True)
+                        for fil in self.filaments]
+                self.filaments = [future.result() for future in futures]
 
-            else:
-                fil.rht_analysis(radius=radius, ntheta=ntheta,
-                                 background_percentile=background_percentile)
 
-                if verbose:
+        else:
+            with concurrent.futures.ProcessPoolExecutor(nthreads) as executor:
+                futures = [executor.submit(fil.rht_analysis,
+                                           radius=radius,
+                                        ntheta=ntheta,
+                                        background_percentile=background_percentile,
+                                        return_self=True)
+                        for fil in self.filaments]
+                self.filaments = [future.result() for future in futures]
+
+
+            if verbose:
+                for n, fil in enumerate(self.filaments):
+
                     if save_png:
-                        savename = "{0}_{1}_rht.png".format(save_name, n)
+                        save_name = "{0}_{1}_rht.png".format(save_name, n)
                     else:
                         save_name = None
                     fil.plot_rht_distrib(save_name=save_name)
@@ -886,7 +926,9 @@ class FilFinder2D(BaseInfoMixin):
         '''
         return self._pre_recombine_mask_corners
 
-    def find_widths(self, max_dist=10 * u.pix,
+    def find_widths(self,
+                    nthreads=1,
+                    max_dist=10 * u.pix,
                     pad_to_distance=0 * u.pix,
                     fit_model='gaussian_bkg',
                     fitter=None,
@@ -915,12 +957,8 @@ class FilFinder2D(BaseInfoMixin):
 
         Parameters
         ----------
-        image : `~astropy.unit.Quantity` or `~numpy.ndarray`
-            The image from which the filament was extracted.
-        all_skeleton_array : np.ndarray
-            An array with the skeletons of other filaments. This is used to
-            avoid double-counting pixels in the radial profiles in nearby
-            filaments.
+        nthreads : int, optional
+            Number of threads to use.
         max_dist : `~astropy.units.Quantity`, optional
             Largest radius around the skeleton to create the profile from. This
             can be given in physical, angular, or physical units.
@@ -967,23 +1005,26 @@ class FilFinder2D(BaseInfoMixin):
         if save_name is None:
             save_name = self.save_name
 
+        with concurrent.futures.ProcessPoolExecutor(nthreads) as executor:
+            futures = [executor.submit(fil.width_analysis, self.image,
+                                       all_skeleton_array=self.skeleton,
+                                       max_dist=max_dist,
+                                       pad_to_distance=pad_to_distance,
+                                       fit_model=fit_model,
+                                       fitter=fitter, try_nonparam=try_nonparam,
+                                       use_longest_path=use_longest_path,
+                                       add_width_to_length=add_width_to_length,
+                                       deconvolve_width=deconvolve_width,
+                                       beamwidth=self.beamwidth,
+                                       fwhm_function=fwhm_function,
+                                       chisq_max=chisq_max,
+                                       return_self=True,
+                                       **kwargs)
+                       for fil in self.filaments]
+            self.filaments = [future.result() for future in futures]
+
+
         for n, fil in enumerate(self.filaments):
-
-            if verbose:
-                print("Filament: %s / %s" % (n + 1, self.number_of_filaments))
-
-            fil.width_analysis(self.image, all_skeleton_array=self.skeleton,
-                               max_dist=max_dist,
-                               pad_to_distance=pad_to_distance,
-                               fit_model=fit_model,
-                               fitter=fitter, try_nonparam=try_nonparam,
-                               use_longest_path=use_longest_path,
-                               add_width_to_length=add_width_to_length,
-                               deconvolve_width=deconvolve_width,
-                               beamwidth=self.beamwidth,
-                               fwhm_function=fwhm_function,
-                               chisq_max=chisq_max,
-                               **kwargs)
 
             if verbose:
                 if save_png:
@@ -1409,7 +1450,10 @@ class FilFinder2D(BaseInfoMixin):
         out_hdu.writeto("{0}_image_output.fits".format(save_name),
                         **kwargs)
 
-    def save_stamp_fits(self, save_name=None, pad_size=20 * u.pix,
+    def save_stamp_fits(self,
+                        image_dict=None,
+                        save_name=None,
+                        pad_size=20 * u.pix,
                         model_kwargs={},
                         **kwargs):
         '''
@@ -1421,6 +1465,10 @@ class FilFinder2D(BaseInfoMixin):
 
         Parameters
         ----------
+        image_dict : dict, optional
+            Dictionary of arrays to save matching the pixel extents of each filament.
+            The shape of each array *must* be the same shape as the original image
+            given to `~FilFinder2D`.
         save_name : str, optional
             The prefix for the saved file. If None, the save name specified
             when `~FilFinder2D` was first called.
@@ -1436,10 +1484,21 @@ class FilFinder2D(BaseInfoMixin):
         else:
             save_name = os.path.splitext(save_name)[0]
 
+        if image_dict is not None:
+            for ii, key in enumerate(image_dict):
+                this_image = image_dict[key]
+                if this_image.shape != self.image.shape:
+                    raise ValueError("All images in image_dict must be same shape as fil.image. "
+                                     f"For index {ii}, found shape {this_image.shape} not {self.image.shape}")
+
+
         for n, fil in enumerate(self.filaments):
 
-            savename = "{0}_stamp_{1}.fits".format(save_name, n)
+            savename = f"{save_name}_stamp_{n}.fits"
 
-            fil.save_fits(savename, self.image, pad_size=pad_size,
+            fil.save_fits(savename,
+                          self.image,
+                          image_dict=image_dict,
+                          pad_size=pad_size,
                           model_kwargs=model_kwargs,
                           **kwargs)
