@@ -2136,7 +2136,7 @@ class FilamentPPV(Filament3D, FilamentNDBase):
         # Append the position of each node into the networkx graph
         for node in self._graph:
             # Skan is starting the position index at 1
-            pix_posn = self._skan_skeleton.coordinates[node] - 1
+            pix_posn = self._skan_skeleton.coordinates[node]
 
             self._graph.nodes[node]['pos'] = pix_posn
             self._graph.nodes[node]['data'] = data[tuple(pix_posn)]
