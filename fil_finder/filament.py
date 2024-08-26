@@ -1983,9 +1983,9 @@ class FilamentPPP(Filament3D, FilamentNDBase):
 
                     pix = self._skan_skeleton.coordinates[node]
 
-                    match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] + 1 == pix[0])
-                    match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] + 1 == pix[1])
-                    match_x = (self.pixel_coords[2] - self.pixel_extents[0][2] + 1 == pix[2])
+                    match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] == pix[0])
+                    match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] == pix[1])
+                    match_x = (self.pixel_coords[2] - self.pixel_extents[0][2] == pix[2])
 
                     idx = np.where((match_z & match_y & match_x))[0]
 
@@ -2011,9 +2011,9 @@ class FilamentPPP(Filament3D, FilamentNDBase):
                 for node in self._long_path:
                     pix = self._skan_skeleton.coordinates[node]
 
-                    match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] + 1 == pix[0])
-                    match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] + 1 == pix[1])
-                    match_x = (self.pixel_coords[2] - self.pixel_extents[0][2] + 1 == pix[2])
+                    match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] == pix[0])
+                    match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] == pix[1])
+                    match_x = (self.pixel_coords[2] - self.pixel_extents[0][2] == pix[2])
 
                     idx = np.where((match_z & match_y & match_x))[0]
 
@@ -2364,6 +2364,9 @@ class FilamentPPV(Filament3D, FilamentNDBase):
 
         while True:
 
+            if verbose:
+                print(f"Pruning Iteration {n_prune_iter}")
+
             # Record to break when no branches are deleted in an iteration.
             del_branches = []
 
@@ -2433,8 +2436,11 @@ class FilamentPPV(Filament3D, FilamentNDBase):
             del_pix = []
             for branch in del_branches:
 
+                branch_path = self._skan_skeleton.path(branch)
+
                 if self._compute_longest_path:
-                    branch_path = list(set(self._skan_skeleton.path(branch)) - set(self._long_path))
+                    # branch_path = list(set(branch_path) - set(self._long_path))
+                    branch_path = np.setdiff1d(branch_path, self._long_path)
 
                 for node in branch_path:
 
@@ -2445,9 +2451,9 @@ class FilamentPPV(Filament3D, FilamentNDBase):
 
                     pix = self._skan_skeleton.coordinates[node]
 
-                    match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] + 1 == pix[0])
-                    match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] + 1 == pix[1])
-                    match_x = (self.pixel_coords[2] - self.pixel_extents[0][2] + 1 == pix[2])
+                    match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] == pix[0])
+                    match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] == pix[1])
+                    match_x = (self.pixel_coords[2] - self.pixel_extents[0][2] == pix[2])
 
                     idx = np.where((match_z & match_y & match_x))[0]
 
@@ -2481,9 +2487,9 @@ class FilamentPPV(Filament3D, FilamentNDBase):
                 for node in self._long_path:
                     pix = self._skan_skeleton.coordinates[node]
 
-                    match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] + 1 == pix[0])
-                    match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] + 1 == pix[1])
-                    match_x = (self.pixel_coords[2] - self.pixel_extents[0][2] + 1 == pix[2])
+                    match_z = (self.pixel_coords[0] - self.pixel_extents[0][0] == pix[0])
+                    match_y = (self.pixel_coords[1] - self.pixel_extents[0][1] == pix[1])
+                    match_x = (self.pixel_coords[2] - self.pixel_extents[0][2] == pix[2])
 
                     idx = np.where((match_z & match_y & match_x))[0]
 
