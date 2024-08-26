@@ -790,6 +790,46 @@ def main_length(max_path, edge_list, labelisofil, interpts, branch_lengths,
     return main_lengths, longpath_arrays
 
 
+def all_shortest_paths(G, start, finish, test_print=False, max_npath=200):
+    '''
+    Wrap `networkx.all_shortest_paths` to catch unending loops.
+    '''
+
+    def get_weight(pat):
+        return sum([G[x][y]['weight'] for x, y in
+                    zip(pat[:-1], pat[1:])])
+
+    # Keep the paths to make sure we're not getting into a loop from a loop
+    all_paths = []
+    all_weights = []
+
+    # Catch the weird edges cases where
+    for it, pat in enumerate(nx.shortest_simple_paths(G, start, finish)):
+        if test_print:
+            print(f"path weight: {get_weight(pat)}")
+
+        if pat in all_paths:
+            break
+
+        if it > 0:
+            if all_weights[-1] > get_weight(pat):
+                break
+
+        if it > max_npath:
+            raise ValueError("Unable to find maximum path. This is likely a bug. Please"
+                             " report to https://github.com/e-koch/FilFinder.")
+            break
+
+        all_paths.append(pat)
+        all_weights.append(get_weight(pat))
+
+    long_path = all_paths[all_weights.index(max(all_weights))]
+
+    long_path_length = max(all_weights)
+
+    return long_path, long_path_length
+
+  
 def merge_nodes(node, G):
     '''
     Combine a node into its neighbors.
@@ -807,3 +847,4 @@ def merge_nodes(node, G):
     G.add_edge(neigb[0], neigb[1], weight=new_weight)
 
     return G
+

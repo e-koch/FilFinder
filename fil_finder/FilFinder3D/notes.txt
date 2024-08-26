@@ -1,0 +1,48 @@
+FilFinder3D.py
+
+This file contains the main FilFinder3D class object.
+
+test_graph.py
+
+Contains a test Networkx.Graph() object to import and test with
+
+
+
+
+
+To Do:
+
+- Cut subgraphs under certain node length
+- Equivalent longest paths? How to deal with this
+- Combining subgraphs into main Network.Graph() object
+- Combining aforementioned Network.Graph() object and returning to original data sets/arrays
+- Adaptive Thresholding
+
+Logging Backup Info:
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+# Delete old handlers
+if (logger.hasHandlers()): 
+    logger.handlers.clear()
+    
+logger.propagate = False
+#Creating File Output
+                        # Will go here eventually
+# Creat console handler
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+# Create formatter
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%d-%m-%Y %I:%M:%S')
+# Add to handlers
+                        # Add to File output 
+ch.setFormatter(formatter)
+# Add handlers to the logger
+logger.addHandler(ch)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
