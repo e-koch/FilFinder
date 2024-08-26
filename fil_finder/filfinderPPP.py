@@ -30,7 +30,11 @@ class FilFinderPPP(BaseInfoMixin, Skeleton3D):
 
     """
 
-    def __init__(self, image, wcs=None, mask=None, distance=None, save_name='FilFinder3D_output'):
+    def __init__(self, image, wcs=None, mask=None, distance=None, save_name='FilFinderPPP_output'):
+
+        # Add warning that this is under development
+        warnings.warn("This algorithm is under development. Not all features are implemented"
+                      " or tested. Use with caution.")
 
         self._has_skan()
 

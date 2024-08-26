@@ -36,7 +36,11 @@ class FilFinderPPV(Skeleton3D):
 
     """
 
-    def __init__(self, image, mask=None, save_name='FilFinder3D_output'):
+    def __init__(self, image, mask=None, save_name='FilFinderPPV_output'):
+
+        # Add warning that this is under development
+        warnings.warn("This algorithm is under development. Not all features are implemented"
+                      " or tested. Use with caution.")
 
         self._has_skan()
 
