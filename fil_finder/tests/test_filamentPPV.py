@@ -191,31 +191,35 @@ def test_FilamentPPV_onebranch():
     # The longest path should be unchanged
     fil.skeleton_analysis(image,
                           branch_spatial_thresh=5 * u.pix,
-                          branch_spectral_thresh=0 * u.pix)
+                          branch_spectral_thresh=1.5 * u.pix,
+                          test_print=1, verbose=True)
 
     mask = fil.skeleton(out_type='longpath', pad_size=0)
 
-    # Should have removed (3, 0, 3)
-    assert not mask[3, 0, 3]
+    # Should have removed (0, 0, 0)
+    assert not mask[0, 0, 0]
 
     assert np.where(mask)[0].size == 6
 
     mask_expect = np.zeros((4, 4, 4), dtype=bool)
-    mask_expect[pixels[0][np.r_[0, 1, 2, 4, 5, 6]],
-                pixels[1][np.r_[0, 1, 2, 4, 5, 6]],
-                pixels[2][np.r_[0, 1, 2, 4, 5, 6]]] = True
+    mask_expect[pixels[0][np.r_[1, 2, 3, 4, 5, 6]],
+                pixels[1][np.r_[1, 2, 3, 4, 5, 6]],
+                pixels[2][np.r_[1, 2, 3, 4, 5, 6]]] = True
 
     assert (mask == mask_expect).all()
 
-    # Check the length
-    np.testing.assert_equal(fil.length().value, 3 * np.sqrt(2) + 2)
-    assert fil.length().unit == u.pix
+    # Check the longest path length should not change
+    np.testing.assert_equal(fil.spatial_length().value, 5.0)
+    assert fil.spatial_length().unit == u.pix
+
+    np.testing.assert_equal(fil.spectral_length().value, 3.0)
+    assert fil.spectral_length().unit == u.pix
 
     # Check the intersection and end points
     # "intersections" due to 26-connected criteria and not centroiding
     # together to keep pixel mapping
     assert len(fil.intersec_pts) == 2
-    assert fil.intersec_pts == [(1, 0, 1), (2, 1, 1)]
+    assert fil.intersec_pts == [(2, 0, 2), (2, 1, 1)]
     assert len(fil.end_pts) == 2
-    assert fil.end_pts[0] == (0, 0, 0)
-    assert fil.end_pts[1] == (2, 3, 1)
+    assert fil.end_pts[1] == (3, 0, 3)
+    assert fil.end_pts[0] == (2, 3, 1)
