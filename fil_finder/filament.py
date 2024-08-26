@@ -2141,9 +2141,6 @@ class FilamentPPV(Filament3D, FilamentNDBase):
             self._graph.nodes[node]['pos'] = pix_posn
             self._graph.nodes[node]['data'] = data[tuple(pix_posn)]
 
-        # Node 0 is always (0, 0, 0). Remove that node
-        # self._graph.remove_node(0)
-
         # Add in separate properties for the spatial and spectral properties.
         self._branch_spatial_lengths = []
         self._branch_spectral_lengths = []
@@ -2153,7 +2150,7 @@ class FilamentPPV(Filament3D, FilamentNDBase):
 
             self._branch_spatial_lengths.append(np.sqrt(np.sum(np.diff(branch_pix[..., 1:], axis=0)**2, axis=1)).sum() * u.pix)
 
-            self._branch_spectral_lengths.append(np.diff(branch_pix[..., 0]).sum() * u.pix)
+            self._branch_spectral_lengths.append(np.abs(np.diff(branch_pix[..., 0])).sum() * u.pix)
 
     def branch_spatial_lengths(self, unit=u.pix):
 
@@ -2284,8 +2281,6 @@ class FilamentPPV(Filament3D, FilamentNDBase):
 
         self._long_path = long_path
 
-        self._length = max(all_weights) * u.pix
-
         # Encode in the graph which nodes are in the longest path
         for node in self._graph:
             if node in self._long_path:
@@ -2304,6 +2299,52 @@ class FilamentPPV(Filament3D, FilamentNDBase):
         self._longpath_pixel_coords = (longpath_z.astype(int),
                                        longpath_y.astype(int),
                                        longpath_x.astype(int))
+
+
+        # Record the length of the longest path
+        longpath_pix_coords_arr = np.array(self._longpath_pixel_coords).T
+
+        self._spatial_length = np.sqrt(np.sum(np.diff(longpath_pix_coords_arr[..., 1:], axis=0)**2, axis=1)).sum() * u.pix
+
+        self._spectral_length = np.abs(np.diff(longpath_pix_coords_arr[..., 0])).sum() * u.pix
+
+    def spatial_length(self, unit=u.pix):
+        """
+        Returns the spatial length of the longest path.
+
+        Parameters
+        ----------
+        unit : astropy.units.Unit
+            The unit to return the spatial length in.
+
+        Returns
+        -------
+        spatial_length : float
+            The spatial length of the longest path in pixels.
+        """
+        if unit != u.pix:
+            raise NotImplementedError("Unit conversion not yet implemented. Please use u.pix for now.")
+        return self._spatial_length
+
+
+    def spectral_length(self, unit=u.pix):
+        """
+        Returns the spectral length of the longest path.
+
+        Parameters
+        ----------
+        unit : astropy.units.Unit
+            The unit to return the spectral length in.
+
+        Returns
+        -------
+        spectral_length : float
+            The spectral length of the longest path in pixels.
+        """
+        if unit != u.pix:
+            raise NotImplementedError("Unit conversion not yet implemented. Please use u.pix for now.")
+        return self._spectral_length
+
 
     def prune_skeleton(self, data,
                        verbose=False, save_png=False,
