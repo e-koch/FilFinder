@@ -1882,11 +1882,11 @@ class FilamentPPP(Filament3D, FilamentNDBase):
 
         # Record the longest path coordinates
         longpath_z = self._skan_skeleton.coordinates[:, 0][np.r_[self._long_path]]
-        longpath_z += self.pixel_extents[0][0] - 1
+        longpath_z += self.pixel_extents[0][0]
         longpath_y = self._skan_skeleton.coordinates[:, 1][np.r_[self._long_path]]
-        longpath_y += self.pixel_extents[0][1] - 1
+        longpath_y += self.pixel_extents[0][1]
         longpath_x = self._skan_skeleton.coordinates[:, 2][np.r_[self._long_path]]
-        longpath_x += self.pixel_extents[0][2] - 1
+        longpath_x += self.pixel_extents[0][2]
 
         self._longpath_pixel_coords = (longpath_z.astype(int),
                                        longpath_y.astype(int),
@@ -2295,11 +2295,11 @@ class FilamentPPV(Filament3D, FilamentNDBase):
 
         # Record the longest path coordinates
         longpath_z = self._skan_skeleton.coordinates[:, 0][np.r_[self._long_path]]
-        longpath_z += self.pixel_extents[0][0] - 1
+        longpath_z += self.pixel_extents[0][0]
         longpath_y = self._skan_skeleton.coordinates[:, 1][np.r_[self._long_path]]
-        longpath_y += self.pixel_extents[0][1] - 1
+        longpath_y += self.pixel_extents[0][1]
         longpath_x = self._skan_skeleton.coordinates[:, 2][np.r_[self._long_path]]
-        longpath_x += self.pixel_extents[0][2] - 1
+        longpath_x += self.pixel_extents[0][2]
 
         self._longpath_pixel_coords = (longpath_z.astype(int),
                                        longpath_y.astype(int),
