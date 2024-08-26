@@ -1659,7 +1659,7 @@ class Filament3D(object):
         '''
         Skeleton pixels associated intersections.
         '''
-        return [tuple(self._skan_skeleton.coordinates[node].astype(int) - 1)
+        return [tuple(self._skan_skeleton.coordinates[node].astype(int))
                 for node in self._internodes]
 
     @property
@@ -1667,7 +1667,7 @@ class Filament3D(object):
         '''
         Skeleton pixels associated branch end.
         '''
-        return [tuple(self._skan_skeleton.coordinates[node].astype(int) - 1)
+        return [tuple(self._skan_skeleton.coordinates[node].astype(int))
                 for node in self._endnodes]
 
     # TODO: also add a plotly version. Preferably GPU based to make it snappy.
