@@ -1694,12 +1694,6 @@ class Filament3D(object):
 
         G = self._graph
 
-        for node in G:
-            if node in self._long_path:
-                G.nodes[node]['longpath'] = True
-            else:
-                G.nodes[node]['longpath'] = False
-
         # Get node positions
         pos = nx.get_node_attributes(G, 'pos')
         in_longpath = nx.get_node_attributes(G, 'longpath')
@@ -2347,8 +2341,10 @@ class FilamentPPV(Filament3D, FilamentNDBase):
 
 
     def prune_skeleton(self, data,
-                       verbose=False, save_png=False,
-                       save_name=None, prune_criteria='all',
+                       verbose=False,
+                       prune_criteria='all',
+                       save_png=False,
+                       save_name=None,
                        relintens_thresh=0.2,
                        max_prune_iter=10,
                        branch_spatial_thresh=0 * u.pix,
@@ -2357,6 +2353,10 @@ class FilamentPPV(Filament3D, FilamentNDBase):
         '''
         Remove short branches not on the longest path.
         '''
+
+        all_criteria = ['spatial', 'spectral', 'all']
+        if prune_criteria not in all_criteria:
+            raise ValueError(f"Prune criteria must be one of {all_criteria}.")
 
         test_print = test_print > 0
 
@@ -2409,11 +2409,25 @@ class FilamentPPV(Filament3D, FilamentNDBase):
 
                 # This branch is eligible to be removed. Next check removal criteria.
 
-                if length_spatial >= branch_spatial_thresh.to(u.pix):
-                    continue
+                do_prune_this_branch = False
 
-                if length_spectral >= branch_spectral_thresh.to(u.pix):
-                    continue
+                spatial_check = length_spatial >= branch_spatial_thresh.to(u.pix)
+
+                spectral_check = length_spectral >= branch_spectral_thresh.to(u.pix)
+
+                if prune_criteria == 'all':
+                    if spatial_check and spectral_check:
+                        continue
+                elif prune_criteria == 'spatial':
+                    if spatial_check:
+                        continue
+
+                elif prune_criteria == 'spectral':
+                    if spectral_check:
+                        continue
+
+                if test_print:
+                    print(f"Branch {branch} does not meet the pruning criteria. Skipping.")
 
                 # TODO: Add in other criteria, intensity, etc. Maybe curvature?
 
