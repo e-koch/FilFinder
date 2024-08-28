@@ -1161,9 +1161,9 @@ l        Distance to the region described by the pixel set. Requires for
         ax : `~matplotlib.axes`, optional
             Use an existing set of axes to plot the profile.
         save_name : str, optional
-            Name of saved plot. A plot is only saved if a name is given.        
+            Name of saved plot. A plot is only saved if a name is given.
         show_plot : bool, optional
-            Display open figure.        
+            Display open figure.
         xunit : `~astropy.units.Unit`, optional
             Pixel, angular, or physical unit to convert to.
         '''
@@ -1199,10 +1199,10 @@ l        Distance to the region described by the pixel set. Requires for
             plt.savefig(save_name)
             if not show_plot:
                 plt.close()
-            
+
         if show_plot:
             plt.show()
-            
+
         if in_ipynb():
             plt.clf()
 
@@ -1558,9 +1558,9 @@ l        Distance to the region described by the pixel set. Requires for
         tab.add_column(Column([self.pixel_extents[0][0],
                                self.pixel_extents[1][0]],
                               name='lower_coord'))
-        tab.add_column(Column([self.pixel_extents[0][1],
-                               self.pixel_extents[1][1]],
-                              name='upper_coord'))
+        # tab.add_column(Column([self.pixel_extents[0][1],
+        #                        self.pixel_extents[1][1]],
+        #                       name='upper_coord'))
 
 
         # Strip off units if the image is a Quantity
