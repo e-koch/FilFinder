@@ -17,7 +17,8 @@ else:
     import cPickle as pickle
 
 from .length import (init_lengths, main_length,
-                     pre_graph, longest_path, prune_graph)
+                     pre_graph, longest_path, prune_graph,
+                     all_shortest_paths)
 from .pixel_ident import pix_identify, make_final_skeletons
 from .utilities import pad_image, in_ipynb, red_chisq
 from .base_conversions import UnitConverter
