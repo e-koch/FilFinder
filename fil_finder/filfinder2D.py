@@ -69,6 +69,12 @@ class FilFinder2D(BaseInfoMixin):
     save_name : str, optional
         Sets the prefix name that is used for output files. Can be overridden
         in ``save_fits`` and ``save_table``. Default is "FilFinder_output".
+    pool : None, concurrent.futures.ProcessPoolExecutor or mpi4py.futures.MPIPool , optional
+        Allows for parallel processing. The default of None will use a
+        concurrent.futures.ProcessPoolExecutor with `nthreads` processes.
+    nthreads : int, optional
+        The number of threads to use in parallel processing. Only used if
+        ``pool`` is None to initialize concurrent.futures.ProcessPoolExecutor.
 
     Examples
     --------
@@ -91,7 +97,8 @@ class FilFinder2D(BaseInfoMixin):
 
     def __init__(self, image, header=None, beamwidth=None, ang_scale=None,
                  distance=None, mask=None, save_name="FilFinder_output",
-                 capture_pre_recombine_masks=False):
+                 capture_pre_recombine_masks=False,
+                 pool=None, nthreads=1):
 
         # Accepts a numpy array or fits.PrimaryHDU
         output = input_data(image, header)
@@ -157,6 +164,10 @@ class FilFinder2D(BaseInfoMixin):
         self.capture_pre_recombine_masks = capture_pre_recombine_masks
         self._pre_recombine_mask_objs = None
         self._pre_recombine_mask_corners = None
+
+        if pool is None:
+            pool = concurrent.futures.ProcessPoolExecutor(max_workers=nthreads)
+        self.pool = pool
 
     def preprocess_image(self, skip_flatten=False, flatten_percent=None):
         '''
@@ -565,7 +576,6 @@ class FilFinder2D(BaseInfoMixin):
                 p.clf()
 
     def analyze_skeletons(self,
-                          nthreads=1,
                           prune_criteria='all',
                           relintens_thresh=0.2,
                           nbeam_lengths=5,
@@ -575,7 +585,8 @@ class FilFinder2D(BaseInfoMixin):
                           max_prune_iter=10,
                           verbose=False,
                           save_png=False,
-                          save_name=None):
+                          save_name=None,
+                          debug=False,):
         '''
 
         Prune skeleton structure and calculate the branch and longest-path
@@ -584,8 +595,6 @@ class FilFinder2D(BaseInfoMixin):
 
         Parameters
         ----------
-        nthreads : int, optional
-            Number of threads to use to parallelize the skeleton analysis.
         prune_criteria : {'all', 'intensity', 'length'}, optional
             Choose the property to base pruning on. 'all' requires that the
             branch fails to satisfy the length and relative intensity checks.
@@ -614,6 +623,8 @@ class FilFinder2D(BaseInfoMixin):
             Saves the plot made in verbose mode. Disabled by default.
         save_name : str, optional
             Prefix for the saved plots.
+        debug : bool, optional
+            Enables debug mode with extra printing
         '''
 
         if relintens_thresh > 1.0 or relintens_thresh <= 0.0:
@@ -636,7 +647,9 @@ class FilFinder2D(BaseInfoMixin):
         else:
             skel_thresh = self.converter.to_pixel(skel_thresh)
 
-        self.skel_thresh = np.ceil(skel_thresh)
+        # Ensure the minimum is always >1 pixel.
+
+        self.skel_thresh = min(np.ceil(skel_thresh), 1 * u.pix)
 
         # Set the minimum branch length to be the beam size.
         if branch_thresh is None:
@@ -649,24 +662,35 @@ class FilFinder2D(BaseInfoMixin):
         # Label individual filaments and define the set of filament objects
         labels, num = nd.label(self.skeleton, eight_con())
 
+        if debug:
+            print(f"Found {num} filaments before removing short skeletons")
+
         # Find the objects that don't satisfy skel_thresh
-        if self.skel_thresh > 0.:
-            obj_sums = nd.sum(self.skeleton, labels, range(1, num + 1))
-            remove_fils = np.where(obj_sums <= self.skel_thresh.value)[0]
+        obj_sums = nd.sum(self.skeleton, labels, range(1, num + 1))
+        remove_fils = np.where(obj_sums <= self.skel_thresh.value)[0]
 
-            for lab in remove_fils:
-                self.skeleton[np.where(labels == lab + 1)] = 0
+        for lab in remove_fils:
+            if debug:
+                print(f"Removing {lab} with {obj_sums[lab]} pixels")
+            self.skeleton[np.where(labels == lab + 1)] = 0
 
-            # Relabel after deleting short skeletons.
-            labels, num = nd.label(self.skeleton, eight_con())
+        # Relabel after deleting short skeletons.
+        labels, num = nd.label(self.skeleton, eight_con())
 
+        if debug:
+            print(f"Found {num} filaments after removing short skeletons")
 
-        self.filaments = [Filament2D(np.where(labels == lab),
-                                     converter=self.converter) for lab in
-                          range(1, num + 1)]
+        self.filaments = []
+
+        for lab in range(1, num + 1):
+            if debug:
+                print(f"Filament {lab} has {np.sum(labels == lab)} pixels")
+
+            self.filaments.append(Filament2D(np.where(labels == lab),
+                                             converter=self.converter))
 
         # Now loop over the skeleton analysis for each filament object
-        with concurrent.futures.ProcessPoolExecutor(nthreads) as executor:
+        with self.pool as executor:
             futures = [executor.submit(fil.skeleton_analysis, self.image,
                                                              verbose=verbose,
                                                              save_png=save_png,
@@ -773,7 +797,6 @@ class FilFinder2D(BaseInfoMixin):
         return [fil.end_pts for fil in self.filaments]
 
     def exec_rht(self,
-                 nthreads=1,
                  radius=10 * u.pix,
                  ntheta=180, background_percentile=25,
                  branches=False, min_branch_length=3 * u.pix,
@@ -799,8 +822,6 @@ class FilFinder2D(BaseInfoMixin):
 
         Parameters
         ----------
-        nthreads : int, optional
-            The number of threads to use.
         radius : int
             Sets the patch size that the RHT uses.
         ntheta : int, optional
@@ -843,7 +864,7 @@ class FilFinder2D(BaseInfoMixin):
 
 
         if branches:
-            with concurrent.futures.ProcessPoolExecutor(nthreads) as executor:
+            with self.pool as executor:
                 futures = [executor.submit(fil.rht_branch_analysis,
                                            radius=radius,
                                         ntheta=ntheta,
@@ -855,7 +876,7 @@ class FilFinder2D(BaseInfoMixin):
 
 
         else:
-            with concurrent.futures.ProcessPoolExecutor(nthreads) as executor:
+            with self.pool as executor:
                 futures = [executor.submit(fil.rht_analysis,
                                            radius=radius,
                                         ntheta=ntheta,
@@ -927,7 +948,6 @@ class FilFinder2D(BaseInfoMixin):
         return self._pre_recombine_mask_corners
 
     def find_widths(self,
-                    nthreads=1,
                     max_dist=10 * u.pix,
                     pad_to_distance=0 * u.pix,
                     fit_model='gaussian_bkg',
@@ -957,8 +977,6 @@ class FilFinder2D(BaseInfoMixin):
 
         Parameters
         ----------
-        nthreads : int, optional
-            Number of threads to use.
         max_dist : `~astropy.units.Quantity`, optional
             Largest radius around the skeleton to create the profile from. This
             can be given in physical, angular, or physical units.
@@ -1005,7 +1023,7 @@ class FilFinder2D(BaseInfoMixin):
         if save_name is None:
             save_name = self.save_name
 
-        with concurrent.futures.ProcessPoolExecutor(nthreads) as executor:
+        with self.pool as executor:
             futures = [executor.submit(fil.width_analysis, self.image,
                                        all_skeleton_array=self.skeleton,
                                        max_dist=max_dist,

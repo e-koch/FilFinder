@@ -443,6 +443,10 @@ def longest_path(edge_list, nodes, verbose=False,
             node_extrema.append((j[0], i))
             values.append(j[1])
 
+        if len(values) == 0:
+            raise ValueError("Unable to find maximum path. This is likely a bug. Please"
+                             " report to https://github.com/e-koch/FilFinder.")
+
         max_path_length = max(values)
         start, finish = node_extrema[values.index(max_path_length)]
         extremum.append([start, finish])
@@ -829,7 +833,7 @@ def all_shortest_paths(G, start, finish, test_print=False, max_npath=200):
 
     return long_path, long_path_length
 
-  
+
 def merge_nodes(node, G):
     '''
     Combine a node into its neighbors.
