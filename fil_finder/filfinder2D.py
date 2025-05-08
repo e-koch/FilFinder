@@ -14,7 +14,6 @@ from copy import deepcopy
 import os
 import time
 import warnings
-import concurrent.futures
 
 from .pixel_ident import recombine_skeletons, isolateregions
 from .utilities import eight_con, round_to_odd, threshold_local, in_ipynb
@@ -166,7 +165,13 @@ class FilFinder2D(BaseInfoMixin):
         self._pre_recombine_mask_corners = None
 
         if pool is None:
-            pool = concurrent.futures.ProcessPoolExecutor(max_workers=nthreads)
+            try:
+                from loky import get_reusable_executor
+                pool = get_reusable_executor(max_workers=nthreads)
+            except ImportError:
+                import concurrent.futures
+                pool = concurrent.futures.ProcessPoolExecutor(max_workers=nthreads)
+
         self.pool = pool
 
     def preprocess_image(self, skip_flatten=False, flatten_percent=None):
@@ -690,18 +695,17 @@ class FilFinder2D(BaseInfoMixin):
                                              converter=self.converter))
 
         # Now loop over the skeleton analysis for each filament object
-        with self.pool as executor:
-            futures = [executor.submit(fil.skeleton_analysis, self.image,
-                                                             verbose=verbose,
-                                                             save_png=save_png,
-                                                             save_name=save_name,
-                                                             prune_criteria=prune_criteria,
-                                                             relintens_thresh=relintens_thresh,
-                                                             branch_thresh=self.branch_thresh,
-                                                             max_prune_iter=max_prune_iter,
-                                                             return_self=True)
-                       for fil in self.filaments]
-            self.filaments = [future.result() for future in futures]
+        futures = [self.pool.submit(fil.skeleton_analysis, self.image,
+                                                            verbose=verbose,
+                                                            save_png=save_png,
+                                                            save_name=save_name,
+                                                            prune_criteria=prune_criteria,
+                                                            relintens_thresh=relintens_thresh,
+                                                            branch_thresh=self.branch_thresh,
+                                                            max_prune_iter=max_prune_iter,
+                                                            return_self=True)
+                    for fil in self.filaments]
+        self.filaments = [future.result() for future in futures]
 
         self.number_of_filaments = num
 
@@ -864,26 +868,24 @@ class FilFinder2D(BaseInfoMixin):
 
 
         if branches:
-            with self.pool as executor:
-                futures = [executor.submit(fil.rht_branch_analysis,
-                                           radius=radius,
-                                        ntheta=ntheta,
-                                        background_percentile=background_percentile,
-                                        min_branch_length=min_branch_length,
-                                        return_self=True)
-                        for fil in self.filaments]
-                self.filaments = [future.result() for future in futures]
+            futures = [self.pool.submit(fil.rht_branch_analysis,
+                                        radius=radius,
+                                    ntheta=ntheta,
+                                    background_percentile=background_percentile,
+                                    min_branch_length=min_branch_length,
+                                    return_self=True)
+                    for fil in self.filaments]
+            self.filaments = [future.result() for future in futures]
 
 
         else:
-            with self.pool as executor:
-                futures = [executor.submit(fil.rht_analysis,
-                                           radius=radius,
-                                        ntheta=ntheta,
-                                        background_percentile=background_percentile,
-                                        return_self=True)
-                        for fil in self.filaments]
-                self.filaments = [future.result() for future in futures]
+            futures = [self.pool.submit(fil.rht_analysis,
+                                        radius=radius,
+                                    ntheta=ntheta,
+                                    background_percentile=background_percentile,
+                                    return_self=True)
+                    for fil in self.filaments]
+            self.filaments = [future.result() for future in futures]
 
 
             if verbose:
@@ -1023,23 +1025,22 @@ class FilFinder2D(BaseInfoMixin):
         if save_name is None:
             save_name = self.save_name
 
-        with self.pool as executor:
-            futures = [executor.submit(fil.width_analysis, self.image,
-                                       all_skeleton_array=self.skeleton,
-                                       max_dist=max_dist,
-                                       pad_to_distance=pad_to_distance,
-                                       fit_model=fit_model,
-                                       fitter=fitter, try_nonparam=try_nonparam,
-                                       use_longest_path=use_longest_path,
-                                       add_width_to_length=add_width_to_length,
-                                       deconvolve_width=deconvolve_width,
-                                       beamwidth=self.beamwidth,
-                                       fwhm_function=fwhm_function,
-                                       chisq_max=chisq_max,
-                                       return_self=True,
-                                       **kwargs)
-                       for fil in self.filaments]
-            self.filaments = [future.result() for future in futures]
+        futures = [self.pool.submit(fil.width_analysis, self.image,
+                                    all_skeleton_array=self.skeleton,
+                                    max_dist=max_dist,
+                                    pad_to_distance=pad_to_distance,
+                                    fit_model=fit_model,
+                                    fitter=fitter, try_nonparam=try_nonparam,
+                                    use_longest_path=use_longest_path,
+                                    add_width_to_length=add_width_to_length,
+                                    deconvolve_width=deconvolve_width,
+                                    beamwidth=self.beamwidth,
+                                    fwhm_function=fwhm_function,
+                                    chisq_max=chisq_max,
+                                    return_self=True,
+                                    **kwargs)
+                    for fil in self.filaments]
+        self.filaments = [future.result() for future in futures]
 
 
         for n, fil in enumerate(self.filaments):
