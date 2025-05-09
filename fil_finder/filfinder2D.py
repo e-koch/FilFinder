@@ -752,13 +752,14 @@ class FilFinder2D(BaseInfoMixin):
                                 self.array_offsets, self.image.shape,
                                 0)
 
-    def make_skeleton_min_branchlength(self, branch_thresh):
+    def make_skeleton_minbranchlength(self, branch_thresh):
         '''
         Make a skeleton with a minimum branch length, ignoring connectivity
         within individual skeletons.
         '''
 
-        return recombine_skeletons([fil.skeleton(branch_thresh=branch_thresh)
+        return recombine_skeletons([fil.skeleton(branch_thresh=branch_thresh,
+                                                 out_type='minbranchlength')
                                     for fil in self.filaments],
                                     self.array_offsets, self.image.shape,
                                     0)
