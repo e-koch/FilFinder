@@ -3,10 +3,6 @@ name: Run tests
 on:
   push:
   pull_request:
-  schedule:
-    # run every Tuesday at 5am UTC
-    - cron: '0 5 * * 2'
-
 
 jobs:
   tests:
