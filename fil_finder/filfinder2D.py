@@ -503,6 +503,12 @@ class FilFinder2D(BaseInfoMixin):
         if verbose or save_png:
             vmin = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 20)
             vmax = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 90)
+
+            # if flat_img has a unit, remove from vmin and vmax
+            if hasattr(self.flat_img, "unit"):
+                vmin = vmin.value
+                vmax = vmax.value
+
             p.clf()
             p.imshow(self.flat_img.value, interpolation='nearest',
                      origin="lower", cmap='binary', vmin=vmin, vmax=vmax)
@@ -569,6 +575,12 @@ class FilFinder2D(BaseInfoMixin):
         if verbose or save_png:  # For examining results of skeleton
             vmin = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 20)
             vmax = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 90)
+
+            # if flat_img has a unit, remove from vmin and vmax
+            if hasattr(self.flat_img, "unit"):
+                vmin = vmin.value
+                vmax = vmax.value
+
             p.clf()
             p.imshow(self.flat_img.value, interpolation=None, origin="lower",
                      cmap='binary', vmin=vmin, vmax=vmax)
@@ -739,6 +751,19 @@ class FilFinder2D(BaseInfoMixin):
             recombine_skeletons(long_path_skel,
                                 self.array_offsets, self.image.shape,
                                 0)
+
+    def make_skeleton_min_branchlength(self, branch_thresh):
+        '''
+        Make a skeleton with a minimum branch length, ignoring connectivity
+        within individual skeletons.
+        '''
+
+        return recombine_skeletons([fil.skeleton(branch_thresh=branch_thresh)
+                                    for fil in self.filaments],
+                                    self.array_offsets, self.image.shape,
+                                    0)
+
+
 
     def lengths(self, unit=u.pix):
         '''
