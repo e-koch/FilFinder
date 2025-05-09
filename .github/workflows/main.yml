@@ -4,7 +4,8 @@ on:
   push:
   pull_request:
   schedule:
-    - cron: '12 0 * * 1'  # every Monday at 12 pm
+    # run every Tuesday at 5am UTC
+    - cron: '0 5 * * 2'
 
 
 jobs:
@@ -61,7 +62,7 @@ jobs:
             toxenv: build_docs
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
@@ -72,6 +73,6 @@ jobs:
       run: tox -v -e ${{ matrix.toxenv }}
     - name: Upload coverage to codecov
       if: ${{ contains(matrix.toxenv,'-cov') }}
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         file: ./coverage.xml
