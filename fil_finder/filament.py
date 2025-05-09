@@ -199,11 +199,12 @@ l        Distance to the region described by the pixel set. Requires for
             if branch_thresh is None:
                 raise ValueError("branch_thresh must be provided.")
             # Loop through the branch properties and keep those above the threshold
+            print("branch_thresh", branch_thresh)
             pixels = [[], []]
             for branch_idx in range(len(self.branch_properties['length'])):
                 if self.branch_properties['length'][branch_idx] >= branch_thresh:
-                    pixels[0].extend(list(self.branch_properties['pixels'][branch_idx][:, 0]))
-                    pixels[1].extend(list(self.branch_properties['pixels'][branch_idx][:, 1]))
+                    pixels[0].extend(list(self.branch_properties['pixels'][branch_idx][:, 0] + self.pixel_extents[0][0] - 1))
+                    pixels[1].extend(list(self.branch_properties['pixels'][branch_idx][:, 1] + self.pixel_extents[0][1] - 1))
 
             pixels = [np.array(pixels[0]), np.array(pixels[1])]
 
