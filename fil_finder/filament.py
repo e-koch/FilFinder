@@ -145,7 +145,7 @@ l        Distance to the region described by the pixel set. Requires for
 
         return out_arr
 
-    def skeleton(self, pad_size=0, corner_pix=None, out_type='all'):
+    def skeleton(self, pad_size=0, corner_pix=None, out_type='all', branch_thresh=None):
         '''
         Create a mask from the pixel coordinates.
 
@@ -156,9 +156,12 @@ l        Distance to the region described by the pixel set. Requires for
         corner_pix : tuple of ints, optional
             The position of the left-bottom corner of the pixels in the
             skeleton. Used for offsetting the location of the pixels.
-        out_type : {"all", "longpath"}, optional
+        out_type : {"all", "longpath", "minbranchlength"}, optional
             Return the entire skeleton or just the longest path. Default is to
             return the whole skeleton.
+        branch_thresh : float, optional
+            Branch length threshold for the longest path. Only used if
+            out_type is 'minbranchlength'.
 
         Returns
         -------
@@ -174,7 +177,7 @@ l        Distance to the region described by the pixel set. Requires for
             # Place the smallest pixel in the set at the pad size
             corner_pix = [pad_size, pad_size]
 
-        out_types = ['all', 'longpath']
+        out_types = ['all', 'longpath', 'minbranchlength']
         if out_type not in out_types:
             raise ValueError("out_type must be 'all' or 'longpath'.")
 
@@ -187,11 +190,22 @@ l        Distance to the region described by the pixel set. Requires for
 
         if out_type == 'all':
             pixels = self.pixel_coords
-        else:
+        elif out_type == 'longpath':
             if not hasattr(self, '_longpath_pixel_coords'):
                 raise AttributeError("longest path is not defined. Run "
                                      "`Filament2D.skeleton_analysis` first.")
             pixels = self.longpath_pixel_coords
+        else:
+            if branch_thresh is None:
+                raise ValueError("branch_thresh must be provided.")
+            # Loop through the branch properties and keep those above the threshold
+            pixels = [[], []]
+            for branch_idx in range(len(self.branch_properties['length'])):
+                if self.branch_properties['length'][branch_idx] >= branch_thresh:
+                    pixels[0].extend(list(self.branch_properties['pixels'][branch_idx][:, 0]))
+                    pixels[1].extend(list(self.branch_properties['pixels'][branch_idx][:, 1]))
+
+            pixels = [np.array(pixels[0]), np.array(pixels[1])]
 
         mask[pixels[0] - self.pixel_extents[0][0] + corner_pix[0],
              pixels[1] - self.pixel_extents[0][1] + corner_pix[1]] = True
