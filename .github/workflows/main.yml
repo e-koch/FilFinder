@@ -18,42 +18,37 @@ jobs:
             toxenv: py39-test
 
           - os: ubuntu-latest
-            python-version: '3.10'
-            name: Python 3.10 with minimal dependencies
-            toxenv: py310-test
+            python-version: 3.12
+            name: Python 3.12 with minimal dependencies
+            toxenv: py312-test
 
           - os: ubuntu-latest
             python-version: 3.11
             name: Python 3.11 with minimal dependencies
-            toxenv: py311-test
+            toxenv: py312-test
 
           - os: ubuntu-latest
-            python-version: 3.9
-            name: Python 3.9 with minimal and dev dependencies
-            toxenv: py39-test-dev
+            python-version: 3.10
+            name: Python 3.11 with minimal dependencies
+            toxenv: py310-test
 
           - os: ubuntu-latest
-            python-version: 3.11
-            name: Python 3.11, all dependencies, and dev versions of key dependencies
-            toxenv: py311-test-dev
+            python-version: 3.12
+            name: Python 3.12, all dependencies, and dev versions of key dependencies
+            toxenv: py312-test-dev
 
           - os: ubuntu-latest
-            python-version: 3.11
-            name: Python 3.11, all dependencies, and coverage
-            toxenv: py311-test-all-cov
+            python-version: 3.12
+            name: Python 3.12, all dependencies, and coverage
+            toxenv: py312-test-all-cov
 
           - os: macos-latest
-            python-version: 3.11
-            name: Python 3.11 with all dependencies on MacOS X
-            toxenv: py311-test-all-dev
-
-          # - os: windows-latest
-          #   python-version: 3.7
-          #   name: Python 3.7, with all dependencies on Windows
-          #   toxenv: py37-test-all-dev
+            python-version: 3.12
+            name: Python 3.12 with all dependencies on MacOS X
+            toxenv: py312-test-all-dev
 
           - os: ubuntu-latest
-            python-version: 3.11
+            python-version: 3.12
             name: Documentation
             toxenv: build_docs
 
