@@ -764,8 +764,6 @@ class FilFinder2D(BaseInfoMixin):
                                     self.array_offsets, self.image.shape,
                                     0)
 
-
-
     def lengths(self, unit=u.pix):
         '''
         Return longest path lengths of the filaments.
