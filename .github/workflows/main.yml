@@ -75,4 +75,4 @@ jobs:
       if: ${{ contains(matrix.toxenv,'-cov') }}
       uses: codecov/codecov-action@v5
       with:
-        file: ./coverage.xml
+        files: ./coverage.xml
