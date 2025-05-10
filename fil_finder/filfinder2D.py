@@ -186,7 +186,7 @@ class FilFinder2D(BaseInfoMixin):
         flatten_percent : int, optional
             The percentile of the data (0-100) to set the normalization of the
             arctan transform. By default, a log-normal distribution is fit and
-            the threshold is set to :math:`\mu + 2\sigma`. If the data contains
+            the threshold is set to mean + 2 * std. If the data contains
             regions of a much higher intensity than the mean, it is recommended
             this be set >95 percentile.
 
