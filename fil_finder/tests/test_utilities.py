@@ -26,7 +26,7 @@ def test_pad_image():
     assert (padded_image[pixels[0] + 2, pixels[1] + 2] == 1.).all()
 
     # Check changing the constant
-    padded_image = pad_image(image, pixel_extents, pad_size=1, constant=np.NaN)
+    padded_image = pad_image(image, pixel_extents, pad_size=1, constant=np.nan)
 
     assert padded_image.shape == (3, 5)
 
