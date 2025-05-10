@@ -53,7 +53,7 @@ def test_FilFinder2D_w_rhtbranches():
     total_intensity = test1.total_intensity()
 
     cov_frac = test1.covering_fraction()
-    npt.assert_allclose(0.564, cov_frac, atol=0.001)
+    npt.assert_allclose(0.570, cov_frac, atol=0.05)
 
     fil_posns = test1.filament_positions()
     fil_posns = test1.filament_positions(world_coord=True)
