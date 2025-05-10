@@ -199,7 +199,6 @@ l        Distance to the region described by the pixel set. Requires for
             if branch_thresh is None:
                 raise ValueError("branch_thresh must be provided.")
             # Loop through the branch properties and keep those above the threshold
-            print("branch_thresh", branch_thresh)
             pixels = [[], []]
             for branch_idx in range(len(self.branch_properties['length'])):
                 if self.branch_properties['length'][branch_idx] >= branch_thresh:
@@ -679,8 +678,8 @@ l        Distance to the region described by the pixel set. Requires for
                                               self.branch_properties['length'])):
 
             if length.value < min_branch_length:
-                means.append(np.NaN)
-                iqrs.append(np.NaN)
+                means.append(np.nan)
+                iqrs.append(np.nan)
                 continue
 
             # Setup size of array
@@ -853,7 +852,7 @@ l        Distance to the region described by the pixel set. Requires for
 
         if out is None:
             raise ValueError("Building radial profile failed. Check the input"
-                             " image for NaNs.")
+                             " image for nan.")
         else:
             dist, radprof, weights, unbin_dist, unbin_radprof = out
 
@@ -932,7 +931,7 @@ l        Distance to the region described by the pixel set. Requires for
             if param_cov is not None:
                 fit_uncert = list(np.sqrt(np.diag(param_cov)))
             else:
-                fit_uncert = [np.NaN] * npar
+                fit_uncert = [np.nan] * npar
                 fail_flag = True
 
             if len(fit_uncert) != len(params):
@@ -1029,8 +1028,8 @@ l        Distance to the region described by the pixel set. Requires for
                 fwhm_deconv = np.sqrt(fwhm_deconv_sq)
                 fwhm_deconv_err = fwhm * fwhm_err / fwhm_deconv
             else:
-                fwhm_deconv = np.NaN * fwhm.unit
-                fwhm_deconv_err = np.NaN * fwhm.unit
+                fwhm_deconv = np.nan * fwhm.unit
+                fwhm_deconv_err = np.nan * fwhm.unit
                 warnings.warn("Width could not be deconvolved from the beam "
                               "width.")
         else:
