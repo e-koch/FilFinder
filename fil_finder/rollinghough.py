@@ -123,14 +123,14 @@ def circular_region(radius):
     circle = circle < radius**2.
 
     circle = circle.astype(float)
-    circle[np.where(circle == 0.)] = np.NaN
+    circle[np.where(circle == 0.)] = np.nan
 
     return circle, [xx, yy]
 
 
 def padwithnans(vector, pad_width, iaxis, kwargs):
-    vector[:pad_width[0]] = np.NaN
-    vector[-pad_width[1]:] = np.NaN
+    vector[:pad_width[0]] = np.nan
+    vector[-pad_width[1]:] = np.nan
     return vector
 
 
