@@ -93,8 +93,8 @@ class Filament2D(FilamentNDBase):
         Unit converter class.
     wcs : `~astropy.wcs.WCS`, optional
         WCS information for the pixel set.
-    distance : `~astropy.units.Quantity`, optiona
-l        Distance to the region described by the pixel set. Requires for
+    distance : `~astropy.units.Quantity`, optional
+        Distance to the region described by the pixel set. Requires for
         conversions to physical units.
 
     """
