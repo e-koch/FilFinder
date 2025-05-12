@@ -186,7 +186,7 @@ class FilFinder2D(BaseInfoMixin):
         flatten_percent : int, optional
             The percentile of the data (0-100) to set the normalization of the
             arctan transform. By default, a log-normal distribution is fit and
-            the threshold is set to :math:`\mu + 2\sigma`. If the data contains
+            the threshold is set to mean + 2 * std. If the data contains
             regions of a much higher intensity than the mean, it is recommended
             this be set >95 percentile.
 
@@ -503,6 +503,12 @@ class FilFinder2D(BaseInfoMixin):
         if verbose or save_png:
             vmin = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 20)
             vmax = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 90)
+
+            # if flat_img has a unit, remove from vmin and vmax
+            if hasattr(self.flat_img, "unit"):
+                vmin = vmin.value
+                vmax = vmax.value
+
             p.clf()
             p.imshow(self.flat_img.value, interpolation='nearest',
                      origin="lower", cmap='binary', vmin=vmin, vmax=vmax)
@@ -569,6 +575,12 @@ class FilFinder2D(BaseInfoMixin):
         if verbose or save_png:  # For examining results of skeleton
             vmin = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 20)
             vmax = np.percentile(self.flat_img[np.isfinite(self.flat_img)], 90)
+
+            # if flat_img has a unit, remove from vmin and vmax
+            if hasattr(self.flat_img, "unit"):
+                vmin = vmin.value
+                vmax = vmax.value
+
             p.clf()
             p.imshow(self.flat_img.value, interpolation=None, origin="lower",
                      cmap='binary', vmin=vmin, vmax=vmax)
@@ -739,6 +751,18 @@ class FilFinder2D(BaseInfoMixin):
             recombine_skeletons(long_path_skel,
                                 self.array_offsets, self.image.shape,
                                 0)
+
+    def make_skeleton_minbranchlength(self, branch_thresh):
+        '''
+        Make a skeleton with a minimum branch length, ignoring connectivity
+        within individual skeletons.
+        '''
+
+        return recombine_skeletons([fil.skeleton(branch_thresh=branch_thresh,
+                                                 out_type='minbranchlength')
+                                    for fil in self.filaments],
+                                    self.array_offsets, self.image.shape,
+                                    0)
 
     def lengths(self, unit=u.pix):
         '''
@@ -1281,8 +1305,8 @@ class FilFinder2D(BaseInfoMixin):
             Return the median filament position in world coordinates.
         kwargs : Passed to `~FilFinder2D.total_intensity`.
 
-        Return
-        ------
+        Returns
+        -------
         tab : `~astropy.table.Table`
             Table with all analyzed parameters.
         '''
