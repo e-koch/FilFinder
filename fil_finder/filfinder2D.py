@@ -1305,8 +1305,8 @@ class FilFinder2D(BaseInfoMixin):
             Return the median filament position in world coordinates.
         kwargs : Passed to `~FilFinder2D.total_intensity`.
 
-        Return
-        ------
+        Returns
+        -------
         tab : `~astropy.table.Table`
             Table with all analyzed parameters.
         '''

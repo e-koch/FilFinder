@@ -126,7 +126,7 @@ class FilFinderPPV(Skeleton3D):
             recomputing the mask.
 
         Attributes
-        -------
+        ----------
         mask : numpy.ndarray
             The mask of the filaments.
 

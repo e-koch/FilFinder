@@ -96,6 +96,7 @@ class Filament2D(FilamentNDBase):
     distance : `~astropy.units.Quantity`, optiona
 l        Distance to the region described by the pixel set. Requires for
         conversions to physical units.
+
     """
     def __init__(self, pixel_coords, converter=None, wcs=None, distance=None):
         super(Filament2D, self).__init__()
