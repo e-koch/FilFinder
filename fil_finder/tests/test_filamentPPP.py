@@ -97,7 +97,8 @@ def test_FilamentPPP():
     os.remove('pickled_fil.pkl')
 
 
-@pytest.mark.xfail("Known failing case. To be fixed in future release.")
+# TODO: This test is known to fail.
+@pytest.mark.xfail(reason="Known failing case. To be fixed in future release.")
 def test_FilamentPPP_onebranch():
 
     pixels = (np.array([0, 1, 2, 3, 2, 2, 2]),
