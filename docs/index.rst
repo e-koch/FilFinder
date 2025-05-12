@@ -48,7 +48,6 @@ Contents:
    install
    tutorial
    Filament2D_tutorial
-   old_tutorial
    filfinder
 
 
