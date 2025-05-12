@@ -1,6 +1,6 @@
 # Licensed under an MIT open source license - see LICENSE
 
-from ._astropy_init import __version__, test
+from .version import version as __version__
 
 from .filfinder2D import FilFinder2D
 from .filfinderPPV import FilFinderPPV
