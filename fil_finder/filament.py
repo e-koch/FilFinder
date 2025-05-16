@@ -206,7 +206,8 @@ class Filament2D(FilamentNDBase):
                     pixels[0].extend(list(self.branch_properties['pixels'][branch_idx][:, 0] + self.pixel_extents[0][0] - 1))
                     pixels[1].extend(list(self.branch_properties['pixels'][branch_idx][:, 1] + self.pixel_extents[0][1] - 1))
 
-            pixels = [np.array(pixels[0]), np.array(pixels[1])]
+            pixels = [np.array(pixels[0]).astype(int),
+                      np.array(pixels[1]).astype(int)]
 
         mask[pixels[0] - self.pixel_extents[0][0] + corner_pix[0],
              pixels[1] - self.pixel_extents[0][1] + corner_pix[1]] = True
@@ -1578,9 +1579,9 @@ class Filament2D(FilamentNDBase):
         tab.add_column(Column([self.pixel_extents[0][0],
                                self.pixel_extents[1][0]],
                               name='lower_coord'))
-        # tab.add_column(Column([self.pixel_extents[0][1],
-        #                        self.pixel_extents[1][1]],
-        #                       name='upper_coord'))
+        tab.add_column(Column([self.pixel_extents[0][1],
+                               self.pixel_extents[1][1]],
+                              name='upper_coord'))
 
 
         # Strip off units if the image is a Quantity
