@@ -1583,6 +1583,12 @@ class Filament2D(FilamentNDBase):
                                self.pixel_extents[1][1]],
                               name='upper_coord'))
 
+        tab.add_column(Column([self.pixel_extents[0][0],
+                               self.pixel_extents[1][0]],
+                              name='lower_coord_slice'))
+        tab.add_column(Column([self.pixel_extents[0][1]+1,
+                               self.pixel_extents[1][1]+1],
+                              name='upper_coord_slice'))
 
         # Strip off units if the image is a Quantity
         if hasattr(input_image, 'unit'):
