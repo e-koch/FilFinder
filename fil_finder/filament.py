@@ -1515,7 +1515,7 @@ class Filament2D(FilamentNDBase):
 
     def save_fits(self, savename, image,
                   image_dict=None,
-                  pad_size=20 * u.pix,
+                  pad_size=0 * u.pix,
                   header=None,
                   save_model=True,
                   model_kwargs={},

@@ -1496,7 +1496,7 @@ class FilFinder2D(BaseInfoMixin):
     def save_stamp_fits(self,
                         image_dict=None,
                         save_name=None,
-                        pad_size=20 * u.pix,
+                        pad_size=0 * u.pix,
                         save_model=True,
                         model_kwargs={},
                         **kwargs):
