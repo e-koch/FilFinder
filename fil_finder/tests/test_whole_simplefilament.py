@@ -198,7 +198,9 @@ def test_simple_filament_noheader(simple_filament_model):
     if os.path.exists("test_image_output.fits"):
         os.remove("test_image_output.fits")
 
-    fil1.save_fits("test_image_output.fits", test.image, overwrite=True)
+    fil1.save_fits("test_image_output.fits", test.image,
+                   overwrite=True,
+                   pad_size=20*u.pix)
     assert len(fits.open("test_image_output.fits")) == 5
 
     if os.path.exists("test_image_output.fits"):
@@ -208,6 +210,7 @@ def test_simple_filament_noheader(simple_filament_model):
     fil1.save_fits("test_image_output.fits",
                    test.image,
                    image_dict=image_dict,
+                   pad_size=20*u.pix,
                    overwrite=True)
     assert len(fits.open("test_image_output.fits")) == 7
 
@@ -233,7 +236,8 @@ def test_simple_filament_noheader(simple_filament_model):
                    image_dict=image_dict,
                    overwrite=True)
 
-    test.save_stamp_fits(overwrite=True)
+    test.save_stamp_fits(overwrite=True,
+                         pad_size=20*u.pix)
     hdu = fits.open("test1_stamp_0.fits")
     skel = fil1.skeleton(pad_size=20)
     npt.assert_allclose(skel, hdu[1].data.astype(bool))
@@ -442,7 +446,9 @@ def test_simple_filament_noheader_angscale(simple_filament_model):
     # if os.path.exists("test_image_output.fits"):
     #     os.remove("test_image_output.fits")
 
-    fil1.save_fits("test_image_output.fits", test.image, overwrite=True)
+    fil1.save_fits("test_image_output.fits", test.image,
+                   overwrite=True,
+                   pad_size=20*u.pix)
     assert len(fits.open("test_image_output.fits")) == 5
 
     # Test saving additional extensions
@@ -450,6 +456,7 @@ def test_simple_filament_noheader_angscale(simple_filament_model):
     fil1.save_fits("test_image_output.fits",
                    test.image,
                    image_dict=image_dict,
+                   pad_size=20*u.pix,
                    overwrite=True)
     assert len(fits.open("test_image_output.fits")) == 7
 
@@ -469,7 +476,8 @@ def test_simple_filament_noheader_angscale(simple_filament_model):
     hdu.close()
     del hdu
 
-    test.save_stamp_fits(overwrite=True)
+    test.save_stamp_fits(overwrite=True,
+                         pad_size=20*u.pix)
     hdu = fits.open("test1_stamp_0.fits")
     skel = fil1.skeleton(pad_size=20)
     npt.assert_allclose(skel, hdu[1].data.astype(bool))
@@ -664,7 +672,9 @@ def test_simple_filament_nodistance(simple_filament_model):
     # if os.path.exists("test_image_output.fits"):
     #     os.remove("test_image_output.fits")
 
-    fil1.save_fits("test_image_output.fits", test.image, overwrite=True)
+    fil1.save_fits("test_image_output.fits", test.image,
+                   overwrite=True,
+                   pad_size=20*u.pix)
 
     hdu = fits.open("test_image_output.fits")
     skel = fil1.skeleton(pad_size=20)
@@ -682,7 +692,8 @@ def test_simple_filament_nodistance(simple_filament_model):
     del hdu
     os.remove("test_image_output.fits")
 
-    test.save_stamp_fits(overwrite=True)
+    test.save_stamp_fits(overwrite=True,
+                         pad_size=20*u.pix)
     hdu = fits.open("test1_stamp_0.fits")
     skel = fil1.skeleton(pad_size=20)
     npt.assert_allclose(skel, hdu[1].data.astype(bool))
