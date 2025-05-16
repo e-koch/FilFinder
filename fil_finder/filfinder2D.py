@@ -1497,6 +1497,7 @@ class FilFinder2D(BaseInfoMixin):
                         image_dict=None,
                         save_name=None,
                         pad_size=20 * u.pix,
+                        save_model=True,
                         model_kwargs={},
                         **kwargs):
         '''
@@ -1517,6 +1518,8 @@ class FilFinder2D(BaseInfoMixin):
             when `~FilFinder2D` was first called.
         stamps : bool, optional
             Enables saving of individual stamps
+        save_model : bool, optional
+            Save the model image. Defaults to True. Set to False if no width model has been fit.
         model_kwargs : dict, optional
             Passed to `~FilFinder2D.filament_model`.
         kwargs : Passed to `~astropy.io.fits.PrimaryHDU.writeto`.
@@ -1543,5 +1546,6 @@ class FilFinder2D(BaseInfoMixin):
                           self.image,
                           image_dict=image_dict,
                           pad_size=pad_size,
+                          save_model=save_model,
                           model_kwargs=model_kwargs,
                           **kwargs)

@@ -1516,6 +1516,7 @@ class Filament2D(FilamentNDBase):
                   image_dict=None,
                   pad_size=20 * u.pix,
                   header=None,
+                  save_model=True,
                   model_kwargs={},
                   **kwargs):
         '''
@@ -1533,6 +1534,8 @@ class Filament2D(FilamentNDBase):
         header : `~astropy.io.fits.Header`, optional
             Provide a FITS header to save to. If `~Filament2D` was
             given WCS information, this will be used if no header is given.
+        save_model : bool, optional
+            Save the model image. Defaults to True. Set to False if no width model has been fit.
         model_kwargs : dict, optional
             Passed to `~Filament2D.model_image`.
         kwargs : Passed to `~astropy.io.fits.PrimaryHDU.writeto`.
@@ -1553,10 +1556,11 @@ class Filament2D(FilamentNDBase):
             input_image = self.image_slicer(input_image, skels.shape,
                                             pad_size=pad_size)
 
-        model = self.model_image(max_radius=pad_size * u.pix,
-                                 **model_kwargs)
-        if hasattr(model, 'unit'):
-            model = model.value
+        if save_model:
+            model = self.model_image(max_radius=pad_size * u.pix,
+                                    **model_kwargs)
+            if hasattr(model, 'unit'):
+                model = model.value
 
         from astropy.io import fits
         import time
@@ -1597,13 +1601,16 @@ class Filament2D(FilamentNDBase):
         skel_lp_hdu = fits.ImageHDU(skels_lp.astype(int), skel_hdr)
         skel_lp_hdu.name = 'SKELETON_LONGPATH'
 
-        model_hdu = fits.ImageHDU(model, header)
-        model_hdu.name = 'MODEL'
+        hdulist = fits.HDUList([hdu, skel_hdu, skel_lp_hdu])
+
+        if save_model:
+            model_hdu = fits.ImageHDU(model, header)
+            model_hdu.name = 'MODEL'
+            hdulist.append(model_hdu)
 
         tab_hdu = fits.table_to_hdu(tab)
         tab_hdu.name = 'PIXEXTENTS'
-
-        hdulist = fits.HDUList([hdu, skel_hdu, skel_lp_hdu, model_hdu, tab_hdu])
+        hdulist.append(tab_hdu)
 
         # If image_dict is provided, save cutouts from the image list
         if image_dict is not None:
