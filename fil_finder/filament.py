@@ -2036,7 +2036,7 @@ class FilamentPPP(Filament3D, FilamentNDBase):
 
                 # Next check if the branch has an endpoint. If it doesn't, it will
                 # split the skeleton into separate skeletons.
-                endpt_match = list(set(branch_path) & set(self._endnodes))
+                endpt_match = list(set(list(branch_path)) & set(list(self._endnodes)))
 
                 if len(endpt_match) == 0:
                     if test_print:
