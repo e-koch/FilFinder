@@ -2230,7 +2230,7 @@ class FilamentPPV(Filament3D, FilamentNDBase):
                 self._internodes = self._internodes[1:]
             # Otherwise it's a perfect loop. Assign the 0th node as the endnode
             else:
-                self._endnodes.append(self._graph[0])
+                self._endnodes.append(list(self._graph.nodes)[0])
 
         # Append the position of each node into the networkx graph
         for node in self._graph:
