@@ -1478,7 +1478,7 @@ class FilFinder2D(BaseInfoMixin):
                 idl[fil.longpath_pixel_coords] = n+1
 
             labels_lp = nd.label(idl, eight_con())[0]
-            #labels_lp = nd.label(self.skeleton_longpath, eight_con())[0]        
+
             out_hdu.append(fits.ImageHDU(labels_lp,
                                          header=new_hdr_skel))
 
