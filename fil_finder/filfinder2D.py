@@ -1461,13 +1461,24 @@ class FilFinder2D(BaseInfoMixin):
             str(self.branch_thresh)
 
         # Final Skeletons - create labels which match up with table output
+        ## Create labelled skeleton map with fil IDs
+        ids = np.zeros(self.image.shape)
 
-        labels = nd.label(self.skeleton, eight_con())[0]
+        for n, fil in enumerate(self.filaments): #Index starts at 0, bump up 1 to maintain mask
+            ids[fil.pixel_coords] = n+1
+
+        labels = nd.label(ids, eight_con())[0] #still saving skeleton, now ID matched
+        #labels = nd.label(self.skeleton, eight_con())[0]
         out_hdu.append(fits.ImageHDU(labels, header=new_hdr_skel))
 
         # Longest Paths
         if save_longpath_skeletons:
-            labels_lp = nd.label(self.skeleton_longpath, eight_con())[0]
+            idl = np.zeros(self.image.shape)
+            for n, fil in enumerate(self.filaments):
+                idl[fil.longpath_pixel_coords] = n+1
+
+            labels_lp = nd.label(idl, eight_con())[0]
+
             out_hdu.append(fits.ImageHDU(labels_lp,
                                          header=new_hdr_skel))
 
