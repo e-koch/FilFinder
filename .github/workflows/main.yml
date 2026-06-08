@@ -64,6 +64,6 @@ jobs:
       run: tox -v -e ${{ matrix.toxenv }}
     - name: Upload coverage to codecov
       if: ${{ contains(matrix.toxenv,'-cov') }}
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@v7
       with:
         files: ./coverage.xml
