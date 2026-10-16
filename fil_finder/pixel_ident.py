@@ -828,7 +828,7 @@ def is_blockpoint(vallist):
 
     # Check if all 3 in an arrangement are within the vallist
     for arrange in arrangements:
-        if np.in1d(posns, arrange).sum() == 3:
+        if np.isin(posns, arrange).sum() == 3:
             return True
 
     return False
@@ -858,7 +858,7 @@ def is_tpoint(vallist):
 
     # Check if all 3 in an arrangement are within the vallist
     for arrange in arrangements:
-        if np.in1d(posns, arrange).sum() == 3:
+        if np.isin(posns, arrange).sum() == 3:
             return True
 
     return False

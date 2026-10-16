@@ -36,7 +36,7 @@ if compute:
     kernel = convolution.Gaussian2DKernel(conv)
 
     pipe_degraded = convolution.convolve(pipe_img, kernel, boundary='fill',
-                                         fill_value=np.NaN)
+                                         fill_value=np.nan)
 
     p.subplot(121)
     p.imshow(np.arctan(pipe_img/np.percentile(pipe_img[np.isfinite(pipe_img)], 95)),

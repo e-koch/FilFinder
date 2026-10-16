@@ -213,7 +213,7 @@ if triangle_plot:
             data = np.hstack([data, np.asarray([np.log10(widths[key][(widths[key] > 0.0)]), np.log10(amplitude[key][(widths[key] > 0.0)]),
                                                 np.log10(lengths[key][(widths[key] > 0.0)]), curvature[key][(widths[key] > 0.0)]])])
 
-    truths = np.array([-1.26, np.NaN, np.NaN, np.NaN])
+    truths = np.array([-1.26, np.nan, np.nan, np.nan])
 
         # Plot it.
     figure = triangle.corner(data.T, labels=["log$_{10}$(W/ pc)",
