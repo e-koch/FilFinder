@@ -719,7 +719,22 @@ class FilFinder2D(BaseInfoMixin):
                     for fil in self.filaments]
         self.filaments = [future.result() for future in futures]
 
-        self.number_of_filaments = num
+        # Verify all filaments still satisfy skel_thresh
+        del_fils_id = []
+        for ii, fil in enumerate(self.filaments):
+            # Sum of remaining pixels:
+            if len(fil.pixel_coords) <= self.skel_thresh.value:
+                del_fils_id.append(fil)
+                if debug:
+                    print(f"Removing {fil.filament_number} with {len(fil.pixel_coords)} pixels")
+
+        for ii in del_fils_id:
+            self.filaments.remove(ii)
+
+        self.number_of_filaments = len(self.filaments)
+
+        if debug:
+            print(f"Final number of filaments: {self.number_of_filaments}.")
 
         self.array_offsets = [fil.pixel_extents for fil in self.filaments]
 
