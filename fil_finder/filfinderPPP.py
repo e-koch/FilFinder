@@ -106,7 +106,7 @@ class FilFinderPPP(BaseInfoMixin, Skeleton3D):
             recomputing the mask.
 
         Attributes
-        ----------
+        -------
         mask : numpy.ndarray
             The mask of the filaments.
 
@@ -155,8 +155,9 @@ class FilFinderPPP(BaseInfoMixin, Skeleton3D):
         close = mo.closing(dilate)
 
         # Don't allow small holes: these lead to "shell"-shaped skeleton features
-        mo.remove_small_objects(close, min_size=min_object_size, connectivity=1, in_place=True)
-        mo.remove_small_holes(close, area_threshold=max_hole_size, connectivity=1, in_place=True)
+        close = mo.remove_small_objects(close, min_size=min_object_size, connectivity=1)
+        mo.remove_small_holes(close, area_threshold=max_hole_size, connectivity=1)
+     
 
         self.mask = close
 
