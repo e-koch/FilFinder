@@ -795,61 +795,6 @@ class Filament2D(FilamentNDBase):
         if return_self:
             return self
 
-    def junction_orientations(self, node, radius=5 * u.pix):
-        '''
-        Local orientation of each edge where it meets a node of the graph.
-
-        For a long or curved branch the mean orientation from the RHT can
-        differ from the direction in which it leaves a junction. This fits a
-        line to the edge's pixels within ``radius`` of the node.
-
-        Parameters
-        ----------
-        node : hashable
-            Node in `~Filament2D.graph`.
-        radius : `~astropy.units.Quantity`, optional
-            Only pixels within this distance of the node are used. Converted
-            to pixel units.
-
-        Returns
-        -------
-        orientations : dict
-            Maps each neighboring node to the local orientation (radians in
-            [0, pi)) of the connecting edge. This is the angle of the line
-            measured from the +x (column) axis towards +y (row) of the
-            array. This is NOT the same convention as
-            `~Filament2D.orientation_branches` from the RHT, so only compare
-            values returned by this method. NaN if fewer than two pixels
-            are within ``radius``.
-        '''
-
-        if not hasattr(radius, 'unit'):
-            warnings.warn("radius has no given units. Assuming pixel units.")
-            radius *= u.pix
-
-        radius = self._converter.to_pixel(radius).value
-
-        pos = np.array(self._graph.nodes[node]['pos'])
-        pts = self.branch_pts(img_coords=False)
-
-        out = {}
-        for nbr in self._graph[node]:
-            idx = self._graph[node][nbr]['indices']
-            pix = np.vstack([pts[i] for i in idx]).astype(float)
-            pix = pix[np.hypot(*(pix - pos).T) <= radius]
-
-            if len(pix) < 2:
-                out[nbr] = np.nan
-                continue
-
-            # Principal axis of the pixel distribution
-            pix = pix - pix.mean(axis=0)
-            eigval, eigvec = np.linalg.eigh(pix.T @ pix)
-            drow, dcol = eigvec[:, np.argmax(eigval)]
-            out[nbr] = np.arctan2(drow, dcol) % np.pi
-
-        return out
-
     def _update_graph_orientation(self):
         '''
         Copy the branch orientations and curvatures onto the graph edges.
