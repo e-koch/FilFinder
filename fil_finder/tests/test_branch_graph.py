@@ -131,7 +131,7 @@ def test_edge_indices_match_branch_properties():
                 assert fil.branch_labels[idx] == label
 
 
-def test_edge_indices_after_pruning_changes_indexing():
+def test_edge_indices_with_pruned_branches():
     # Pruning removes branches; label - 1 is then no longer the index.
     fil, image = make_filament(prune=False)
     fil_pruned, image = make_filament(prune=True)
@@ -145,3 +145,35 @@ def test_edge_indices_after_pruning_changes_indexing():
         assert len(pts) > 0
         assert np.isclose(fil_pruned.branch_properties['length'][idx].value,
                           data['length'])
+
+
+def test_edge_orientation_matches_rht():
+
+    for prune in [True, False]:
+        fil, image = make_filament(prune=prune)
+        fil.rht_branch_analysis(radius=3 * u.pix, min_branch_length=0 * u.pix)
+
+        for a, b, data in fil.graph.edges(data=True):
+            assert len(data['indices']) == 1
+            idx = data['indices'][0]
+            assert np.isclose(data['orientation'],
+                              fil.orientation_branches[idx].value,
+                              equal_nan=True)
+            assert np.isclose(data['curvature'],
+                              fil.curvature_branches[idx].value,
+                              equal_nan=True)
+
+
+def test_merged_edge_orientation():
+    # Orientation of a merged edge is a length-weighted mean mod pi
+    fil, image = make_filament(prune=True)
+    fil.rht_branch_analysis(radius=3 * u.pix, min_branch_length=0 * u.pix)
+
+    # Pretend two branches were merged into one edge
+    edge = fil.graph.edges[next(iter(fil.graph.edges))]
+    edge['indices'] = [0, 0]
+    edge['labels'] = [1, 1]
+    fil._update_graph_orientation()
+
+    assert np.isclose(edge['orientation'] % np.pi,
+                      fil.orientation_branches[0].value % np.pi)

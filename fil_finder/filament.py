@@ -756,8 +756,52 @@ class Filament2D(FilamentNDBase):
         self._orientation_branches = np.array(means) * u.rad
         self._curvature_branches = np.array(iqrs) * u.rad
 
+        self._update_graph_orientation()
+
         if return_self:
             return self
+
+    def _update_graph_orientation(self):
+        '''
+        Copy the branch orientations and curvatures onto the graph edges.
+
+        Each edge gets ``orientation`` and ``curvature`` (radians). For edges
+        covering more than one branch these are length-weighted averages over
+        the branches with finite values (orientation is averaged as an
+        angle modulo pi). They are NaN if no branch has a finite value, e.g.
+        because the branches were shorter than ``min_branch_length``. The
+        individual values are kept in ``branch_orientation`` and
+        ``branch_curvature``, in the order of ``labels``.
+        '''
+
+        orient = self._orientation_branches.to(u.rad).value
+        curv = self._curvature_branches.to(u.rad).value
+
+        for _, _, edge in self._graph.edges(data=True):
+            if 'indices' not in edge:
+                continue
+
+            idx = np.array(edge['indices'], dtype=int)
+            edge['branch_orientation'] = orient[idx]
+            edge['branch_curvature'] = curv[idx]
+
+            weights = self._branch_properties['length'][idx].value
+            good = np.isfinite(orient[idx])
+
+            if not good.any():
+                edge['orientation'] = np.nan
+                edge['curvature'] = np.nan
+            elif len(idx) == 1:
+                edge['orientation'] = orient[idx[0]]
+                edge['curvature'] = curv[idx[0]]
+            else:
+                w = weights[good]
+                # Orientations are modulo pi: average the doubled angle
+                ang = 2 * orient[idx][good]
+                mean = 0.5 * np.arctan2((w * np.sin(ang)).sum(),
+                                        (w * np.cos(ang)).sum())
+                edge['orientation'] = mean % np.pi
+                edge['curvature'] = np.average(curv[idx][good], weights=w)
 
     @property
     def orientation_branches(self):
