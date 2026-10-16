@@ -77,6 +77,29 @@ class FilamentNDBase(object):
     def graph(self):
         '''
         The networkx graph for the filament.
+
+        Nodes are the end points (named by the integer skeleton label of the
+        branch they end) and intersections (named 'A', 'B', ...). Edges are
+        branches of the skeleton, with the attributes:
+
+        * ``weight``: Weighting used for the longest path. This is a mix of
+          relative length and intensity, not a length. Use ``length``.
+        * ``labels``: Skeleton labels of the branches along the edge. Edges
+          have more than one (in no particular order) if pruning left an
+          intersection with only two connections, and the branches were
+          merged.
+        * ``indices``: Indices of those branches in `branch_properties` and
+          `branch_pts` (see `branch_label_map`).
+        * ``length``, ``intensity``: Pixel length and mean intensity
+          (length-weighted for merged edges).
+        * ``orientation``, ``curvature`` (radians), ``branch_orientation``,
+          ``branch_curvature``: Added by `rht_branch_analysis`.
+
+        Nodes have ``pos``, the ``(y, x)`` pixel position in the same
+        coordinates as `branch_pts` with ``img_coords=False``.
+        ``graph.graph['loop_edges']`` lists branches parallel to another
+        branch (loops), which are not edges in the graph. Their ``nodes`` may
+        have been merged away, and so may not be in the graph.
         '''
         return self._graph
 
@@ -443,6 +466,17 @@ class Filament2D(FilamentNDBase):
         self._branch_labels = np.array(labels, dtype=int)
         self._branch_label_map = {int(label): idx for idx, label
                                   in enumerate(labels)}
+
+        # Parallel branches between the same two nodes (loops) cannot be
+        # stored in a simple graph. Only the shortest is an edge; the others
+        # are recorded in the graph attributes.
+        self._graph.graph['loop_edges'] = \
+            [{'nodes': (edge[0], edge[1]),
+              'label': int(edge[2][0]),
+              'length': edge[2][2],
+              'intensity': edge[2][3],
+              'index': self._branch_label_map.get(int(edge[2][0]))}
+             for edge in loop_edges[0]]
 
         for _, _, edge in self._graph.edges(data=True):
             if 'labels' in edge:
@@ -1625,7 +1659,7 @@ class Filament2D(FilamentNDBase):
 
         return tab
 
-    def branch_table(self, include_rht=False):
+    def branch_table(self, include_rht=False, include_graph=False):
         '''
         Save the branch properties of the filament.
 
@@ -1634,6 +1668,11 @@ class Filament2D(FilamentNDBase):
         include_rht : bool, optional
             If `branches=True` is used in `Filament2D.exec_rht`, the branch
             orientation and curvature will be added to the table.
+        include_graph : bool, optional
+            Add the skeleton label of each branch and the graph nodes it
+            connects (``node_a`` and ``node_b``; ``None`` for branches that
+            are not a graph edge, e.g. the extra branch of a loop). Branches
+            merged into a single graph edge share the same nodes.
 
         Returns
         -------
@@ -1650,6 +1689,17 @@ class Filament2D(FilamentNDBase):
         if include_rht:
             branch_data['orientation'] = self.orientation_branches
             branch_data['curvature'] = self.curvature_branches
+
+        if include_graph:
+            nodes_a = [None] * len(self.branch_labels)
+            nodes_b = [None] * len(self.branch_labels)
+            for a, b, edge in self._graph.edges(data=True):
+                for idx in edge.get('indices', []):
+                    nodes_a[idx] = str(a)
+                    nodes_b[idx] = str(b)
+            branch_data['label'] = self.branch_labels
+            branch_data['node_a'] = nodes_a
+            branch_data['node_b'] = nodes_b
 
         tab = Table([Column(branch_data[key]) for key in branch_data],
                     names=branch_data.keys())

@@ -195,3 +195,65 @@ def test_junction_orientations():
     # Too small a radius: no pixels to fit
     angles = fil.junction_orientations('A', radius=0.1 * u.pix)
     assert np.isnan(list(angles.values())).all()
+
+
+def make_loop_filament():
+    # Ring with a tail at the top and bottom. The two arcs of the ring are
+    # parallel branches between the same two intersections.
+    ring = [(2, 4), (3, 3), (4, 2), (5, 3), (6, 4), (5, 5), (4, 6), (3, 5)]
+    pix = np.array(sorted(set(ring) | {(1, 4), (0, 4), (7, 4), (8, 4)})).T
+
+    fil = Filament2D((pix[0], pix[1]))
+    fil.skeleton_analysis(np.ones((12, 12)), prune_criteria='length',
+                          branch_thresh=0 * u.pix)
+    return fil
+
+
+def test_loop_edges_recorded():
+    fil = make_loop_filament()
+
+    loops = fil.graph.graph['loop_edges']
+    assert len(loops) == 1
+    assert loops[0]['label'] in fil.branch_labels
+    idx = loops[0]['index']
+    assert np.isclose(fil.branch_properties['length'][idx].value,
+                      loops[0]['length'])
+
+    # The loop branch is not on any edge; all the others are
+    edge_idx = [i for _, _, d in fil.graph.edges(data=True)
+                for i in d['indices']]
+    assert idx not in edge_idx
+    assert sorted(edge_idx + [idx]) == list(range(len(fil.branch_labels)))
+
+    # No loops in the simple filament
+    fil, _ = make_filament(prune=True)
+    assert fil.graph.graph['loop_edges'] == []
+
+
+def test_merged_edge_after_pruning_loop():
+    fil = make_loop_filament()
+
+    # Removing the loop edge leaves two intersections that are merged
+    edge = list(fil.graph.edges(data=True))[0][2]
+    assert len(edge['labels']) == 3
+    assert len(edge['indices']) == 3
+    assert np.isclose(edge['length'],
+                      fil.branch_properties['length'][edge['indices']].sum().value)
+
+
+def test_branch_table_graph_columns():
+    fil, image = make_filament(prune=True)
+
+    default = fil.branch_table()
+    assert 'label' not in default.colnames
+
+    tab = fil.branch_table(include_graph=True)
+    assert tab.colnames[:len(default.colnames)] == default.colnames
+    assert list(tab['label']) == list(fil.branch_labels)
+    for row in tab:
+        assert row['node_a'] is not None
+        edge = fil.graph.edges[[n for n in fil.graph.nodes
+                                if str(n) == row['node_a']][0],
+                               [n for n in fil.graph.nodes
+                                if str(n) == row['node_b']][0]]
+        assert row['label'] in edge['labels']

@@ -899,8 +899,8 @@ def merge_nodes(node, G):
 
     The two edges meeting at the node are replaced by a single edge. Its
     weight and length are the sums of the original edges, ``labels`` lists the
-    branches along the new edge (ordered from the first neighbor to the
-    second), and ``intensity`` is the length-weighted mean. If the neighbors
+    branches along the new edge (in no particular order), and ``intensity`` is
+    the length-weighted mean. If the neighbors
     were already connected, that edge is replaced (as in previous versions) and
     its attributes are kept in the ``displaced`` attribute of the new edge.
     '''
@@ -918,7 +918,6 @@ def merge_nodes(node, G):
     # Branch information is only propagated when both edges have it.
     if all(key in edge for edge in (edge0, edge1)
            for key in ('labels', 'length', 'intensity')):
-        # Edge 0 runs neigb[0] -> node, and so is already in order.
         new_attrs['labels'] = list(edge0['labels']) + list(edge1['labels'])
         new_attrs['length'] = edge0['length'] + edge1['length']
         new_attrs['intensity'] = \
