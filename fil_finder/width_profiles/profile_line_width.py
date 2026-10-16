@@ -294,7 +294,7 @@ def walk_through_skeleton(skeleton):
             yy_inds = yy + y
             xx_inds = xx + x
 
-            hits = [int(elem) for elem in np.argwhere(neighbors)]
+            hits = [int(elem) for elem in np.flatnonzero(neighbors)]
             # Remove the centre point and any points already in the list
             for pos, (y_ind, x_ind) in enumerate(zip(yy_inds, xx_inds)):
                 if (y_ind, x_ind) in ordered_pts:
@@ -459,8 +459,8 @@ def gauss_fit(distance, rad_profile, sigma=None):
         # p.plot(distance, rad_profile)
         # p.show()
 
-        fit = np.asarray([np.NaN] * len(p0))
-        fit_errors = np.asarray([np.NaN] * len(p0))
-        red_chisq = np.NaN
+        fit = np.asarray([np.nan] * len(p0))
+        fit_errors = np.asarray([np.nan] * len(p0))
+        red_chisq = np.nan
 
     return fit, fit_errors, red_chisq

@@ -65,9 +65,9 @@ conv = np.sqrt(r ** 2. - 1) * \
 kernel = convolution.Gaussian2DKernel(conv)
 good_pixels = np.isfinite(img)
 nan_pix = np.ones(img.shape)
-nan_pix[good_pixels == 0] = np.NaN
+nan_pix[good_pixels == 0] = np.nan
 conv_img = convolution.convolve(img, kernel, boundary='fill',
-                                fill_value=np.NaN)
+                                fill_value=np.nan)
 
 # Avoid edge effects from smoothing
 conv_img = conv_img * nan_pix
@@ -91,7 +91,7 @@ regrid_conv_img = zoom(conv_img, 1/r)
 regrid_conv_img = zoom(regrid_conv_img, r)
 
 # nan_pix = np.ones(regrid_conv_img.shape)
-# nan_pix[good_pixels == 0] = np.NaN
+# nan_pix[good_pixels == 0] = np.nan
 
 regrid_conv_img = regrid_conv_img[:-1, :-1] * nan_pix
 # regrid_conv_img = regrid_conv_img * nan_pix

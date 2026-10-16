@@ -28,7 +28,7 @@ from .filament import Filament2D
 try:
     FWHM_FACTOR = 2 * np.sqrt(2 * np.log(2.))
 except TypeError:
-    FWHM_FACTOR = np.NaN
+    FWHM_FACTOR = np.nan
 
 
 class FilFinder2D(BaseInfoMixin):

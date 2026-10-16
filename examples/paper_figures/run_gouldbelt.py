@@ -40,9 +40,9 @@ def wrapper(filename, distance, beamwidth, offset, verbose=False):
                 kernel = convolution.Gaussian2DKernel(conv)
                 good_pixels = np.isfinite(img)
                 nan_pix = np.ones(img.shape)
-                nan_pix[good_pixels == 0] = np.NaN
+                nan_pix[good_pixels == 0] = np.nan
                 img = convolution.convolve(img, kernel, boundary='fill',
-                                           fill_value=np.NaN)
+                                           fill_value=np.nan)
                 # Avoid edge effects from smoothing
                 img = img * nan_pix
 
@@ -64,7 +64,7 @@ def wrapper(filename, distance, beamwidth, offset, verbose=False):
 
 
             nan_pix = np.ones(regrid_conv_img.shape)
-            nan_pix[good_pixels == 0] = np.NaN
+            nan_pix[good_pixels == 0] = np.nan
 
 
             img = regrid_conv_img * nan_pix
