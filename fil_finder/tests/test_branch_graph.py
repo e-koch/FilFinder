@@ -177,3 +177,21 @@ def test_merged_edge_orientation():
 
     assert np.isclose(edge['orientation'] % np.pi,
                       fil.orientation_branches[0].value % np.pi)
+
+
+def test_junction_orientations():
+
+    fil, image = make_filament(prune=True)
+
+    angles = fil.junction_orientations('A', radius=3 * u.pix)
+    assert set(angles) == set(fil.graph['A'])
+
+    # Arms leave the hub at (4, 4) along the diagonal, along the row, and
+    # along the diagonal.
+    expected = {1: np.pi / 4, 2: 0., 3: np.pi / 4}
+    for node, angle in angles.items():
+        assert np.isclose(angle, expected[int(node)])
+
+    # Too small a radius: no pixels to fit
+    angles = fil.junction_orientations('A', radius=0.1 * u.pix)
+    assert np.isnan(list(angles.values())).all()
