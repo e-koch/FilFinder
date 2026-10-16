@@ -430,7 +430,11 @@ def longest_path(edge_list, nodes, verbose=False,
         G.add_nodes_from(nodes[n])
 
         for i in edge_list[n]:
-            G.add_edge(i[0], i[1], weight=i[2][1])
+            # i[2] is (label, weight, length, intensity) for the branch
+            # joining the two nodes. `labels` is a list because edges
+            # produced by merging nodes can span multiple branches.
+            G.add_edge(i[0], i[1], weight=i[2][1], labels=[int(i[2][0])],
+                       length=i[2][2], intensity=i[2][3])
 
         # networkx 2.0 returns a two-element tuple. Convert to a dict first
         paths = dict(nx.shortest_path_length(G, weight='weight'))
