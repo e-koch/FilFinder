@@ -112,3 +112,36 @@ def test_merge_nodes_keeps_displaced_edge():
     G = merge_nodes('A', G)
     assert G[1][2]['labels'] == [1, 2]
     assert G[1][2]['displaced']['labels'] == [9]
+
+
+def test_edge_indices_match_branch_properties():
+
+    for prune in [True, False]:
+        fil, image = make_filament(prune=prune)
+
+        assert len(fil.branch_labels) == fil.branch_properties['number']
+        assert list(fil.branch_label_map.values()) == \
+            list(range(fil.branch_properties['number']))
+
+        for a, b, data in fil.graph.edges(data=True):
+            assert len(data['indices']) == len(data['labels'])
+            lengths = fil.branch_properties['length'][data['indices']].value
+            assert np.isclose(lengths.sum(), data['length'])
+            for idx, label in zip(data['indices'], data['labels']):
+                assert fil.branch_labels[idx] == label
+
+
+def test_edge_indices_after_pruning_changes_indexing():
+    # Pruning removes branches; label - 1 is then no longer the index.
+    fil, image = make_filament(prune=False)
+    fil_pruned, image = make_filament(prune=True)
+
+    assert fil_pruned.branch_properties['number'] < \
+        fil.branch_properties['number']
+
+    for a, b, data in fil_pruned.graph.edges(data=True):
+        idx = data['indices'][0]
+        pts = fil_pruned.branch_pts()[idx]
+        assert len(pts) > 0
+        assert np.isclose(fil_pruned.branch_properties['length'][idx].value,
+                          data['length'])

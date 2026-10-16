@@ -430,8 +430,48 @@ class Filament2D(FilamentNDBase):
              'number': branch_properties['number'][0],
              'pixels': branch_properties['pixels'][0]}
 
+        # Pruning removes entries from the branch property lists without
+        # relabeling the skeleton. The surviving labels are in the same order
+        # as the property lists, so a label's index is its rank.
+        labels = np.unique(labeled_mask[0])
+        labels = labels[labels > 0]
+        if len(labels) != len(self._branch_properties['length']):
+            warnings.warn("Number of branch labels does not match the number "
+                          "of branches. Graph edges will not be linked to "
+                          "branch indices.")
+            labels = []
+        self._branch_labels = np.array(labels, dtype=int)
+        self._branch_label_map = {int(label): idx for idx, label
+                                  in enumerate(labels)}
+
+        for _, _, edge in self._graph.edges(data=True):
+            if 'labels' in edge:
+                edge['indices'] = [self._branch_label_map[lab]
+                                   for lab in edge['labels']
+                                   if lab in self._branch_label_map]
+
         if return_self:
             return self
+
+    @property
+    def branch_labels(self):
+        '''
+        Skeleton label of each branch, in the same order as
+        `~Filament2D.branch_properties` and `~Filament2D.branch_pts`.
+
+        The labels are the values in the ``labels`` attribute of the edges in
+        `~Filament2D.graph`; ``branch_label_map`` converts them to indices.
+        '''
+        return self._branch_labels
+
+    @property
+    def branch_label_map(self):
+        '''
+        Dictionary mapping a skeleton branch label (as stored in the
+        ``labels`` attribute of graph edges) to the index of the branch in
+        `~Filament2D.branch_properties`.
+        '''
+        return self._branch_label_map
 
     @property
     def branch_properties(self):
