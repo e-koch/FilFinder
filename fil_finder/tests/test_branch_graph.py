@@ -42,3 +42,21 @@ def test_edges_store_branch_info():
         edge_labels = [lab for _, _, d in fil.graph.edges(data=True)
                        for lab in d['labels']]
         assert len(edge_labels) == len(set(edge_labels))
+
+
+def test_nodes_store_positions():
+
+    for prune in [True, False]:
+        fil, image = make_filament(prune=prune)
+        pts = np.vstack(fil.branch_pts())
+
+        for node, data in fil.graph.nodes(data=True):
+            assert 'pos' in data
+            dist = np.sqrt(((pts - np.array(data['pos'])) ** 2).sum(axis=1))
+            if isinstance(node, str):
+                # Intersection pixels are removed from the branches, so the
+                # node sits next to (not on) them.
+                assert dist.min() <= 2
+            else:
+                # End nodes sit on their branch
+                assert dist.min() == 0

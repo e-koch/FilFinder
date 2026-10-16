@@ -18,6 +18,7 @@ else:
 
 from .length import (init_lengths, main_length,
                      pre_graph, longest_path, prune_graph,
+                     node_positions,
                      all_shortest_paths)
 from .pixel_ident import pix_identify, make_final_skeletons
 from .utilities import pad_image, in_ipynb, red_chisq
@@ -305,7 +306,9 @@ class Filament2D(FilamentNDBase):
             max_path, extremum, G = \
                 longest_path(edge_list, nodes,
                              verbose=False,
-                             skeleton_arrays=labeled_mask)
+                             skeleton_arrays=labeled_mask,
+                             node_positions=node_positions(labeled_mask,
+                                                           interpts, ends))
 
             # Skip pruning if skeleton has only one branch
             if len(G[0].nodes()) > 1:

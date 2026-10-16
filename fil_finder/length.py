@@ -374,9 +374,55 @@ def pre_graph(labelisofil, branch_properties, interpts, ends):
     return edge_list, nodes, loop_edges
 
 
+def node_positions(labelisofil, interpts, ends):
+    '''
+    Pixel positions of the graph nodes created by `pre_graph`.
+
+    End nodes are named by the label of the branch they sit on and are placed
+    at the end pixel. Intersection nodes are named alphabetically (in the same
+    order as `pre_graph`) and are placed at the mean of the intersection's
+    pixels. If a branch has two end points (an isolated branch), the node is
+    placed at the first.
+
+    Parameters
+    ----------
+    labelisofil : list
+        Contains individual arrays for each skeleton where the
+        branches are labeled and the intersections have been removed.
+    interpts : list
+        Contains the pixels which belong to each intersection.
+    ends : list
+        Contains the end pixels for each skeleton.
+
+    Returns
+    -------
+    positions : list
+        One dictionary per skeleton mapping node name to ``(y, x)``, in the
+        same coordinates as the labeled skeleton arrays.
+    '''
+
+    positions = []
+
+    for n in range(len(labelisofil)):
+        pos = {}
+
+        for end in ends[n][::-1]:
+            pos[labelisofil[n][end[0], end[1]]] = \
+                (float(end[0]), float(end[1]))
+
+        for name, intersec in zip(product_gen(string.ascii_uppercase),
+                                  interpts[n]):
+            pix = np.array(intersec, dtype=float)
+            pos[name] = tuple(pix.mean(axis=0))
+
+        positions.append(pos)
+
+    return positions
+
+
 def longest_path(edge_list, nodes, verbose=False,
                  skeleton_arrays=None, save_png=False, save_name=None,
-                 test_print=False):
+                 test_print=False, node_positions=None):
     '''
     Takes the output of pre_graph and runs the shortest path algorithm.
 
@@ -407,6 +453,10 @@ def longest_path(edge_list, nodes, verbose=False,
         Enable extra printing to screen when finding the longest path. Defaults
         is `False`.
 
+    node_positions : list, optional
+        Output of `node_positions`. If given, each graph node is given a
+        ``pos`` attribute with its ``(y, x)`` pixel position.
+
     Returns
     -------
 
@@ -428,6 +478,11 @@ def longest_path(edge_list, nodes, verbose=False,
     for n in range(num):
         G = nx.Graph()
         G.add_nodes_from(nodes[n])
+
+        if node_positions is not None:
+            for node in G.nodes:
+                if node in node_positions[n]:
+                    G.nodes[node]['pos'] = node_positions[n][node]
 
         for i in edge_list[n]:
             # i[2] is (label, weight, length, intensity) for the branch
