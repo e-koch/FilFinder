@@ -60,3 +60,55 @@ def test_nodes_store_positions():
             else:
                 # End nodes sit on their branch
                 assert dist.min() == 0
+
+
+def test_merge_nodes_combines_branch_info():
+    import networkx as nx
+    from ..length import merge_nodes
+
+    G = nx.Graph()
+    G.add_edge(1, 'A', weight=0.2, labels=[1], length=2., intensity=1.)
+    G.add_edge('A', 2, weight=0.3, labels=[5], length=6., intensity=3.)
+    G.add_edge('A', 3, weight=0.5, labels=[7], length=1., intensity=1.)
+    G.add_edge(3, 'B', weight=0.1, labels=[2], length=4., intensity=2.)
+    G.add_edge('B', 4, weight=0.1, labels=[3], length=4., intensity=4.)
+
+    # A has three neighbors: nothing to merge
+    merge_nodes('A', G)
+    assert 'A' in G
+
+    G = merge_nodes('B', G)
+    assert 'B' not in G
+    edge = G[3][4]
+    assert np.isclose(edge['weight'], 0.2)
+    assert edge['length'] == 8.
+    assert np.isclose(edge['intensity'], 3.)
+    assert sorted(edge['labels']) == [2, 3]
+    assert 'displaced' not in edge
+
+
+def test_merge_nodes_without_branch_info():
+    import networkx as nx
+    from ..length import merge_nodes
+
+    G = nx.Graph()
+    G.add_edge(1, 'A', weight=0.2)
+    G.add_edge('A', 2, weight=0.3)
+
+    G = merge_nodes('A', G)
+    assert np.isclose(G[1][2]['weight'], 0.5)
+    assert 'labels' not in G[1][2]
+
+
+def test_merge_nodes_keeps_displaced_edge():
+    import networkx as nx
+    from ..length import merge_nodes
+
+    G = nx.Graph()
+    G.add_edge(1, 2, weight=1., labels=[9], length=1., intensity=1.)
+    G.add_edge(1, 'A', weight=1., labels=[1], length=1., intensity=1.)
+    G.add_edge('A', 2, weight=1., labels=[2], length=1., intensity=1.)
+
+    G = merge_nodes('A', G)
+    assert G[1][2]['labels'] == [1, 2]
+    assert G[1][2]['displaced']['labels'] == [9]
