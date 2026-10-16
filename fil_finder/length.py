@@ -374,9 +374,55 @@ def pre_graph(labelisofil, branch_properties, interpts, ends):
     return edge_list, nodes, loop_edges
 
 
+def node_positions(labelisofil, interpts, ends):
+    '''
+    Pixel positions of the graph nodes created by `pre_graph`.
+
+    End nodes are named by the label of the branch they sit on and are placed
+    at the end pixel. Intersection nodes are named alphabetically (in the same
+    order as `pre_graph`) and are placed at the mean of the intersection's
+    pixels. If a branch has two end points (an isolated branch), the node is
+    placed at the first.
+
+    Parameters
+    ----------
+    labelisofil : list
+        Contains individual arrays for each skeleton where the
+        branches are labeled and the intersections have been removed.
+    interpts : list
+        Contains the pixels which belong to each intersection.
+    ends : list
+        Contains the end pixels for each skeleton.
+
+    Returns
+    -------
+    positions : list
+        One dictionary per skeleton mapping node name to ``(y, x)``, in the
+        same coordinates as the labeled skeleton arrays.
+    '''
+
+    positions = []
+
+    for n in range(len(labelisofil)):
+        pos = {}
+
+        for end in ends[n][::-1]:
+            pos[labelisofil[n][end[0], end[1]]] = \
+                (float(end[0]), float(end[1]))
+
+        for name, intersec in zip(product_gen(string.ascii_uppercase),
+                                  interpts[n]):
+            pix = np.array(intersec, dtype=float)
+            pos[name] = tuple(pix.mean(axis=0))
+
+        positions.append(pos)
+
+    return positions
+
+
 def longest_path(edge_list, nodes, verbose=False,
                  skeleton_arrays=None, save_png=False, save_name=None,
-                 test_print=False):
+                 test_print=False, node_positions=None):
     '''
     Takes the output of pre_graph and runs the shortest path algorithm.
 
@@ -407,6 +453,10 @@ def longest_path(edge_list, nodes, verbose=False,
         Enable extra printing to screen when finding the longest path. Defaults
         is `False`.
 
+    node_positions : list, optional
+        Output of `node_positions`. If given, each graph node is given a
+        ``pos`` attribute with its ``(y, x)`` pixel position.
+
     Returns
     -------
 
@@ -429,8 +479,17 @@ def longest_path(edge_list, nodes, verbose=False,
         G = nx.Graph()
         G.add_nodes_from(nodes[n])
 
+        if node_positions is not None:
+            for node in G.nodes:
+                if node in node_positions[n]:
+                    G.nodes[node]['pos'] = node_positions[n][node]
+
         for i in edge_list[n]:
-            G.add_edge(i[0], i[1], weight=i[2][1])
+            # i[2] is (label, weight, length, intensity) for the branch
+            # joining the two nodes. `labels` is a list because edges
+            # produced by merging nodes can span multiple branches.
+            G.add_edge(i[0], i[1], weight=i[2][1], labels=[int(i[2][0])],
+                       length=i[2][2], intensity=i[2][3])
 
         # networkx 2.0 returns a two-element tuple. Convert to a dict first
         paths = dict(nx.shortest_path_length(G, weight='weight'))
@@ -837,6 +896,13 @@ def all_shortest_paths(G, start, finish, test_print=False, max_npath=200):
 def merge_nodes(node, G):
     '''
     Combine a node into its neighbors.
+
+    The two edges meeting at the node are replaced by a single edge. Its
+    weight and length are the sums of the original edges, ``labels`` lists the
+    branches along the new edge (in no particular order), and ``intensity`` is
+    the length-weighted mean. If the neighbors
+    were already connected, that edge is replaced (as in previous versions) and
+    its attributes are kept in the ``displaced`` attribute of the new edge.
     '''
 
     neigb = list(G[node])
@@ -844,11 +910,24 @@ def merge_nodes(node, G):
     if len(neigb) != 2:
         return G
 
-    new_weight = G[node][neigb[0]]['weight'] + \
-        G[node][neigb[1]]['weight']
+    edge0 = G[node][neigb[0]]
+    edge1 = G[node][neigb[1]]
+
+    new_attrs = {'weight': edge0['weight'] + edge1['weight']}
+
+    # Branch information is only propagated when both edges have it.
+    if all(key in edge for edge in (edge0, edge1)
+           for key in ('labels', 'length', 'intensity')):
+        new_attrs['labels'] = list(edge0['labels']) + list(edge1['labels'])
+        new_attrs['length'] = edge0['length'] + edge1['length']
+        new_attrs['intensity'] = \
+            (edge0['intensity'] * edge0['length'] +
+             edge1['intensity'] * edge1['length']) / new_attrs['length']
+
+    if G.has_edge(neigb[0], neigb[1]):
+        new_attrs['displaced'] = dict(G[neigb[0]][neigb[1]])
 
     G.remove_node(node)
-    G.add_edge(neigb[0], neigb[1], weight=new_weight)
+    G.add_edge(neigb[0], neigb[1], **new_attrs)
 
     return G
-

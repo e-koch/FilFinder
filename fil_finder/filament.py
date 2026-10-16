@@ -18,6 +18,7 @@ else:
 
 from .length import (init_lengths, main_length,
                      pre_graph, longest_path, prune_graph,
+                     node_positions,
                      all_shortest_paths)
 from .pixel_ident import pix_identify, make_final_skeletons
 from .utilities import pad_image, in_ipynb, red_chisq
@@ -76,6 +77,29 @@ class FilamentNDBase(object):
     def graph(self):
         '''
         The networkx graph for the filament.
+
+        Nodes are the end points (named by the integer skeleton label of the
+        branch they end) and intersections (named 'A', 'B', ...). Edges are
+        branches of the skeleton, with the attributes:
+
+        * ``weight``: Weighting used for the longest path. This is a mix of
+          relative length and intensity, not a length. Use ``length``.
+        * ``labels``: Skeleton labels of the branches along the edge. Edges
+          have more than one (in no particular order) if pruning left an
+          intersection with only two connections, and the branches were
+          merged.
+        * ``indices``: Indices of those branches in `branch_properties` and
+          `branch_pts` (see `branch_label_map`).
+        * ``length``, ``intensity``: Pixel length and mean intensity
+          (length-weighted for merged edges).
+        * ``orientation``, ``curvature`` (radians), ``branch_orientation``,
+          ``branch_curvature``: Added by `rht_branch_analysis`.
+
+        Nodes have ``pos``, the ``(y, x)`` pixel position in the same
+        coordinates as `branch_pts` with ``img_coords=False``.
+        ``graph.graph['loop_edges']`` lists branches parallel to another
+        branch (loops), which are not edges in the graph. Their ``nodes`` may
+        have been merged away, and so may not be in the graph.
         '''
         return self._graph
 
@@ -305,7 +329,9 @@ class Filament2D(FilamentNDBase):
             max_path, extremum, G = \
                 longest_path(edge_list, nodes,
                              verbose=False,
-                             skeleton_arrays=labeled_mask)
+                             skeleton_arrays=labeled_mask,
+                             node_positions=node_positions(labeled_mask,
+                                                           interpts, ends))
 
             # Skip pruning if skeleton has only one branch
             if len(G[0].nodes()) > 1:
@@ -427,8 +453,59 @@ class Filament2D(FilamentNDBase):
              'number': branch_properties['number'][0],
              'pixels': branch_properties['pixels'][0]}
 
+        # Pruning removes entries from the branch property lists without
+        # relabeling the skeleton. The surviving labels are in the same order
+        # as the property lists, so a label's index is its rank.
+        labels = np.unique(labeled_mask[0])
+        labels = labels[labels > 0]
+        if len(labels) != len(self._branch_properties['length']):
+            warnings.warn("Number of branch labels does not match the number "
+                          "of branches. Graph edges will not be linked to "
+                          "branch indices.")
+            labels = []
+        self._branch_labels = np.array(labels, dtype=int)
+        self._branch_label_map = {int(label): idx for idx, label
+                                  in enumerate(labels)}
+
+        # Parallel branches between the same two nodes (loops) cannot be
+        # stored in a simple graph. Only the shortest is an edge; the others
+        # are recorded in the graph attributes.
+        self._graph.graph['loop_edges'] = \
+            [{'nodes': (edge[0], edge[1]),
+              'label': int(edge[2][0]),
+              'length': edge[2][2],
+              'intensity': edge[2][3],
+              'index': self._branch_label_map.get(int(edge[2][0]))}
+             for edge in loop_edges[0]]
+
+        for _, _, edge in self._graph.edges(data=True):
+            if 'labels' in edge:
+                edge['indices'] = [self._branch_label_map[lab]
+                                   for lab in edge['labels']
+                                   if lab in self._branch_label_map]
+
         if return_self:
             return self
+
+    @property
+    def branch_labels(self):
+        '''
+        Skeleton label of each branch, in the same order as
+        `~Filament2D.branch_properties` and `~Filament2D.branch_pts`.
+
+        The labels are the values in the ``labels`` attribute of the edges in
+        `~Filament2D.graph`; ``branch_label_map`` converts them to indices.
+        '''
+        return self._branch_labels
+
+    @property
+    def branch_label_map(self):
+        '''
+        Dictionary mapping a skeleton branch label (as stored in the
+        ``labels`` attribute of graph edges) to the index of the branch in
+        `~Filament2D.branch_properties`.
+        '''
+        return self._branch_label_map
 
     @property
     def branch_properties(self):
@@ -713,8 +790,52 @@ class Filament2D(FilamentNDBase):
         self._orientation_branches = np.array(means) * u.rad
         self._curvature_branches = np.array(iqrs) * u.rad
 
+        self._update_graph_orientation()
+
         if return_self:
             return self
+
+    def _update_graph_orientation(self):
+        '''
+        Copy the branch orientations and curvatures onto the graph edges.
+
+        Each edge gets ``orientation`` and ``curvature`` (radians). For edges
+        covering more than one branch these are length-weighted averages over
+        the branches with finite values (orientation is averaged as an
+        angle modulo pi). They are NaN if no branch has a finite value, e.g.
+        because the branches were shorter than ``min_branch_length``. The
+        individual values are kept in ``branch_orientation`` and
+        ``branch_curvature``, in the order of ``labels``.
+        '''
+
+        orient = self._orientation_branches.to(u.rad).value
+        curv = self._curvature_branches.to(u.rad).value
+
+        for _, _, edge in self._graph.edges(data=True):
+            if 'indices' not in edge:
+                continue
+
+            idx = np.array(edge['indices'], dtype=int)
+            edge['branch_orientation'] = orient[idx]
+            edge['branch_curvature'] = curv[idx]
+
+            weights = self._branch_properties['length'][idx].value
+            good = np.isfinite(orient[idx])
+
+            if not good.any():
+                edge['orientation'] = np.nan
+                edge['curvature'] = np.nan
+            elif len(idx) == 1:
+                edge['orientation'] = orient[idx[0]]
+                edge['curvature'] = curv[idx[0]]
+            else:
+                w = weights[good]
+                # Orientations are modulo pi: average the doubled angle
+                ang = 2 * orient[idx][good]
+                mean = 0.5 * np.arctan2((w * np.sin(ang)).sum(),
+                                        (w * np.cos(ang)).sum())
+                edge['orientation'] = mean % np.pi
+                edge['curvature'] = np.average(curv[idx][good], weights=w)
 
     @property
     def orientation_branches(self):
@@ -1483,7 +1604,7 @@ class Filament2D(FilamentNDBase):
 
         return tab
 
-    def branch_table(self, include_rht=False):
+    def branch_table(self, include_rht=False, include_graph=False):
         '''
         Save the branch properties of the filament.
 
@@ -1492,6 +1613,11 @@ class Filament2D(FilamentNDBase):
         include_rht : bool, optional
             If `branches=True` is used in `Filament2D.exec_rht`, the branch
             orientation and curvature will be added to the table.
+        include_graph : bool, optional
+            Add the skeleton label of each branch and the graph nodes it
+            connects (``node_a`` and ``node_b``; ``None`` for branches that
+            are not a graph edge, e.g. the extra branch of a loop). Branches
+            merged into a single graph edge share the same nodes.
 
         Returns
         -------
@@ -1508,6 +1634,17 @@ class Filament2D(FilamentNDBase):
         if include_rht:
             branch_data['orientation'] = self.orientation_branches
             branch_data['curvature'] = self.curvature_branches
+
+        if include_graph:
+            nodes_a = [None] * len(self.branch_labels)
+            nodes_b = [None] * len(self.branch_labels)
+            for a, b, edge in self._graph.edges(data=True):
+                for idx in edge.get('indices', []):
+                    nodes_a[idx] = str(a)
+                    nodes_b[idx] = str(b)
+            branch_data['label'] = self.branch_labels
+            branch_data['node_a'] = nodes_a
+            branch_data['node_b'] = nodes_b
 
         tab = Table([Column(branch_data[key]) for key in branch_data],
                     names=branch_data.keys())
