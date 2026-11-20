@@ -12,6 +12,13 @@ filfinder_filament/
 
 ├── archive_old_experiments/
 
+│   ├── old_filfinder_simajiri/            # 旧strict／looseの抽出・計測
+│   │   ├── filfinder_simajiriteacher.py
+│   │   └── filfinder_simajiriteacher_loose.py
+│   ├── filfinder_simajiri_fix/            # 長さ選別後の分岐を含む骨格を保存
+│   │   ├── filfinder_strict_1108.py
+│   │   └── filfinder_loose_1108.py
+│
 │   ├── filfinder_2class/
 
 │   │   ├── filfinder_test_split_imgs.py    # 左右・上下の座標で分割し、膨張した0/1ラベルを保存
@@ -95,6 +102,17 @@ filfinder_filament/
 | `filfinder_label_comparision.py` | Aquila / IC5146 / Orion B | 別途用意したMMSeg configとcheckpointで推論し、TP/FP/FN/TNからPrecision・Recall・IoU・F1を集計。metrics_summary.csvとエラー可視化を保存 |
 
 ファイル名より `fits_name` と実行時の設定を優先する。旧ガイドにあった「ic5146.pyはAquila」「ic5146_fix.pyはIC5146」という説明は、現在のarchive内のコードとは一致しないため修正した。
+
+### archive内のSimajiri系列
+
+| スクリプト（`archive_old_experiments/` 以下） | 設定・処理と出力 |
+|---|---|
+| `old_filfinder_simajiri/filfinder_simajiriteacher.py` | 旧strict。Aquila（440 pc）、柱密度閾値 `7.52e21`、長さのrobust判定 `0.3 pc`。骨格FITS、長さCSV、解析PKL、可視化を保存する。 |
+| `old_filfinder_simajiri/filfinder_simajiriteacher_loose.py` | 旧loose。Polaris（140 pc）、柱密度閾値 `0.94e21`、robust判定 `0.1 pc`。loose専用の保存先を使い、骨格・マスクも可視化する。 |
+| `filfinder_simajiri_fix/filfinder_strict_1108.py` | 5領域に対応するstrict版。`REGION` 環境変数で対象を選択（既定はAquila）。長さ `0.30 pc` 以上の成分について、分岐を含む骨格FITS、長さCSV、赤線の重ね合わせPNGを保存する。 |
+| `filfinder_simajiri_fix/filfinder_loose_1108.py` | 同じく5領域に対応するloose版。長さ閾値はAquila・IC5146が `0.15 pc`、Orion B・Taurusが `0.30 pc`、Polarisが `0.10 pc`。選別後の骨格FITS、CSV、PNGを保存する。 |
+
+旧版は骨格全体をFITSに保存し、長さ条件はカタログのrobust判定に使う。1108版は長さで選んだ成分の骨格を保存する。PNGの線幅は表示用であり、保存する骨格の幅とは区別する。同名の旧スクリプトとルート直下の版はパスを明示して区別し、条件を確認する。
 
 **## 3. 研究方針・出力の違いを時系列で整理**
 
